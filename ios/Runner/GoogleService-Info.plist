@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyBiEyWGNhWj-sVJYmkfk_V5Y6wkNm5LJIA</string>
+	<key>GCM_SENDER_ID</key>
+	<string>219581386028</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.flashship.customer</string>
+	<key>PROJECT_ID</key>
+	<string>flashship-app</string>
+	<key>STORAGE_BUCKET</key>
+	<string>flashship-app.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>CLIENT_ID</key>
+	<string>1020094680343-iivbrqera91ieqtdl5jnft2q4ai20n6a.apps.googleusercontent.com</string>
+	<key>REVERSED_CLIENT_ID</key>
+	<string>com.googleusercontent.apps.1020094680343-iivbrqera91ieqtdl5jnft2q4ai20n6a</string>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:219581386028:ios:fee9d1b4d27dafdbf27089</string>
+	<key>DATABASE_URL</key>
+	<string>https://flashship-app-default-rtdb.asia-southeast1.firebasedatabase.app</string>
+</dict>
+</plist>

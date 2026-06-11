@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "219581386028",
+    "firebase_url": "https://flashship-app-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "flashship-app",
+    "storage_bucket": "flashship-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:219581386028:android:bcb58a943f25067af27089",
+        "android_client_info": {
+          "package_name": "vn.flashship.customer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSYWeYYO9oPK5I2HAkJ145eRp36WwnYaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,61 @@
+name: flashship_customer
+description: FlashShip Customer App - Đặt đơn giao hàng, xe ôm, mua hộ
+publish_to: 'none'
+version: 1.0.4+1
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # Network
+  dio: ^5.7.0
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Storage
+  shared_preferences: ^2.3.3
+  image_picker: ^1.1.2
+
+  # Location & Maps
+  geolocator: ^14.0.0
+  google_maps_flutter: ^2.9.0
+
+  # UI
+  google_fonts: ^6.2.1
+  cached_network_image: ^3.4.1
+
+  # Firebase / Push notifications + Realtime
+  firebase_core: ^3.13.0
+  firebase_messaging: ^15.2.5
+  firebase_database: ^11.3.5
+
+  # Utils
+  intl: ^0.19.0
+  permission_handler: ^11.3.1
+  url_launcher: ^6.3.1
+  webview_flutter: ^4.10.0
+  package_info_plus: ^8.1.2
+
+dependency_overrides:
+  path_provider_foundation: 2.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.6
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
+    - assets/icons/

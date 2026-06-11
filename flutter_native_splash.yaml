@@ -1,0 +1,7 @@
+flutter_native_splash:
+  color: "#FF6B35"
+  color_dark: "#CC5527"
+  image: assets/icon/app_icon.png
+  android: true
+  ios: true
+  fullscreen: false
