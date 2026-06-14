@@ -30,6 +30,7 @@ class _State extends ConsumerState<DeliveryBookingScreen> {
   gm.GoogleMapController? _mapCtrl;
 
   String? _pickupAddr, _destAddr;
+  String? _pickupPlaceName;
   double? _pickupLat, _pickupLng, _destLat, _destLng;
 
   double _myLat = 10.0452;
@@ -132,10 +133,11 @@ class _State extends ConsumerState<DeliveryBookingScreen> {
     if (result == null || !mounted) return;
     setState(() {
       if (isPickup) {
-        _pickupAddr = result.address;
-        _pickupLat  = result.lat;
-        _pickupLng  = result.lng;
-        _nearbyDrivers = [];
+        _pickupAddr      = result.address;
+        _pickupPlaceName = result.placeName;
+        _pickupLat       = result.lat;
+        _pickupLng       = result.lng;
+        _nearbyDrivers   = [];
       } else {
         _destAddr = result.address;
         _destLat  = result.lat;
@@ -309,6 +311,12 @@ class _State extends ConsumerState<DeliveryBookingScreen> {
           'delivery_phone':   _deliveryPhoneCtrl.text.trim(),
           if (_storeNameCtrl.text.trim().isNotEmpty)
             'store_name':   _storeNameCtrl.text.trim(),
+          // pickup_place_name: ưu tiên từ địa chỉ đã lưu, fallback về tên cửa hàng nhập tay
+          'pickup_place_name': (_pickupPlaceName?.isNotEmpty == true
+              ? _pickupPlaceName
+              : _storeNameCtrl.text.trim().isNotEmpty
+                  ? _storeNameCtrl.text.trim()
+                  : null),
           if (_storePhoneCtrl.text.trim().isNotEmpty)
             'pickup_phone': _storePhoneCtrl.text.trim(),
           if (_note.isNotEmpty)    'order_note':   _note,

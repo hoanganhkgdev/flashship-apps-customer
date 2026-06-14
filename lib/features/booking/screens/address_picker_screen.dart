@@ -1,23 +1,27 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/api/api_client.dart';
 import '../../../core/services/address_history_service.dart';
 import '../../../core/services/address_search_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../profile/models/address_model.dart';
 import 'map_picker_screen.dart';
 
-class AddressPickerScreen extends StatefulWidget {
+class AddressPickerScreen extends ConsumerStatefulWidget {
   const AddressPickerScreen({super.key});
 
   @override
-  State<AddressPickerScreen> createState() => _AddressPickerScreenState();
+  ConsumerState<AddressPickerScreen> createState() => _AddressPickerScreenState();
 }
 
-class _AddressPickerScreenState extends State<AddressPickerScreen> {
+class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
   final _controller = TextEditingController();
   final _focusNode  = FocusNode();
 
-  List<AddressHistoryItem> _history     = [];
-  List<AddressResult>      _suggestions = [];
+  List<AddressHistoryItem> _history       = [];
+  List<AddressModel>       _savedAddresses = [];
+  List<AddressResult>      _suggestions   = [];
   bool _searching  = false;
   bool _selecting  = false;
   Timer? _debounce;
@@ -26,6 +30,7 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
   void initState() {
     super.initState();
     _loadHistory();
+    _loadSavedAddresses();
     WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
   }
 
@@ -33,6 +38,17 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
     final h = await AddressHistoryService.load();
     if (!mounted) return;
     setState(() => _history = h);
+  }
+
+  Future<void> _loadSavedAddresses() async {
+    try {
+      final res = await ref.read(apiClientProvider).get('/customer/addresses');
+      final list = (res.data['data'] as List? ?? [])
+          .cast<Map<String, dynamic>>()
+          .map(AddressModel.fromJson)
+          .toList();
+      if (mounted) setState(() => _savedAddresses = list);
+    } catch (_) {}
   }
 
   @override
@@ -66,7 +82,14 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
       final item = AddressHistoryItem(address: detail.display, lat: detail.lat!, lng: detail.lng!);
       await AddressHistoryService.save(item);
       if (!mounted) return;
-      Navigator.of(context).pop(MapPickResult(address: detail.display, lat: detail.lat!, lng: detail.lng!));
+      // mainText là tên địa điểm (VD: "Vincom Center"), secondaryText là địa chỉ đầy đủ
+      final placeName = r.mainText.isNotEmpty && r.mainText != detail.display ? r.mainText : null;
+      Navigator.of(context).pop(MapPickResult(
+        address:   detail.display,
+        lat:       detail.lat!,
+        lng:       detail.lng!,
+        placeName: placeName,
+      ));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Không lấy được tọa độ. Thử lại hoặc chọn từ bản đồ.')),
@@ -78,6 +101,16 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
     await AddressHistoryService.save(item);
     if (!mounted) return;
     Navigator.of(context).pop(MapPickResult(address: item.address, lat: item.lat, lng: item.lng));
+  }
+
+  void _selectFromSaved(AddressModel addr) {
+    if (addr.latitude == null || addr.longitude == null) return;
+    Navigator.of(context).pop(MapPickResult(
+      address:   addr.address,
+      lat:       addr.latitude!,
+      lng:       addr.longitude!,
+      placeName: addr.placeName,
+    ));
   }
 
   Future<void> _removeHistory(AddressHistoryItem item) async {
@@ -179,64 +212,121 @@ class _AddressPickerScreenState extends State<AddressPickerScreen> {
           _MapRow(onTap: _openMap),
 
           // ── Nội dung: lịch sử hoặc kết quả ───────────────────────────
-          if (_showHistory && _history.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            _SectionLabel(
-              label: 'Đã tìm gần đây',
-              trailing: TextButton(
-                onPressed: _clearAllHistory,
-                style: TextButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: const Size(0, 0),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap),
-                child: const Text('Xóa tất cả',
-                    style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
-              ),
-            ),
+          if (_showHistory) ...[
             Expanded(
-              child: Container(
-                color: Colors.white,
-                child: ListView.separated(
-                  padding: EdgeInsets.zero,
-                  itemCount: _history.length,
-                  separatorBuilder: (_, __) => const Divider(
-                      height: 1, indent: 52, color: Color(0xFFF0F0F0)),
-                  itemBuilder: (_, i) {
-                    final item = _history[i];
-                    return Dismissible(
-                      key: ValueKey(item.address),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 16),
-                        color: AppColors.danger.withValues(alpha: 0.08),
-                        child: const Icon(Icons.delete_outline_rounded,
-                            color: AppColors.danger, size: 20),
-                      ),
-                      onDismissed: (_) => _removeHistory(item),
-                      child: InkWell(
-                        onTap: () => _selectFromHistory(item),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
-                          child: Row(children: [
-                            const Icon(Icons.history_rounded,
-                                size: 20, color: AppColors.textSecondary),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Text(item.address,
-                                  style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.textPrimary),
-                                  maxLines: 2,
-                                  overflow: TextOverflow.ellipsis),
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  // Địa chỉ đã lưu (từ API)
+                  if (_savedAddresses.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    const _SectionLabel(label: 'Địa chỉ đã lưu'),
+                    Container(
+                      color: Colors.white,
+                      child: Column(
+                        children: [
+                          for (int i = 0; i < _savedAddresses.length; i++) ...[
+                            if (i > 0)
+                              const Divider(height: 1, indent: 52, color: Color(0xFFF0F0F0)),
+                            InkWell(
+                              onTap: () => _selectFromSaved(_savedAddresses[i]),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+                                child: Row(children: [
+                                  const Icon(Icons.bookmark_outline_rounded,
+                                      size: 20, color: AppColors.primary),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(_savedAddresses[i].displayTitle,
+                                            style: const TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textPrimary),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis),
+                                        if (_savedAddresses[i].displaySubtitle != null) ...[
+                                          const SizedBox(height: 2),
+                                          Text(_savedAddresses[i].displaySubtitle!,
+                                              style: const TextStyle(
+                                                  fontSize: 12,
+                                                  color: AppColors.textSecondary),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis),
+                                        ],
+                                      ],
+                                    ),
+                                  ),
+                                ]),
+                              ),
                             ),
-                          ]),
-                        ),
+                          ],
+                        ],
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ],
+                  // Lịch sử tìm kiếm
+                  if (_history.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    _SectionLabel(
+                      label: 'Đã tìm gần đây',
+                      trailing: TextButton(
+                        onPressed: _clearAllHistory,
+                        style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 0),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                        child: const Text('Xóa tất cả',
+                            style: TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+                      ),
+                    ),
+                    Container(
+                      color: Colors.white,
+                      child: Column(
+                        children: [
+                          for (int i = 0; i < _history.length; i++) ...[
+                            if (i > 0)
+                              const Divider(height: 1, indent: 52, color: Color(0xFFF0F0F0)),
+                            Dismissible(
+                              key: ValueKey(_history[i].address),
+                              direction: DismissDirection.endToStart,
+                              background: Container(
+                                alignment: Alignment.centerRight,
+                                padding: const EdgeInsets.only(right: 16),
+                                color: AppColors.danger.withValues(alpha: 0.08),
+                                child: const Icon(Icons.delete_outline_rounded,
+                                    color: AppColors.danger, size: 20),
+                              ),
+                              onDismissed: (_) => _removeHistory(_history[i]),
+                              child: InkWell(
+                                onTap: () => _selectFromHistory(_history[i]),
+                                child: Padding(
+                                  padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+                                  child: Row(children: [
+                                    const Icon(Icons.history_rounded,
+                                        size: 20, color: AppColors.textSecondary),
+                                    const SizedBox(width: 16),
+                                    Expanded(
+                                      child: Text(_history[i].address,
+                                          style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w500,
+                                              color: AppColors.textPrimary),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis),
+                                    ),
+                                  ]),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
           ] else if (!_showHistory) ...[

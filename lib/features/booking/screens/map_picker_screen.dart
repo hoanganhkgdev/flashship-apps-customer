@@ -7,11 +7,13 @@ class MapPickResult {
   final String address;
   final double lat;
   final double lng;
+  final String? placeName;
 
   const MapPickResult({
     required this.address,
     required this.lat,
     required this.lng,
+    this.placeName,
   });
 }
 

@@ -15,6 +15,7 @@ import 'shopping_stop_detail_screen.dart';
 
 class _ShopStop {
   String? address;
+  String? placeName;
   double? lat, lng;
   final TextEditingController descCtrl = TextEditingController();
 
@@ -139,9 +140,10 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
     );
     if (result == null || !mounted) return;
     setState(() {
-      _stops[index].address = result.address;
-      _stops[index].lat     = result.lat;
-      _stops[index].lng     = result.lng;
+      _stops[index].address   = result.address;
+      _stops[index].placeName = result.placeName;
+      _stops[index].lat       = result.lat;
+      _stops[index].lng       = result.lng;
     });
     _estimate();
   }
@@ -234,10 +236,12 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
       final codAmount = _calcCodAmount();
       final netFee    = (_fee ?? 0) - _voucherDiscount;
       final res = await ref.read(apiClientProvider).post('/customer/orders', data: {
-        'service_type':     'shopping',
-        'pickup_address':   first.address!,
-        'delivery_address': _deliveryAddr!,
-        'pickup_phone':     '',
+        'service_type':        'shopping',
+        'pickup_address':      first.address!,
+        if (first.placeName?.isNotEmpty == true)
+          'pickup_place_name': first.placeName,
+        'delivery_address':    _deliveryAddr!,
+        'pickup_phone':        '',
         'delivery_phone':   _deliveryPhoneCtrl.text.trim(),
         'order_note':       _buildNote(),
         'stop_count':       _stops.length,
