@@ -124,6 +124,39 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> forgotPassword(String phone) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _api.post('/customer/auth/forgot-password', data: {'phone': phone});
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _parseError(e));
+      return false;
+    }
+  }
+
+  Future<bool> resetPassword({
+    required String phone,
+    required String otp,
+    required String password,
+  }) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _api.post('/customer/auth/reset-password', data: {
+        'phone':                 phone,
+        'otp':                   otp,
+        'password':              password,
+        'password_confirmation': password,
+      });
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: _parseError(e));
+      return false;
+    }
+  }
+
   Future<bool> login({required String phone, required String password}) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
