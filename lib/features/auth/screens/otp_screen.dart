@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/auth_provider.dart';
 
@@ -95,220 +96,223 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).maybePop(),
-        ),
-        title: const Text('Xác thực OTP'),
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SizedBox(height: 40),
+    final bottom = MediaQuery.of(context).viewInsets.bottom;
 
-            // Icon
-            Center(
-              child: Container(
-                width: 72,
-                height: 72,
+    return Scaffold(
+      backgroundColor: Colors.white,
+      resizeToAvoidBottomInset: false,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(24, 0, 24, bottom + 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+
+              const SizedBox(height: 16),
+
+              // Back button
+              Align(
+                alignment: Alignment.centerLeft,
+                child: GestureDetector(
+                  onTap: () => Navigator.of(context).maybePop(),
+                  child: Container(
+                    width: 40, height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.arrow_back_rounded,
+                        size: 20, color: AppColors.textPrimary),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 36),
+
+              // Icon
+              Container(
+                width: 72, height: 72,
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  color: AppColors.primary.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
                 ),
                 child: _otpSending
                     ? const Center(
                         child: SizedBox(
-                          width: 26,
-                          height: 26,
+                          width: 26, height: 26,
                           child: CircularProgressIndicator(
                               strokeWidth: 2.5, color: AppColors.primary),
                         ),
                       )
                     : const Icon(Icons.mark_chat_read_outlined,
-                        color: AppColors.primary, size: 34),
+                        color: AppColors.primary, size: 32),
               ),
-            ),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            Center(
-              child: Text(
+              Text(
                 _otpSending ? 'Đang gửi lại mã...' : 'Xác thực OTP',
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w400,
                   color: AppColors.textPrimary,
                 ),
               ),
-            ),
 
-            const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-            Center(
-              child: RichText(
+              RichText(
                 textAlign: TextAlign.center,
                 text: TextSpan(
-                  style: const TextStyle(
+                  style: GoogleFonts.beVietnamPro(
                       fontSize: 14,
                       color: AppColors.textSecondary,
                       height: 1.5),
                   children: [
-                    const TextSpan(text: 'Mã 6 chữ số đã gửi qua Zalo tới '),
+                    const TextSpan(text: 'Mã 6 chữ số đã gửi qua Zalo tới\n'),
                     TextSpan(
                       text: _maskedPhone,
-                      style: const TextStyle(
+                      style: GoogleFonts.beVietnamPro(
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary),
+                          color: AppColors.textPrimary,
+                          fontSize: 14),
                     ),
                   ],
                 ),
               ),
-            ),
 
-            const SizedBox(height: 36),
+              const SizedBox(height: 40),
 
-            if (!_otpSending) ...[
-              _OtpInputRow(
-                controller: _otpCtrl,
-                onFilled: () {
-                  setState(() => _error = null);
-                  _submit();
-                },
-                onChanged: () => setState(() => _error = null),
-              ),
+              if (!_otpSending) ...[
 
-              if (_error != null) ...[
-                const SizedBox(height: 20),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withValues(alpha: 0.06),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: AppColors.danger.withValues(alpha: 0.3)),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.error_outline_rounded,
-                        color: AppColors.danger, size: 18),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(_error!,
-                          style: const TextStyle(
-                            color: AppColors.danger,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          )),
+                // OTP boxes
+                _OtpInputRow(
+                  controller: _otpCtrl,
+                  onFilled: () {
+                    setState(() => _error = null);
+                    _submit();
+                  },
+                  onChanged: () => setState(() => _error = null),
+                ),
+
+                // Error
+                if (_error != null) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 11),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(8),
                     ),
-                  ]),
-                ),
-              ],
-
-              const SizedBox(height: 32),
-
-              ElevatedButton(
-                onPressed: _loading ? null : _submit,
-                style: ElevatedButton.styleFrom(
-                  minimumSize: const Size.fromHeight(52),
-                  backgroundColor: AppColors.primary,
-                  disabledBackgroundColor: AppColors.divider,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
-                  elevation: 0,
-                ),
-                child: _loading
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2.5, color: Colors.white),
-                      )
-                    : const Text(
-                        'Xác nhận OTP',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                    child: Row(children: [
+                      const Icon(Icons.error_outline_rounded,
+                          color: AppColors.danger, size: 17),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(_error!,
+                            style: GoogleFonts.beVietnamPro(
+                              fontSize: 13,
+                              color: AppColors.danger,
+                              fontWeight: FontWeight.w500,
+                            )),
                       ),
-              ),
+                    ]),
+                  ),
+                ],
 
-              const SizedBox(height: 24),
+                const SizedBox(height: 32),
 
-              Center(
-                child: AnimatedSwitcher(
+                // Confirm button
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton(
+                    onPressed: _loading ? null : _submit,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      disabledBackgroundColor:
+                          AppColors.primary.withValues(alpha: 0.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                      textStyle: GoogleFonts.beVietnamPro(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    child: _loading
+                        ? const SizedBox(
+                            width: 22, height: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2.5, color: Colors.white),
+                          )
+                        : const Text('Xác nhận'),
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+
+                // Resend
+                AnimatedSwitcher(
                   duration: const Duration(milliseconds: 200),
                   child: _resendSeconds > 0
-                      ? Container(
+                      ? RichText(
                           key: const ValueKey('countdown'),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: AppColors.surface,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: AppColors.divider),
-                          ),
-                          child: RichText(
-                            text: TextSpan(
-                              style: const TextStyle(fontSize: 13),
-                              children: [
-                                TextSpan(
-                                  text: 'Gửi lại sau ',
-                                  style: TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontWeight: FontWeight.w500),
-                                ),
-                                TextSpan(
-                                  text: '${_resendSeconds}s',
-                                  style: const TextStyle(
+                          text: TextSpan(
+                            style: GoogleFonts.beVietnamPro(fontSize: 14),
+                            children: [
+                              TextSpan(
+                                text: 'Gửi lại sau ',
+                                style: GoogleFonts.beVietnamPro(
+                                    color: AppColors.textSecondary),
+                              ),
+                              TextSpan(
+                                text: '${_resendSeconds}s',
+                                style: GoogleFonts.beVietnamPro(
                                     color: AppColors.primary,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ],
-                            ),
+                                    fontWeight: FontWeight.w700),
+                              ),
+                            ],
                           ),
                         )
                       : GestureDetector(
                           key: const ValueKey('resend'),
                           onTap: _resend,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 20, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.25),
-                              ),
-                            ),
-                            child: const Text(
-                              'Không nhận được mã? Gửi lại',
-                              style: TextStyle(
-                                color: AppColors.primary,
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                              ),
+                          child: RichText(
+                            text: TextSpan(
+                              style: GoogleFonts.beVietnamPro(fontSize: 14),
+                              children: [
+                                TextSpan(
+                                  text: 'Không nhận được mã? ',
+                                  style: GoogleFonts.beVietnamPro(
+                                      color: AppColors.textSecondary),
+                                ),
+                                TextSpan(
+                                  text: 'Gửi lại',
+                                  style: GoogleFonts.beVietnamPro(
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
                 ),
-              ),
 
-              const SizedBox(height: 40),
+                const SizedBox(height: 40),
+              ],
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 }
+
+// ── OTP input boxes ────────────────────────────────────────────────────────────
 
 class _OtpInputRow extends StatefulWidget {
   final TextEditingController controller;
@@ -345,8 +349,8 @@ class _OtpInputRowState extends State<_OtpInputRow> {
       onTap: () => _focus.requestFocus(),
       child: Stack(
         children: [
-          SizedBox(
-            height: 0,
+          Opacity(
+            opacity: 0,
             child: TextField(
               controller: widget.controller,
               focusNode: _focus,
@@ -354,7 +358,14 @@ class _OtpInputRowState extends State<_OtpInputRow> {
               maxLength: 6,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               showCursor: false,
-              decoration: const InputDecoration(border: InputBorder.none),
+              enableSuggestions: false,
+              autofillHints: const [],
+              decoration: const InputDecoration(
+                border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                counterText: '',
+              ),
               onChanged: (v) {
                 widget.onChanged();
                 setState(() {});
@@ -373,28 +384,40 @@ class _OtpInputRowState extends State<_OtpInputRow> {
                 width: 48,
                 height: 56,
                 decoration: BoxDecoration(
-                  color: filled
-                      ? AppColors.primary.withValues(alpha: 0.04)
-                      : AppColors.surface,
+                  color: active
+                      ? AppColors.primary.withValues(alpha: 0.06)
+                      : filled
+                          ? const Color(0xFFF5F5F5)
+                          : const Color(0xFFF5F5F5),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: active
-                        ? AppColors.primary
-                        : filled
-                            ? AppColors.primary.withValues(alpha: 0.3)
-                            : AppColors.divider,
-                    width: active ? 2 : 1.5,
-                  ),
                 ),
-                child: Center(
-                  child: Text(
-                    filled ? code[i] : '',
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // cursor blink khi active và chưa nhập
+                    if (active && !filled)
+                      AnimatedOpacity(
+                        opacity: 1,
+                        duration: const Duration(milliseconds: 500),
+                        child: Container(
+                          width: 2,
+                          height: 22,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            borderRadius: BorderRadius.circular(1),
+                          ),
+                        ),
+                      ),
+                    if (filled)
+                      Text(
+                        code[i],
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                  ],
                 ),
               );
             }),

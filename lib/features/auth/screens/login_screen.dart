@@ -54,18 +54,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
                 const SizedBox(height: 56),
 
-                // Logo
-                SizedBox(
-                  width: 160,
-                  height: 160,
-                  child: Image.asset(
-                    'assets/images/logo-login.png',
-                    fit: BoxFit.contain,
-                  ),
-                ),
-
-                const SizedBox(height: 4),
-
                 Text(
                   'ĐĂNG NHẬP',
                   style: GoogleFonts.beVietnamPro(

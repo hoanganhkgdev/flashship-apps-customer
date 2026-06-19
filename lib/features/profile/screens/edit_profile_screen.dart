@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -15,14 +16,14 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 }
 
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
-  final _formKey  = GlobalKey<FormState>();
-  final _nameCtrl = TextEditingController();
+  final _formKey   = GlobalKey<FormState>();
+  final _nameCtrl  = TextEditingController();
   final _emailCtrl = TextEditingController();
 
-  int?   _cityId;
-  String _cityName        = '';
-  bool   _saving          = false;
-  bool   _uploadingAvatar = false;
+  int?    _cityId;
+  String  _cityName        = '';
+  bool    _saving          = false;
+  bool    _uploadingAvatar = false;
   String? _profileError;
 
   @override
@@ -68,47 +69,77 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           duration: Duration(seconds: 2),
         ),
       );
-      if (mounted) GoRouter.of(context).pop();
+      if (mounted) context.pop();
     }
   }
 
   Future<void> _pickAvatar() async {
     final source = await showModalBottomSheet<ImageSource>(
       context: context,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text('Ảnh đại diện',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary)),
+              const SizedBox(height: 12),
+              Container(
+                width: 40, height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
               const SizedBox(height: 20),
-              // Options row
-              Row(children: [
-                Expanded(
-                  child: _AvatarSourceButton(
-                    icon: Icons.photo_library_outlined,
-                    label: 'Thư viện',
-                    onTap: () => Navigator.pop(context, ImageSource.gallery),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(children: [
+                  Text('Ảnh đại diện',
+                      style: GoogleFonts.beVietnamPro(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 32, height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.close_rounded,
+                          size: 18, color: AppColors.textSecondary),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _AvatarSourceButton(
-                    icon: Icons.camera_alt_outlined,
-                    label: 'Máy ảnh',
-                    onTap: () => Navigator.pop(context, ImageSource.camera),
+                ]),
+              ),
+              const SizedBox(height: 20),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                child: Row(children: [
+                  Expanded(
+                    child: _AvatarSourceButton(
+                      icon: Icons.photo_library_outlined,
+                      label: 'Thư viện',
+                      onTap: () => Navigator.pop(context, ImageSource.gallery),
+                    ),
                   ),
-                ),
-              ]),
-              const SizedBox(height: 8),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _AvatarSourceButton(
+                      icon: Icons.camera_alt_outlined,
+                      label: 'Máy ảnh',
+                      onTap: () => Navigator.pop(context, ImageSource.camera),
+                    ),
+                  ),
+                ]),
+              ),
             ],
           ),
         ),
@@ -116,7 +147,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     );
     if (source == null || !mounted) return;
 
-    // Let the bottom sheet fully dismiss before presenting the image picker
     await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
 
@@ -131,10 +161,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Không thể mở ảnh: $e'),
-          backgroundColor: AppColors.danger,
-        ),
+        SnackBar(content: Text('Không thể mở ảnh: $e'),
+            backgroundColor: AppColors.danger),
       );
       return;
     }
@@ -156,8 +184,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final picked = await showModalBottomSheet<CityItem>(
       context: context,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.transparent,
       builder: (_) => _CityPicker(cities: cities, selectedId: _cityId),
     );
     if (picked != null) {
@@ -169,21 +196,36 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   Widget build(BuildContext context) {
     final user        = ref.watch(authProvider).user;
     final citiesAsync = ref.watch(citiesProvider);
+    final bottom      = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF6F6F6),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        centerTitle: false,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 20),
-          onPressed: () => Navigator.pop(context),
+        centerTitle: true,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: GestureDetector(
+              onTap: () => context.pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.arrow_back_rounded,
+                    size: 20, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ),
-        title: const Text('Chỉnh sửa hồ sơ',
-            style: TextStyle(
+        leadingWidth: 60,
+        title: Text('Chỉnh sửa hồ sơ',
+            style: GoogleFonts.beVietnamPro(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary)),
@@ -195,179 +237,219 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: EdgeInsets.zero,
+          padding: EdgeInsets.fromLTRB(0, 24, 0, bottom + 32),
           children: [
 
             // ── Avatar ────────────────────────────────────────────────────
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 28),
-              child: Center(
-                child: GestureDetector(
-                  onTap: _uploadingAvatar ? null : _pickAvatar,
-                  child: Stack(children: [
-                    Container(
-                      width: 96, height: 96,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            width: 2.5),
-                      ),
-                      child: ClipOval(
-                        child: user?.avatarUrl != null
-                            ? CachedNetworkImage(
-                                imageUrl: user!.avatarUrl!,
-                                fit: BoxFit.cover,
-                                placeholder: (_, __) => _AvatarInitials(initials: user.initials),
-                                errorWidget: (_, __, ___) => _AvatarInitials(initials: user.initials),
-                              )
-                            : _AvatarInitials(initials: user?.initials ?? 'U'),
-                      ),
+            Center(
+              child: GestureDetector(
+                onTap: _uploadingAvatar ? null : _pickAvatar,
+                child: Stack(children: [
+                  Container(
+                    width: 96, height: 96,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.primary, width: 2.5),
                     ),
-                    if (_uploadingAvatar)
-                      Positioned.fill(
-                        child: Container(
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.black.withValues(alpha: 0.4),
-                          ),
-                          child: const Center(child: SizedBox(
-                            width: 24, height: 24,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2.5, color: Colors.white),
-                          )),
-                        ),
-                      ),
-                    Positioned(
-                      bottom: 0, right: 0,
+                    child: ClipOval(
+                      child: user?.avatarUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: user!.avatarUrl!,
+                              fit: BoxFit.cover,
+                              placeholder: (_, __) =>
+                                  _AvatarInitials(initials: user.initials),
+                              errorWidget: (_, __, ___) =>
+                                  _AvatarInitials(initials: user.initials),
+                            )
+                          : _AvatarInitials(initials: user?.initials ?? 'U'),
+                    ),
+                  ),
+                  if (_uploadingAvatar)
+                    Positioned.fill(
                       child: Container(
-                        width: 30, height: 30,
                         decoration: BoxDecoration(
-                          color: AppColors.primary,
                           shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
+                          color: Colors.black.withValues(alpha: 0.4),
                         ),
-                        child: const Icon(Icons.camera_alt_rounded,
-                            size: 15, color: Colors.white),
+                        child: const Center(child: SizedBox(
+                          width: 24, height: 24,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2.5, color: Colors.white),
+                        )),
                       ),
                     ),
-                  ]),
-                ),
+                  Positioned(
+                    bottom: 0, right: 0,
+                    child: Container(
+                      width: 28, height: 28,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded,
+                          size: 14, color: Colors.white),
+                    ),
+                  ),
+                ]),
               ),
             ),
-
             const SizedBox(height: 8),
-
-            // ── Thông tin cơ bản ──────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: _SectionHeader('Thông tin cơ bản'),
+            Center(
+              child: Text('Chạm để thay đổi ảnh',
+                  style: GoogleFonts.beVietnamPro(
+                      fontSize: 12, color: AppColors.textSecondary)),
             ),
+
+            const SizedBox(height: 24),
+
+            // ── Fields card ───────────────────────────────────────────────
             Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(16),
-              child: Column(children: [
-                _InputField(
-                  label: 'Họ và tên',
-                  icon: Icons.person_outline_rounded,
-                  controller: _nameCtrl,
-                  textCapitalization: TextCapitalization.words,
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Nhập họ tên' : null,
-                ),
-                const SizedBox(height: 12),
-                _InputField(
-                  label: 'Số điện thoại',
-                  icon: Icons.phone_outlined,
-                  initialValue: user?.phone ?? '',
-                  readOnly: true,
-                  suffixIcon: const Icon(Icons.lock_outline_rounded,
-                      size: 16, color: AppColors.textSecondary),
-                ),
-                const SizedBox(height: 12),
-                _InputField(
-                  label: 'Email',
-                  icon: Icons.email_outlined,
-                  controller: _emailCtrl,
-                  keyboardType: TextInputType.emailAddress,
-                  hint: 'Tuỳ chọn',
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty) return null;
-                    if (!v.contains('@') || !v.contains('.')) {
-                      return 'Email không hợp lệ';
-                    }
-                    return null;
-                  },
-                ),
-                if (_profileError != null) ...[
-                  const SizedBox(height: 10),
-                  _ErrorBox(message: _profileError!),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8, offset: const Offset(0, 2),
+                  ),
                 ],
+              ),
+              child: Column(children: [
+                _FormRow(
+                  label: 'Họ và tên',
+                  child: _FilledField(
+                    controller: _nameCtrl,
+                    hint: 'Nhập họ và tên',
+                    textCapitalization: TextCapitalization.words,
+                    validator: (v) =>
+                        (v == null || v.trim().isEmpty) ? 'Nhập họ tên' : null,
+                  ),
+                ),
+                const Divider(height: 1, indent: 16, endIndent: 0,
+                    color: Color(0xFFF0F0F0)),
+                _FormRow(
+                  label: 'Email',
+                  child: _FilledField(
+                    controller: _emailCtrl,
+                    hint: 'example@email.com (tuỳ chọn)',
+                    keyboardType: TextInputType.emailAddress,
+                    validator: (v) {
+                      if (v == null || v.trim().isEmpty) return null;
+                      if (!v.contains('@') || !v.contains('.')) {
+                        return 'Email không hợp lệ';
+                      }
+                      return null;
+                    },
+                  ),
+                ),
+                const Divider(height: 1, indent: 16, endIndent: 0,
+                    color: Color(0xFFF0F0F0)),
+                citiesAsync.when(
+                  loading: () => _FormRow(
+                    label: 'Thành phố',
+                    child: _FilledField(
+                        hint: 'Đang tải...', readOnly: true),
+                  ),
+                  error: (_, __) => _FormRow(
+                    label: 'Thành phố',
+                    child: _FilledField(
+                        hint: 'Không tải được', readOnly: true),
+                  ),
+                  data: (cities) => GestureDetector(
+                    onTap: () => _pickCity(cities),
+                    child: _FormRow(
+                      label: 'Thành phố',
+                      trailing: const Icon(Icons.chevron_right_rounded,
+                          color: Color(0xFFD0D0D5), size: 20),
+                      child: _FilledField(
+                        initialValue: _cityName,
+                        hint: 'Chọn thành phố',
+                        readOnly: true,
+                      ),
+                    ),
+                  ),
+                ),
               ]),
             ),
 
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
 
-            // ── Khu vực ───────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: _SectionHeader('Khu vực'),
-            ),
+            // ── Phone card (read-only) ────────────────────────────────────
             Container(
-              color: Colors.white,
-              padding: const EdgeInsets.all(16),
-              child: citiesAsync.when(
-                loading: () => _InputField(
-                  label: 'Thành phố',
-                  icon: Icons.location_city_outlined,
-                  readOnly: true,
-                  hint: 'Đang tải...',
-                ),
-                error: (_, __) => _InputField(
-                  label: 'Thành phố',
-                  icon: Icons.location_city_outlined,
-                  readOnly: true,
-                  hint: 'Không tải được',
-                ),
-                data: (cities) => GestureDetector(
-                  onTap: () => _pickCity(cities),
-                  child: _InputField(
-                    label: 'Thành phố',
-                    icon: Icons.location_city_outlined,
-                    readOnly: true,
-                    initialValue: _cityName,
-                    hint: 'Chọn thành phố',
-                    suffixIcon: const Icon(Icons.chevron_right_rounded,
-                        color: AppColors.textSecondary, size: 20),
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 8, offset: const Offset(0, 2),
                   ),
+                ],
+              ),
+              child: _FormRow(
+                label: 'Số điện thoại',
+                trailing: const Icon(Icons.lock_outline_rounded,
+                    size: 16, color: AppColors.textSecondary),
+                child: _FilledField(
+                  initialValue: user?.phone ?? '',
+                  hint: 'Số điện thoại',
+                  readOnly: true,
                 ),
               ),
             ),
 
+            if (_profileError != null) ...[
+              const SizedBox(height: 12),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 11),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: AppColors.danger, size: 17),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(_profileError!,
+                        style: GoogleFonts.beVietnamPro(
+                            fontSize: 13,
+                            color: AppColors.danger,
+                            fontWeight: FontWeight.w500)),
+                  ),
+                ]),
+              ),
+            ],
+
+            const SizedBox(height: 24),
+
             // ── Save button ───────────────────────────────────────────────
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SizedBox(
-                height: 54,
-                child: ElevatedButton(
+                width: double.infinity, height: 50,
+                child: FilledButton(
                   onPressed: _saving ? null : _saveProfile,
-                  style: ElevatedButton.styleFrom(
+                  style: FilledButton.styleFrom(
                     backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: AppColors.divider,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
+                    disabledBackgroundColor:
+                        AppColors.primary.withValues(alpha: 0.5),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                    textStyle: GoogleFonts.beVietnamPro(
+                        fontSize: 15, fontWeight: FontWeight.w700),
                   ),
                   child: _saving
                       ? const SizedBox(width: 22, height: 22,
                           child: CircularProgressIndicator(
                               strokeWidth: 2.5, color: Colors.white))
-                      : const Text('Lưu thay đổi',
-                          style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w700)),
+                      : const Text('Lưu thay đổi'),
                 ),
               ),
             ),
@@ -378,6 +460,117 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   }
 }
 
+// ── Form row (label + field inside card) ─────────────────────────────────────
+
+class _FormRow extends StatelessWidget {
+  final String label;
+  final Widget child;
+  final Widget? trailing;
+  const _FormRow({
+    required this.label,
+    required this.child,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Text(label,
+                style: GoogleFonts.beVietnamPro(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textSecondary)),
+            if (trailing != null) ...[
+              const Spacer(),
+              trailing!,
+            ],
+          ]),
+          const SizedBox(height: 6),
+          child,
+        ],
+      ),
+    );
+  }
+}
+
+// ── Filled borderless input ───────────────────────────────────────────────────
+
+class _FilledField extends StatelessWidget {
+  final TextEditingController? controller;
+  final String? initialValue;
+  final String? hint;
+  final bool readOnly;
+  final TextInputType? keyboardType;
+  final TextCapitalization textCapitalization;
+  final String? Function(String?)? validator;
+
+  const _FilledField({
+    this.controller,
+    this.initialValue,
+    this.hint,
+    this.readOnly = false,
+    this.keyboardType,
+    this.textCapitalization = TextCapitalization.none,
+    this.validator,
+  });
+
+  @override
+  Widget build(BuildContext context) => TextFormField(
+        controller: controller,
+        initialValue: controller == null ? initialValue : null,
+        readOnly: readOnly,
+        keyboardType: keyboardType,
+        textCapitalization: textCapitalization,
+        style: GoogleFonts.beVietnamPro(
+          fontSize: 15,
+          fontWeight: FontWeight.w500,
+          color: readOnly ? AppColors.textSecondary : AppColors.textPrimary,
+        ),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: GoogleFonts.beVietnamPro(
+              color: AppColors.textSecondary,
+              fontSize: 15,
+              fontWeight: FontWeight.w400),
+          errorStyle: GoogleFonts.beVietnamPro(fontSize: 12),
+          filled: true,
+          fillColor: readOnly
+              ? const Color(0xFFF6F6F6)
+              : const Color(0xFFF6F6F6),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:
+                const BorderSide(color: AppColors.primary, width: 1.5),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(color: AppColors.danger),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide:
+                const BorderSide(color: AppColors.danger, width: 1.5),
+          ),
+        ),
+        validator: validator,
+      );
+}
+
 // ── Avatar initials fallback ──────────────────────────────────────────────────
 
 class _AvatarInitials extends StatelessWidget {
@@ -386,138 +579,15 @@ class _AvatarInitials extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-    color: const Color(0xFFE8720C),
-    child: Center(
-      child: Text(
-        initials,
-        style: const TextStyle(
-            fontSize: 34, fontWeight: FontWeight.w700, color: Colors.white),
-      ),
-    ),
-  );
-}
-
-// ── Section header ────────────────────────────────────────────────────────────
-
-class _SectionHeader extends StatelessWidget {
-  final String text;
-  const _SectionHeader(this.text);
-
-  @override
-  Widget build(BuildContext context) => Row(children: [
-    Container(
-      width: 4, height: 16,
-      decoration: BoxDecoration(
         color: AppColors.primary,
-        borderRadius: BorderRadius.circular(2),
-      ),
-    ),
-    const SizedBox(width: 8),
-    Text(text,
-        style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: AppColors.textPrimary)),
-  ]);
-}
-
-// ── Input field ───────────────────────────────────────────────────────────────
-
-class _InputField extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final TextEditingController? controller;
-  final String? initialValue;
-  final String? hint;
-  final bool readOnly;
-  final TextInputType? keyboardType;
-  final TextCapitalization textCapitalization;
-  final Widget? suffixIcon;
-  final String? Function(String?)? validator;
-
-  const _InputField({
-    required this.label,
-    required this.icon,
-    this.controller,
-    this.initialValue,
-    this.hint,
-    this.readOnly = false,
-    this.keyboardType,
-    this.textCapitalization = TextCapitalization.none,
-    this.suffixIcon,
-    this.validator,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      initialValue: controller == null ? initialValue : null,
-      readOnly: readOnly,
-      keyboardType: keyboardType,
-      textCapitalization: textCapitalization,
-      style: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w500,
-          color: readOnly ? AppColors.textSecondary : AppColors.textPrimary),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-        floatingLabelStyle: const TextStyle(
-            fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w500),
-        hintText: hint,
-        prefixIcon: Icon(icon, size: 18,
-            color: readOnly ? AppColors.textSecondary : AppColors.primary),
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: const Color(0xFFF7F8FA),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
+        child: Center(
+          child: Text(
+            initials,
+            style: const TextStyle(
+                fontSize: 32, fontWeight: FontWeight.w700, color: Colors.white),
+          ),
         ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.danger),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
-        ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-      ),
-      validator: validator,
-    );
-  }
-}
-
-// ── Error box ─────────────────────────────────────────────────────────────────
-
-class _ErrorBox extends StatelessWidget {
-  final String message;
-  const _ErrorBox({required this.message});
-
-  @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.all(12),
-    decoration: BoxDecoration(
-      color: AppColors.danger.withValues(alpha: 0.08),
-      borderRadius: BorderRadius.circular(10),
-    ),
-    child: Row(children: [
-      const Icon(Icons.error_outline_rounded, color: AppColors.danger, size: 16),
-      const SizedBox(width: 8),
-      Expanded(child: Text(message,
-          style: const TextStyle(color: AppColors.danger, fontSize: 13))),
-    ]),
-  );
+      );
 }
 
 // ── City picker bottom sheet ──────────────────────────────────────────────────
@@ -532,8 +602,8 @@ class _CityPicker extends StatefulWidget {
 }
 
 class _CityPickerState extends State<_CityPicker> {
-  final _search = TextEditingController();
-  List<CityItem> _filtered = [];
+  final _search   = TextEditingController();
+  List<CityItem>  _filtered = [];
 
   @override
   void initState() {
@@ -556,63 +626,162 @@ class _CityPickerState extends State<_CityPicker> {
 
   @override
   Widget build(BuildContext context) {
-    return DraggableScrollableSheet(
-      expand: false,
-      initialChildSize: 0.6,
-      maxChildSize: 0.9,
-      builder: (_, ctrl) => Column(children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 12, bottom: 8),
-          child: Container(
-            width: 40, height: 4,
-            decoration: BoxDecoration(
-                color: AppColors.divider,
-                borderRadius: BorderRadius.circular(2)),
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.only(bottom: 12),
-          child: Text('Chọn thành phố',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: TextField(
-            controller: _search,
-            decoration: InputDecoration(
-              hintText: 'Tìm thành phố...',
-              prefixIcon: const Icon(Icons.search_rounded, size: 18),
-              filled: true,
-              fillColor: AppColors.background,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              isDense: true,
+    final bottom = MediaQuery.of(context).padding.bottom;
+
+    return Material(
+      color: Colors.white,
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      child: SizedBox(
+        height: MediaQuery.of(context).size.height * 0.75,
+        child: Column(
+          children: [
+            const SizedBox(height: 10),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                  color: const Color(0xFFE0E0E0),
+                  borderRadius: BorderRadius.circular(2)),
             ),
-          ),
+            const SizedBox(height: 16),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(children: [
+                Text('Chọn thành phố',
+                    style: GoogleFonts.beVietnamPro(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textPrimary)),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    width: 32, height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF5F5F5),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Icon(Icons.close_rounded,
+                        size: 18, color: AppColors.textSecondary),
+                  ),
+                ),
+              ]),
+            ),
+            const SizedBox(height: 14),
+
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: TextField(
+                controller: _search,
+                style: GoogleFonts.beVietnamPro(
+                    fontSize: 14, color: AppColors.textPrimary),
+                decoration: InputDecoration(
+                  hintText: 'Tìm thành phố...',
+                  hintStyle: GoogleFonts.beVietnamPro(
+                      color: AppColors.textSecondary, fontSize: 14),
+                  prefixIcon: const Icon(Icons.search_rounded,
+                      color: AppColors.textSecondary, size: 19),
+                  suffixIcon: _search.text.isNotEmpty
+                      ? GestureDetector(
+                          onTap: () => _search.clear(),
+                          child: const Icon(Icons.close_rounded,
+                              color: AppColors.textSecondary, size: 17),
+                        )
+                      : null,
+                  filled: true,
+                  fillColor: const Color(0xFFF5F5F5),
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide:
+                        const BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+
+            Expanded(
+              child: _filtered.isEmpty
+                  ? Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.location_off_outlined,
+                            size: 40, color: Colors.grey.shade300),
+                        const SizedBox(height: 10),
+                        Text('Không tìm thấy thành phố',
+                            style: GoogleFonts.beVietnamPro(
+                                fontSize: 14,
+                                color: AppColors.textSecondary)),
+                      ]),
+                    )
+                  : ListView.builder(
+                      padding:
+                          EdgeInsets.only(top: 4, bottom: bottom + 16),
+                      itemCount: _filtered.length,
+                      itemBuilder: (_, i) {
+                        final city     = _filtered[i];
+                        final selected = city.id == widget.selectedId;
+                        return InkWell(
+                          onTap: () => Navigator.pop(context, city),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 20, vertical: 14),
+                            child: Row(children: [
+                              Container(
+                                width: 36, height: 36,
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? AppColors.primary.withValues(alpha: 0.10)
+                                      : const Color(0xFFF5F5F5),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: Icon(Icons.location_on_outlined,
+                                    size: 18,
+                                    color: selected
+                                        ? AppColors.primary
+                                        : AppColors.textSecondary),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(city.name,
+                                    style: GoogleFonts.beVietnamPro(
+                                        fontSize: 15,
+                                        fontWeight: selected
+                                            ? FontWeight.w700
+                                            : FontWeight.w500,
+                                        color: selected
+                                            ? AppColors.primary
+                                            : AppColors.textPrimary)),
+                              ),
+                              if (selected)
+                                Container(
+                                  width: 22, height: 22,
+                                  decoration: const BoxDecoration(
+                                      color: AppColors.primary,
+                                      shape: BoxShape.circle),
+                                  child: const Icon(Icons.check_rounded,
+                                      size: 14, color: Colors.white),
+                                ),
+                            ]),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ],
         ),
-        Expanded(
-          child: ListView.builder(
-            controller: ctrl,
-            itemCount: _filtered.length,
-            itemBuilder: (_, i) {
-              final city     = _filtered[i];
-              final selected = city.id == widget.selectedId;
-              return ListTile(
-                title: Text(city.name,
-                    style: TextStyle(
-                        fontWeight: selected ? FontWeight.w700 : FontWeight.w400,
-                        color: selected ? AppColors.primary : AppColors.textPrimary)),
-                trailing: selected
-                    ? const Icon(Icons.check_rounded, color: AppColors.primary)
-                    : null,
-                onTap: () => Navigator.pop(context, city),
-              );
-            },
-          ),
-        ),
-      ]),
+      ),
     );
   }
 }
@@ -631,25 +800,22 @@ class _AvatarSourceButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      padding: const EdgeInsets.symmetric(vertical: 18),
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: AppColors.primary.withValues(alpha: 0.15),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF5F5F5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(children: [
+            Icon(icon, size: 28, color: AppColors.primary),
+            const SizedBox(height: 6),
+            Text(label,
+                style: GoogleFonts.beVietnamPro(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary)),
+          ]),
         ),
-      ),
-      child: Column(children: [
-        Icon(icon, size: 28, color: AppColors.primary),
-        const SizedBox(height: 6),
-        Text(label,
-            style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary)),
-      ]),
-    ),
-  );
+      );
 }

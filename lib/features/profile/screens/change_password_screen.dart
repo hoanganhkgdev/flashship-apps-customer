@@ -67,16 +67,31 @@ class _State extends ConsumerState<ChangePasswordScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF6F6F6),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded,
-              color: AppColors.textPrimary, size: 20),
-          onPressed: () => Navigator.pop(context),
+        centerTitle: true,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.arrow_back_rounded,
+                    size: 20, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ),
+        leadingWidth: 60,
         title: const Text('Đổi mật khẩu',
             style: TextStyle(
                 fontSize: 17,
@@ -90,74 +105,80 @@ class _State extends ConsumerState<ChangePasswordScreen> {
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: 16),
 
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.all(16),
-            child: Column(children: [
-              _PassField(
-                controller: _curCtrl,
-                label: 'Mật khẩu hiện tại',
-                show: _showCur,
-                onToggle: () => setState(() => _showCur = !_showCur),
-              ),
-              const SizedBox(height: 12),
-              _PassField(
-                controller: _newCtrl,
-                label: 'Mật khẩu mới',
-                show: _showNew,
-                onToggle: () => setState(() => _showNew = !_showNew),
-              ),
-              const SizedBox(height: 12),
-              _PassField(
-                controller: _confCtrl,
-                label: 'Xác nhận mật khẩu mới',
-                show: _showConf,
-                onToggle: () => setState(() => _showConf = !_showConf),
-              ),
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: AppColors.danger.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(children: [
-                    const Icon(Icons.error_outline_rounded,
-                        color: AppColors.danger, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(child: Text(_error!,
-                        style: const TextStyle(
-                            color: AppColors.danger, fontSize: 13))),
-                  ]),
+          // ── Card 1: mật khẩu hiện tại ──────────────────────────
+          _card(child: _PassRow(
+            label: 'Mật khẩu hiện tại',
+            hint: 'Nhập mật khẩu hiện tại',
+            controller: _curCtrl,
+            show: _showCur,
+            onToggle: () => setState(() => _showCur = !_showCur),
+          )),
+
+          const SizedBox(height: 10),
+
+          // ── Card 2: mới + xác nhận ─────────────────────────────
+          _card(child: Column(children: [
+            _PassRow(
+              label: 'Mật khẩu mới',
+              hint: 'Tối thiểu 6 ký tự',
+              controller: _newCtrl,
+              show: _showNew,
+              onToggle: () => setState(() => _showNew = !_showNew),
+            ),
+            const Divider(height: 1, indent: 16, color: Color(0xFFF0F0F0)),
+            _PassRow(
+              label: 'Xác nhận mật khẩu mới',
+              hint: 'Nhập lại mật khẩu mới',
+              controller: _confCtrl,
+              show: _showConf,
+              onToggle: () => setState(() => _showConf = !_showConf),
+            ),
+          ])),
+
+          // ── Error banner ───────────────────────────────────────
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.danger.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-              ],
-            ]),
-          ),
+                child: Row(children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: AppColors.danger, size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(child: Text(_error!,
+                      style: const TextStyle(
+                          color: AppColors.danger, fontSize: 13))),
+                ]),
+              ),
+            ),
 
+          // ── Save button ────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
             child: SizedBox(
               height: 54,
-              child: ElevatedButton(
+              child: FilledButton(
                 onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
+                style: FilledButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   disabledBackgroundColor: AppColors.divider,
-                  foregroundColor: Colors.white,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(12)),
+                  textStyle: const TextStyle(
+                      fontSize: 16, fontWeight: FontWeight.w700),
                 ),
                 child: _saving
                     ? const SizedBox(width: 22, height: 22,
                         child: CircularProgressIndicator(
                             strokeWidth: 2.5, color: Colors.white))
-                    : const Text('Xác nhận',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700)),
+                    : const Text('Xác nhận'),
               ),
             ),
           ),
@@ -165,54 +186,87 @@ class _State extends ConsumerState<ChangePasswordScreen> {
       ),
     );
   }
+
+  Widget _card({required Widget child}) => Container(
+    margin: const EdgeInsets.symmetric(horizontal: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.04),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
+    child: child,
+  );
 }
 
-class _PassField extends StatelessWidget {
-  final TextEditingController controller;
+// ── Password row (label + filled field) ──────────────────────────────────────
+
+class _PassRow extends StatelessWidget {
   final String label;
+  final String hint;
+  final TextEditingController controller;
   final bool show;
   final VoidCallback onToggle;
-  const _PassField({
-    required this.controller,
+  const _PassRow({
     required this.label,
+    required this.hint,
+    required this.controller,
     required this.show,
     required this.onToggle,
   });
 
   @override
-  Widget build(BuildContext context) => TextField(
-    controller: controller,
-    obscureText: !show,
-    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
-    decoration: InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
-      floatingLabelStyle: const TextStyle(
-          fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w500),
-      prefixIcon: const Icon(Icons.lock_outline_rounded,
-          size: 18, color: AppColors.primary),
-      suffixIcon: IconButton(
-        icon: Icon(
-          show ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-          size: 18, color: AppColors.textSecondary,
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(label,
+          style: const TextStyle(
+              fontSize: 12, color: AppColors.textSecondary)),
+      const SizedBox(height: 6),
+      TextField(
+        controller: controller,
+        obscureText: !show,
+        style: const TextStyle(
+            fontSize: 15, fontWeight: FontWeight.w500,
+            color: AppColors.textPrimary),
+        decoration: InputDecoration(
+          filled: true,
+          fillColor: const Color(0xFFF6F6F6),
+          hintText: hint,
+          hintStyle: const TextStyle(
+              fontSize: 14, color: Color(0xFFBBBBBB)),
+          border: InputBorder.none,
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(10),
+            borderSide: const BorderSide(
+                color: AppColors.primary, width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14, vertical: 14),
+          suffixIcon: GestureDetector(
+            onTap: onToggle,
+            behavior: HitTestBehavior.opaque,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Icon(
+                show
+                    ? Icons.visibility_off_outlined
+                    : Icons.visibility_outlined,
+                size: 18, color: AppColors.textSecondary,
+              ),
+            ),
+          ),
         ),
-        onPressed: onToggle,
       ),
-      filled: true,
-      fillColor: const Color(0xFFF7F8FA),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-      ),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
-    ),
+    ]),
   );
 }

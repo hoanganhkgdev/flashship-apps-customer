@@ -44,24 +44,15 @@ class AppTheme {
       brightness: Brightness.light,
     );
 
-    // Heading: Exo 2 (square geometric), Body: Be Vietnam Pro
-    final base = GoogleFonts.exo2TextTheme(
+    final base = GoogleFonts.beVietnamProTextTheme(
       ThemeData(colorScheme: colorScheme).textTheme,
     );
-    // Override body/label styles sang Be Vietnam Pro
-    final textTheme = base.copyWith(
-      bodyLarge:   GoogleFonts.beVietnamPro(textStyle: base.bodyLarge),
-      bodyMedium:  GoogleFonts.beVietnamPro(textStyle: base.bodyMedium),
-      bodySmall:   GoogleFonts.beVietnamPro(textStyle: base.bodySmall),
-      labelLarge:  GoogleFonts.beVietnamPro(textStyle: base.labelLarge),
-      labelMedium: GoogleFonts.beVietnamPro(textStyle: base.labelMedium),
-      labelSmall:  GoogleFonts.beVietnamPro(textStyle: base.labelSmall),
-    );
+    final textTheme = base;
 
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      fontFamily: GoogleFonts.exo2().fontFamily,
+      fontFamily: GoogleFonts.beVietnamPro().fontFamily,
       textTheme: textTheme,
       scaffoldBackgroundColor: AppColors.background,
 
@@ -74,7 +65,7 @@ class AppTheme {
         surfaceTintColor: colorScheme.primary,
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppColors.textPrimary),
-        titleTextStyle: GoogleFonts.exo2(
+        titleTextStyle: GoogleFonts.beVietnamPro(
           fontSize: 17,
           fontWeight: FontWeight.w700,
           color: AppColors.textPrimary,
@@ -125,6 +116,7 @@ class AppTheme {
           textStyle: GoogleFonts.beVietnamPro(fontSize: 15, fontWeight: FontWeight.w600),
         ),
       ),
+
 
       // ── Input ────────────────────────────────────────────────────────────
       inputDecorationTheme: InputDecorationTheme(

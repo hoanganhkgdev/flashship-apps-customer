@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../features/booking/screens/widgets/address_field.dart';
 import '../models/address_model.dart';
@@ -13,22 +15,56 @@ class SavedAddressesScreen extends ConsumerWidget {
     final async = ref.watch(addressesProvider);
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF6F6F6),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        centerTitle: false,
-        title: const Text('Địa chỉ đã lưu',
-            style: TextStyle(
+        centerTitle: true,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: GestureDetector(
+              onTap: () => context.pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.arrow_back_rounded,
+                    size: 20, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
+        ),
+        leadingWidth: 64,
+        title: Text('Địa chỉ đã lưu',
+            style: GoogleFonts.beVietnamPro(
                 fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary)),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.add_rounded, color: AppColors.primary),
-            tooltip: 'Thêm địa chỉ',
-            onPressed: () => _openForm(context, ref),
+          GestureDetector(
+            onTap: () => _openForm(context, ref),
+            child: Container(
+              margin: const EdgeInsets.only(right: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                const Icon(Icons.add_rounded, size: 16, color: AppColors.primary),
+                const SizedBox(width: 4),
+                Text('Thêm',
+                    style: GoogleFonts.beVietnamPro(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.primary)),
+              ]),
+            ),
           ),
         ],
         bottom: const PreferredSize(
@@ -38,7 +74,8 @@ class SavedAddressesScreen extends ConsumerWidget {
       ),
       body: async.when(
         loading: () => const Center(
-            child: CircularProgressIndicator(color: AppColors.primary, strokeWidth: 2)),
+            child: CircularProgressIndicator(
+                color: AppColors.primary, strokeWidth: 2)),
         error: (e, _) => _ErrorView(
             message: e.toString(),
             onRetry: () => ref.read(addressesProvider.notifier).refresh()),
@@ -46,60 +83,37 @@ class SavedAddressesScreen extends ConsumerWidget {
             ? _EmptyView(onAdd: () => _openForm(context, ref))
             : RefreshIndicator(
                 color: AppColors.primary,
-                onRefresh: () => ref.read(addressesProvider.notifier).refresh(),
-                child: ListView(
-                  padding: const EdgeInsets.only(bottom: 100),
-                  children: [
-                    const SizedBox(height: 8),
-                    Container(
-                      color: Colors.white,
-                      child: Column(
-                        children: list.asMap().entries.map((entry) {
-                          final i    = entry.key;
-                          final addr = entry.value;
-                          return Column(children: [
-                            _AddressRow(
-                              address: addr,
-                              onEdit:       () => _openForm(context, ref, existing: addr),
-                              onSetDefault: addr.isDefault ? null
-                                  : () => ref.read(addressesProvider.notifier).setDefault(addr.id),
-                              onDelete: () => _confirmDelete(context, ref, addr),
-                            ),
-                            if (i < list.length - 1)
-                              const Divider(height: 1, indent: 64, color: Color(0xFFF5F5F5)),
-                          ]);
-                        }).toList(),
-                      ),
-                    ),
-                  ],
+                onRefresh: () =>
+                    ref.read(addressesProvider.notifier).refresh(),
+                child: ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(0, 12, 0, 32),
+                  itemCount: list.length,
+                  itemBuilder: (_, i) {
+                    final addr = list[i];
+                    return _AddressCard(
+                      address: addr,
+                      onEdit: () => _openForm(context, ref, existing: addr),
+                      onSetDefault: addr.isDefault
+                          ? null
+                          : () => ref
+                              .read(addressesProvider.notifier)
+                              .setDefault(addr.id),
+                      onDelete: () => _confirmDelete(context, ref, addr),
+                    );
+                  },
                 ),
               ),
       ),
-      floatingActionButton: async.valueOrNull?.isNotEmpty == true
-          ? FloatingActionButton.extended(
-              onPressed: () => _openForm(context, ref),
-              icon: const Icon(Icons.add_location_alt_rounded),
-              label: const Text('Thêm địa chỉ',
-                  style: TextStyle(fontWeight: FontWeight.w700)),
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              elevation: 0,
-            )
-          : null,
     );
   }
 
-  void _openForm(BuildContext context, WidgetRef ref, {AddressModel? existing}) {
+  void _openForm(BuildContext context, WidgetRef ref,
+      {AddressModel? existing}) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
-      showDragHandle: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      backgroundColor: Colors.transparent,
       builder: (_) => _AddressForm(existing: existing, ref: ref),
     );
   }
@@ -108,134 +122,235 @@ class SavedAddressesScreen extends ConsumerWidget {
       BuildContext context, WidgetRef ref, AddressModel address) async {
     final ok = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Xoá địa chỉ?',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-        content: Text(
-            'Xoá "${address.label.isEmpty ? address.address : address.label}"?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Huỷ')),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.danger),
-            child: const Text('Xoá', style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
-        ],
+      builder: (ctx) => Dialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 60, height: 60,
+              decoration: BoxDecoration(
+                color: AppColors.danger.withValues(alpha: 0.10),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.delete_outline_rounded,
+                  color: AppColors.danger, size: 30),
+            ),
+            const SizedBox(height: 16),
+            Text('Xoá địa chỉ?',
+                style: GoogleFonts.beVietnamPro(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 8),
+            Text(
+              '"${address.label.isEmpty ? address.address : address.label}"',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: 13, color: AppColors.textSecondary),
+            ),
+            const SizedBox(height: 24),
+            Row(children: [
+              Expanded(
+                child: SizedBox(
+                  height: 46,
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(ctx, false),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFE0E0E0)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      foregroundColor: AppColors.textSecondary,
+                    ),
+                    child: const Text('Huỷ'),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: SizedBox(
+                  height: 46,
+                  child: FilledButton(
+                    onPressed: () => Navigator.pop(ctx, true),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.danger,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Xoá'),
+                  ),
+                ),
+              ),
+            ]),
+          ]),
+        ),
       ),
     );
     if (ok == true) ref.read(addressesProvider.notifier).delete(address.id);
   }
 }
 
-// ── Address row (Grab-style flat) ─────────────────────────────────────────────
+// ── Address card ──────────────────────────────────────────────────────────────
 
-class _AddressRow extends StatelessWidget {
+class _AddressCard extends StatelessWidget {
   final AddressModel address;
   final VoidCallback onEdit;
   final VoidCallback? onSetDefault;
   final VoidCallback onDelete;
 
-  const _AddressRow({
+  const _AddressCard({
     required this.address,
     required this.onEdit,
     required this.onSetDefault,
     required this.onDelete,
   });
 
-  static const _labelIcons = {
-    'Nhà':     Icons.home_rounded,
-    'Cơ quan': Icons.business_rounded,
-  };
+  IconData get _icon => switch (address.label) {
+        'Nhà'     => Icons.home_rounded,
+        'Cơ quan' => Icons.business_rounded,
+        _         => Icons.location_on_rounded,
+      };
+
+  Color get _iconColor => switch (address.label) {
+        'Nhà'     => AppColors.primary,
+        'Cơ quan' => const Color(0xFF3B82F6),
+        _         => const Color(0xFF8B5CF6),
+      };
 
   @override
   Widget build(BuildContext context) {
-    final icon      = _labelIcons[address.label] ?? Icons.location_on_rounded;
-    final iconColor = address.isDefault ? AppColors.primary : AppColors.textSecondary;
+    final color = _iconColor;
 
-    return InkWell(
-      onTap: onEdit,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(children: [
-          // Icon
-          SizedBox(
-            width: 24,
-            child: Icon(icon, size: 22, color: iconColor),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8, offset: const Offset(0, 2),
           ),
-          const SizedBox(width: 16),
-
-          // Label + address
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(14),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onEdit,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(14, 14, 4, 14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(children: [
-                  Text(
-                    address.label.isEmpty ? 'Địa chỉ' : address.label,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14,
-                        color: AppColors.textPrimary),
+                // Icon circle
+                Container(
+                  width: 46, height: 46,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.10),
+                    shape: BoxShape.circle,
                   ),
-                  if (address.isDefault) ...[
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
+                  child: Icon(_icon, size: 22, color: color),
+                ),
+                const SizedBox(width: 12),
+
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        Text(
+                          address.label.isEmpty ? 'Địa chỉ' : address.label,
+                          style: GoogleFonts.beVietnamPro(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.textPrimary),
+                        ),
+                        if (address.isDefault) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text('Mặc định',
+                                style: GoogleFonts.beVietnamPro(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primary)),
+                          ),
+                        ],
+                      ]),
+                      const SizedBox(height: 3),
+                      Text(
+                        address.displayTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: 13, color: AppColors.textSecondary),
                       ),
-                      child: const Text('Mặc định',
-                          style: TextStyle(
-                              fontSize: 10, color: AppColors.primary,
-                              fontWeight: FontWeight.w600)),
-                    ),
+                      if (address.displaySubtitle != null) ...[
+                        const SizedBox(height: 1),
+                        Text(
+                          address.displaySubtitle!,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+
+                // 3-dot menu
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert_rounded,
+                      color: AppColors.textSecondary, size: 20),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  elevation: 2,
+                  itemBuilder: (_) => [
+                    PopupMenuItem(value: 'edit',
+                        child: Row(children: [
+                          Icon(Icons.edit_outlined,
+                              size: 18, color: AppColors.textPrimary),
+                          const SizedBox(width: 10),
+                          const Text('Chỉnh sửa'),
+                        ])),
+                    if (!address.isDefault)
+                      PopupMenuItem(value: 'default',
+                          child: Row(children: [
+                            const Icon(Icons.star_outline_rounded,
+                                size: 18, color: AppColors.warning),
+                            const SizedBox(width: 10),
+                            const Text('Đặt làm mặc định'),
+                          ])),
+                    PopupMenuItem(value: 'delete',
+                        child: Row(children: [
+                          const Icon(Icons.delete_outline_rounded,
+                              size: 18, color: AppColors.danger),
+                          const SizedBox(width: 10),
+                          const Text('Xoá',
+                              style: TextStyle(color: AppColors.danger)),
+                        ])),
                   ],
-                ]),
-                const SizedBox(height: 2),
-                Text(address.address,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary)),
+                  onSelected: (v) {
+                    if (v == 'edit')    onEdit();
+                    if (v == 'default') onSetDefault?.call();
+                    if (v == 'delete')  onDelete();
+                  },
+                ),
               ],
             ),
           ),
-
-          // More menu
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert_rounded,
-                color: AppColors.textSecondary, size: 20),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'edit',
-                child: Row(children: [
-                  Icon(Icons.edit_outlined, size: 18),
-                  SizedBox(width: 10), Text('Chỉnh sửa'),
-                ])),
-              if (!address.isDefault)
-                const PopupMenuItem(value: 'default',
-                  child: Row(children: [
-                    Icon(Icons.star_outline_rounded, size: 18),
-                    SizedBox(width: 10), Text('Đặt làm mặc định'),
-                  ])),
-              const PopupMenuItem(value: 'delete',
-                child: Row(children: [
-                  Icon(Icons.delete_outline_rounded,
-                      size: 18, color: AppColors.danger),
-                  SizedBox(width: 10),
-                  Text('Xoá', style: TextStyle(color: AppColors.danger)),
-                ])),
-            ],
-            onSelected: (v) {
-              if (v == 'edit')    onEdit();
-              if (v == 'default') onSetDefault?.call();
-              if (v == 'delete')  onDelete();
-            },
-          ),
-        ]),
+        ),
       ),
     );
   }
@@ -318,7 +433,10 @@ class _AddressFormState extends State<_AddressForm> {
       }
       if (mounted) Navigator.pop(context);
     } catch (_) {
-      setState(() { _error = 'Không lưu được. Thử lại sau.'; _saving = false; });
+      setState(() {
+        _error = 'Không lưu được. Thử lại sau.';
+        _saving = false;
+      });
     }
   }
 
@@ -327,183 +445,234 @@ class _AddressFormState extends State<_AddressForm> {
     final isEdit = widget.existing != null;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 4, 20, 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ── Header ──────────────────────────────────────────────────
-              Row(children: [
-                Expanded(
-                  child: Text(
-                    isEdit ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới',
-                    style: const TextStyle(
-                        fontSize: 17, fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Handle
+                Center(
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12, bottom: 20),
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE0E0E0),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.close_rounded,
-                      color: AppColors.textSecondary),
-                  onPressed: () => Navigator.pop(context),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ]),
 
-              const SizedBox(height: 20),
+                // Header
+                Row(children: [
+                  Expanded(
+                    child: Text(
+                      isEdit ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới',
+                      style: GoogleFonts.beVietnamPro(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: 32, height: 32,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.close_rounded,
+                          size: 18, color: AppColors.textSecondary),
+                    ),
+                  ),
+                ]),
 
-              // ── Label picker ─────────────────────────────────────────────
-              const Text('Nhãn',
-                  style: TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary)),
-              const SizedBox(height: 10),
-              Row(
-                children: _presets.map((p) {
-                  final selected = _label == p;
-                  return Padding(
-                    padding: EdgeInsets.only(right: p == _presets.last ? 0 : 8),
-                    child: GestureDetector(
-                      onTap: () => setState(() => _label = p),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 150),
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: selected ? AppColors.primary : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(
+                const SizedBox(height: 24),
+
+                // Label picker
+                Text('Nhãn địa chỉ',
+                    style: GoogleFonts.beVietnamPro(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 10),
+                Row(
+                  children: _presets.map((p) {
+                    final selected = _label == p;
+                    return Padding(
+                      padding:
+                          EdgeInsets.only(right: p == _presets.last ? 0 : 8),
+                      child: GestureDetector(
+                        onTap: () => setState(() => _label = p),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
                             color: selected
                                 ? AppColors.primary
-                                : const Color(0xFFE0E0E0),
+                                : const Color(0xFFF5F5F5),
+                            borderRadius: BorderRadius.circular(20),
                           ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Icon(_presetIcons[p]!, size: 15,
+                                color: selected
+                                    ? Colors.white
+                                    : AppColors.textSecondary),
+                            const SizedBox(width: 5),
+                            Text(p,
+                                style: GoogleFonts.beVietnamPro(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: selected
+                                        ? Colors.white
+                                        : AppColors.textSecondary)),
+                          ]),
                         ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(_presetIcons[p]!, size: 15,
-                              color: selected ? Colors.white : AppColors.textSecondary),
-                          const SizedBox(width: 5),
-                          Text(p,
-                              style: TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w600,
-                                  color: selected ? Colors.white : AppColors.textSecondary)),
-                        ]),
                       ),
-                    ),
-                  );
-                }).toList(),
-              ),
+                    );
+                  }).toList(),
+                ),
 
-              if (_label == 'Khác') ...[
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _customCtrl,
-                  decoration: InputDecoration(
-                    hintText: 'Tên nhãn (vd: Nhà bạn, Gym...)',
-                    prefixIcon: const Icon(Icons.label_outline_rounded,
-                        color: AppColors.primary, size: 18),
-                    filled: true,
-                    fillColor: const Color(0xFFF7F8FA),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: BorderSide.none),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(14),
-                        borderSide: const BorderSide(
-                            color: AppColors.primary, width: 1.5)),
+                if (_label == 'Khác') ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _customCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Tên nhãn (vd: Nhà bạn, Gym...)',
+                      filled: true,
+                      fillColor: const Color(0xFFF6F6F6),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(
+                              color: AppColors.primary, width: 1.5)),
+                    ),
+                  ),
+                ],
+
+                const SizedBox(height: 20),
+
+                // Address field
+                Text('Địa chỉ',
+                    style: GoogleFonts.beVietnamPro(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
+                const SizedBox(height: 10),
+                AddressField(
+                  controller: _addrCtrl,
+                  label: 'Nhập địa chỉ...',
+                  icon: Icons.location_on_outlined,
+                  required: true,
+                  onLocationPicked: (addr, lat, lng) {
+                    setState(() { _lat = lat; _lng = lng; });
+                  },
+                ),
+
+                const SizedBox(height: 20),
+
+                // Default toggle
+                Container(
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF6F6F6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () =>
+                        setState(() => _isDefault = !_isDefault),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      child: Row(children: [
+                        const Icon(Icons.star_outline_rounded,
+                            size: 20, color: AppColors.warning),
+                        const SizedBox(width: 12),
+                        const Expanded(
+                          child: Text('Đặt làm địa chỉ mặc định',
+                              style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.textPrimary)),
+                        ),
+                        Switch.adaptive(
+                          value: _isDefault,
+                          onChanged: (v) =>
+                              setState(() => _isDefault = v),
+                          activeThumbColor: AppColors.primary,
+                          activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
+                        ),
+                      ]),
+                    ),
+                  ),
+                ),
+
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(children: [
+                      const Icon(Icons.error_outline_rounded,
+                          color: AppColors.danger, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                          child: Text(_error!,
+                              style: const TextStyle(
+                                  color: AppColors.danger, fontSize: 13))),
+                    ]),
+                  ),
+                ],
+
+                const SizedBox(height: 24),
+
+                // Save button
+                SizedBox(
+                  width: double.infinity, height: 50,
+                  child: FilledButton(
+                    onPressed: _saving ? null : _save,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      disabledBackgroundColor:
+                          AppColors.primary.withValues(alpha: 0.5),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      elevation: 0,
+                      textStyle: GoogleFonts.beVietnamPro(
+                          fontSize: 15, fontWeight: FontWeight.w700),
+                    ),
+                    child: _saving
+                        ? const SizedBox(
+                            width: 22, height: 22,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : Text(isEdit ? 'Cập nhật' : 'Lưu địa chỉ'),
                   ),
                 ),
               ],
-
-              const SizedBox(height: 20),
-
-              // ── Address field ────────────────────────────────────────────
-              const Text('Địa chỉ',
-                  style: TextStyle(
-                      fontSize: 13, fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary)),
-              const SizedBox(height: 10),
-              AddressField(
-                controller: _addrCtrl,
-                label: 'Nhập địa chỉ...',
-                icon: Icons.location_on_outlined,
-                required: true,
-              ),
-
-              const SizedBox(height: 20),
-
-              // ── Default toggle (flat Grab style) ─────────────────────────
-              const Divider(height: 1, color: Color(0xFFF0F0F0)),
-              InkWell(
-                onTap: () => setState(() => _isDefault = !_isDefault),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Row(children: [
-                    const Icon(Icons.star_outline_rounded,
-                        size: 20, color: AppColors.textSecondary),
-                    const SizedBox(width: 14),
-                    const Expanded(
-                      child: Text('Đặt làm địa chỉ mặc định',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500,
-                              color: AppColors.textPrimary)),
-                    ),
-                    Switch.adaptive(
-                      value: _isDefault,
-                      onChanged: (v) => setState(() => _isDefault = v),
-                      activeThumbColor: AppColors.primary,
-                      activeTrackColor: AppColors.primary.withValues(alpha: 0.4),
-                    ),
-                  ]),
-                ),
-              ),
-              const Divider(height: 1, color: Color(0xFFF0F0F0)),
-
-              if (_error != null) ...[
-                const SizedBox(height: 12),
-                Row(children: [
-                  const Icon(Icons.error_outline_rounded,
-                      color: AppColors.danger, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(_error!,
-                      style: const TextStyle(
-                          color: AppColors.danger, fontSize: 13))),
-                ]),
-              ],
-
-              const SizedBox(height: 24),
-
-              // ── Save button ──────────────────────────────────────────────
-              SizedBox(
-                width: double.infinity,
-                height: 52,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _save,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor: AppColors.divider,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: _saving
-                      ? const SizedBox(width: 20, height: 20,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : Text(isEdit ? 'Cập nhật' : 'Lưu địa chỉ',
-                          style: const TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w700)),
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -519,48 +688,50 @@ class _EmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 88, height: 88,
-          decoration: BoxDecoration(
-            color: AppColors.primary.withValues(alpha: 0.08),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.location_off_rounded,
-              size: 44, color: AppColors.primary),
-        ),
-        const SizedBox(height: 20),
-        const Text('Chưa có địa chỉ nào',
-            style: TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w700,
-                color: AppColors.textPrimary)),
-        const SizedBox(height: 8),
-        const Text('Lưu địa chỉ để đặt đơn nhanh hơn',
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
-        const SizedBox(height: 24),
-        SizedBox(
-          height: 50,
-          child: ElevatedButton.icon(
-            onPressed: onAdd,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14)),
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(mainAxisSize: MainAxisSize.min, children: [
+            Container(
+              width: 88, height: 88,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF3F4F6),
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(Icons.location_off_rounded,
+                  size: 44, color: Color(0xFFBBBBBB)),
             ),
-            icon: const Icon(Icons.add_location_alt_rounded),
-            label: const Text('Thêm địa chỉ đầu tiên',
-                style: TextStyle(fontWeight: FontWeight.w700)),
-          ),
+            const SizedBox(height: 20),
+            Text('Chưa có địa chỉ nào',
+                style: GoogleFonts.beVietnamPro(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary)),
+            const SizedBox(height: 6),
+            const Text('Lưu địa chỉ để đặt đơn nhanh hơn',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    fontSize: 13, color: AppColors.textSecondary)),
+            const SizedBox(height: 28),
+            SizedBox(
+              height: 50,
+              child: FilledButton.icon(
+                onPressed: onAdd,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24),
+                  textStyle: GoogleFonts.beVietnamPro(
+                      fontSize: 14, fontWeight: FontWeight.w700),
+                ),
+                icon: const Icon(Icons.add_location_alt_rounded, size: 20),
+                label: const Text('Thêm địa chỉ đầu tiên'),
+              ),
+            ),
+          ]),
         ),
-      ]),
-    ),
-  );
+      );
 }
 
 // ── Error state ───────────────────────────────────────────────────────────────
@@ -572,13 +743,36 @@ class _ErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
-      const Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.textSecondary),
-      const SizedBox(height: 12),
-      const Text('Không tải được địa chỉ',
-          style: TextStyle(color: AppColors.textSecondary)),
-      const SizedBox(height: 8),
-      TextButton(onPressed: onRetry, child: const Text('Thử lại')),
-    ]),
-  );
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Container(
+            width: 80, height: 80,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F4F6),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(Icons.wifi_off_rounded,
+                size: 40, color: Color(0xFFBBBBBB)),
+          ),
+          const SizedBox(height: 16),
+          const Text('Không tải được địa chỉ',
+              style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 6),
+          const Text('Vui lòng kiểm tra kết nối',
+              style: TextStyle(
+                  fontSize: 13, color: AppColors.textSecondary)),
+          const SizedBox(height: 20),
+          FilledButton(
+            onPressed: onRetry,
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Thử lại'),
+          ),
+        ]),
+      );
 }

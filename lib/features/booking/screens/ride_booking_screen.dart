@@ -16,7 +16,7 @@ import '../../../features/order/providers/order_provider.dart';
 import '../../../features/voucher/screens/voucher_picker_screen.dart';
 import 'address_picker_screen.dart';
 import 'map_picker_screen.dart';
-import 'ride_note_screen.dart';
+
 
 class RideBookingScreen extends ConsumerStatefulWidget {
   final String serviceType; // bike | motor | car
@@ -32,12 +32,13 @@ class _State extends ConsumerState<RideBookingScreen> {
   gm.GoogleMapController? _mapCtrl;
 
   String? _pickupAddr, _destAddr;
+  String? _pickupPlaceName, _destPlaceName;
   double? _pickupLat, _pickupLng, _destLat, _destLng;
 
   double _myLat = 10.0452;
   double _myLng = 105.7469;
 
-  String _note = '';
+  final _noteCtrl = TextEditingController();
   int?   _fee;
   int    _nightSurcharge = 0;
   double? _distanceKm;
@@ -61,6 +62,7 @@ class _State extends ConsumerState<RideBookingScreen> {
   @override
   void dispose() {
     _mapCtrl?.dispose();
+    _noteCtrl.dispose();
     super.dispose();
   }
 
@@ -76,9 +78,11 @@ class _State extends ConsumerState<RideBookingScreen> {
       _pickupLng  = r.pickupLng;
       _destLat    = r.deliveryLat;
       _destLng    = r.deliveryLng;
-      _note       = r.orderNote ?? '';
+      _noteCtrl.text = r.orderNote ?? '';
+      _destPlaceName = ref.read(authProvider).user?.name;
       WidgetsBinding.instance.addPostFrameCallback((_) => _estimate());
     } else {
+      _destPlaceName = ref.read(authProvider).user?.name;
       _loadGps();
     }
   }
@@ -137,13 +141,15 @@ class _State extends ConsumerState<RideBookingScreen> {
     if (result == null || !mounted) return;
     setState(() {
       if (isPickup) {
-        _pickupAddr = result.address;
-        _pickupLat  = result.lat;
-        _pickupLng  = result.lng;
+        _pickupAddr      = result.address;
+        _pickupPlaceName = result.placeName;
+        _pickupLat       = result.lat;
+        _pickupLng       = result.lng;
       } else {
-        _destAddr = result.address;
-        _destLat  = result.lat;
-        _destLng  = result.lng;
+        _destAddr      = result.address;
+        _destPlaceName = result.placeName ?? ref.read(authProvider).user?.name;
+        _destLat       = result.lat;
+        _destLng       = result.lng;
       }
     });
     await _estimate();
@@ -279,7 +285,11 @@ class _State extends ConsumerState<RideBookingScreen> {
           'pickup_address':   _pickupAddr,
           'delivery_address': _destAddr,
           'delivery_phone':   phone,
-          if (_note.isNotEmpty)    'order_note':   _note,
+          'receiver_name':    ref.read(authProvider).user?.name ?? '',
+          if (_pickupPlaceName?.isNotEmpty == true)
+            'pickup_place_name': _pickupPlaceName,
+          if (_noteCtrl.text.trim().isNotEmpty)
+            'order_note': _noteCtrl.text.trim(),
           if (_pickupLat != null)  'pickup_lat':   _pickupLat,
           if (_pickupLng != null)  'pickup_lng':   _pickupLng,
           if (_destLat != null)    'delivery_lat': _destLat,
@@ -296,18 +306,6 @@ class _State extends ConsumerState<RideBookingScreen> {
       try { msg = (e as dynamic).response?.data['message'] ?? msg; } catch (_) {}
       setState(() { _error = msg; _submitting = false; });
     }
-  }
-
-  Future<void> _showNoteSheet() async {
-    final result = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => RideNoteScreen(
-          serviceType: _type,
-          initialNote: _note,
-        ),
-      ),
-    );
-    if (result != null && mounted) setState(() => _note = result);
   }
 
   Future<void> _showVoucherSheet() async {
@@ -331,16 +329,10 @@ class _State extends ConsumerState<RideBookingScreen> {
 
   void _swapAddresses() {
     setState(() {
-      final tmpAddr = _pickupAddr;
-      _pickupAddr   = _destAddr;
-      _destAddr     = tmpAddr;
-
-      final tmpLat = _pickupLat;
-      final tmpLng = _pickupLng;
-      _pickupLat   = _destLat;
-      _pickupLng   = _destLng;
-      _destLat     = tmpLat;
-      _destLng     = tmpLng;
+      final tmpAddr = _pickupAddr; _pickupAddr = _destAddr; _destAddr = tmpAddr;
+      final tmpName = _pickupPlaceName; _pickupPlaceName = _destPlaceName; _destPlaceName = tmpName;
+      final tmpLat = _pickupLat; _pickupLat = _destLat; _destLat = tmpLat;
+      final tmpLng = _pickupLng; _pickupLng = _destLng; _destLng = tmpLng;
     });
     _estimate();
     _fitCamera();
@@ -432,118 +424,185 @@ class _State extends ConsumerState<RideBookingScreen> {
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 14,
+                      color: Colors.black.withValues(alpha: 0.10),
+                      blurRadius: 16,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Back
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded),
-                      color: AppColors.textPrimary,
-                      onPressed: () => context.pop(),
-                    ),
+                child: IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        color: AppColors.textPrimary,
+                        onPressed: () => context.pop(),
+                      ),
 
-                    // Address rows
-                    Expanded(
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        // Pickup row
-                        GestureDetector(
-                          onTap: () => _pickAddress(isPickup: true),
-                          behavior: HitTestBehavior.opaque,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 16, 5, 8),
-                            child: Row(children: [
-                              const Icon(Icons.my_location_rounded,
-                                  size: 18, color: AppColors.primary),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _pickupAddr ?? 'Chọn điểm đón',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: _pickupAddr != null
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                    color: _pickupAddr != null
-                                        ? AppColors.textPrimary
-                                        : AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            ]),
+                      // Timeline dots
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 18),
+                        child: Column(children: [
+                          Container(
+                            width: 10, height: 10,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
                           ),
-                        ),
-
-                        const Divider(height: 1, color: Color(0xFFF0F0F0)),
-
-                        // Destination row
-                        GestureDetector(
-                          onTap: () => _pickAddress(isPickup: false),
-                          behavior: HitTestBehavior.opaque,
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(0, 8, 5, 16),
-                            child: Row(children: [
-                              const Icon(Icons.location_on_rounded,
-                                  size: 18, color: AppColors.danger),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  _destAddr ?? 'Chọn điểm đến',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: _destAddr != null
-                                        ? FontWeight.w600
-                                        : FontWeight.w400,
-                                    color: _destAddr != null
-                                        ? AppColors.textPrimary
-                                        : AppColors.textSecondary,
-                                  ),
-                                ),
-                              ),
-                            ]),
-                          ),
-                        ),
-                      ]),
-                    ),
-
-                    // Swap + divider (only when both addresses set)
-                    if (_pickupAddr != null && _destAddr != null) ...[
-                      Container(
-                          width: 1, height: 36,
-                          color: const Color(0xFFF0F0F0)),
-                      GestureDetector(
-                        onTap: _swapAddresses,
-                        child: Container(
-                          width: 44, height: 44,
-                          color: Colors.transparent,
-                          child: Center(
+                          Expanded(
                             child: Container(
-                              width: 32, height: 32,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(8),
+                              width: 1.5,
+                              color: const Color(0xFFDDDDDD),
+                            ),
+                          ),
+                          Container(
+                            width: 10, height: 10,
+                            decoration: const BoxDecoration(
+                              color: AppColors.danger,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ]),
+                      ),
+                      const SizedBox(width: 10),
+
+                      // Address rows
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // Pickup row
+                            GestureDetector(
+                              onTap: () => _pickAddress(isPickup: true),
+                              behavior: HitTestBehavior.opaque,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(0, 14, 5, 8),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: _pickupAddr != null
+                                      ? Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _pickupPlaceName ?? _pickupAddr!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                            ),
+                                            if (_pickupPlaceName != null) ...[
+                                              const SizedBox(height: 2),
+                                              Text(
+                                                _pickupAddr!,
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  fontSize: 11,
+                                                  color: AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        )
+                                      : const Text(
+                                          'Chọn điểm đón',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                ),
                               ),
-                              child: const Icon(
-                                Icons.swap_vert_rounded,
-                                color: Colors.white,
-                                size: 18,
+                            ),
+
+                            const Divider(height: 1, color: Color(0xFFF0F0F0)),
+
+                            // Destination row
+                            GestureDetector(
+                              onTap: () => _pickAddress(isPickup: false),
+                              behavior: HitTestBehavior.opaque,
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(0, 8, 5, 14),
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: _destAddr != null
+                                      ? Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _destPlaceName ??
+                                                  user?.name ??
+                                                  'Điểm đến',
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w600,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              _destAddr!,
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      : const Text(
+                                          'Chọn điểm đến',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            color: AppColors.textSecondary,
+                                          ),
+                                        ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Swap button
+                      if (_pickupAddr != null && _destAddr != null) ...[
+                        Container(
+                            width: 1, height: 36,
+                            color: const Color(0xFFF0F0F0)),
+                        GestureDetector(
+                          onTap: _swapAddresses,
+                          child: Container(
+                            width: 44, height: 44,
+                            color: Colors.transparent,
+                            child: Center(
+                              child: Container(
+                                width: 32, height: 32,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.swap_vert_rounded,
+                                  color: Colors.white,
+                                  size: 18,
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ] else
-                      const SizedBox(width: 4),
-                  ],
+                      ] else
+                        const SizedBox(width: 4),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -583,9 +642,17 @@ class _State extends ConsumerState<RideBookingScreen> {
             left: 0, right: 0, bottom: 0,
             child: Container(
               padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad + 16),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFEEEEEE))),
+                borderRadius: const BorderRadius.vertical(
+                    top: Radius.circular(20)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.08),
+                    blurRadius: 16,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -593,9 +660,16 @@ class _State extends ConsumerState<RideBookingScreen> {
 
                   // ── Service row ───────────────────────────────────────
                   Row(children: [
-                    Icon(Fmt.serviceIcon(_type),
-                        size: 22, color: AppColors.primary),
-                    const SizedBox(width: 10),
+                    Container(
+                      width: 36, height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(Fmt.serviceIcon(_type),
+                          color: AppColors.primary, size: 18),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -612,33 +686,74 @@ class _State extends ConsumerState<RideBookingScreen> {
                         ],
                       ),
                     ),
-                    GestureDetector(
-                      onTap: _showNoteSheet,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: _note.isNotEmpty
-                              ? AppColors.primary.withValues(alpha: 0.08)
-                              : const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                          Icon(Icons.edit_note_rounded, size: 16,
-                              color: _note.isNotEmpty
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary),
-                          const SizedBox(width: 4),
-                          Text(_note.isNotEmpty ? 'Có ghi chú' : 'Ghi chú',
-                              style: TextStyle(
-                                  fontSize: 12, fontWeight: FontWeight.w600,
-                                  color: _note.isNotEmpty
-                                      ? AppColors.primary
-                                      : AppColors.textSecondary)),
-                        ]),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: (_nearbyDrivers.isNotEmpty
+                                ? AppColors.success
+                                : AppColors.textSecondary)
+                            .withValues(alpha: 0.10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                        Container(
+                          width: 6, height: 6,
+                          decoration: BoxDecoration(
+                            color: _nearbyDrivers.isNotEmpty
+                                ? AppColors.success
+                                : AppColors.textSecondary,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          '${_nearbyDrivers.length} tài xế',
+                          style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _nearbyDrivers.isNotEmpty
+                                  ? AppColors.success
+                                  : AppColors.textSecondary),
+                        ),
+                      ]),
                     ),
                   ]),
+
+                  const SizedBox(height: 10),
+
+                  // ── Note inline ────────────────────────────────────────
+                  TextField(
+                    controller: _noteCtrl,
+                    style: const TextStyle(
+                        fontSize: 12, color: AppColors.textPrimary),
+                    decoration: InputDecoration(
+                      hintText: 'Ghi chú cho tài xế...',
+                      hintStyle: const TextStyle(
+                          fontSize: 12, color: AppColors.textSecondary),
+                      prefixIcon: const Icon(Icons.edit_note_rounded,
+                          size: 16, color: AppColors.textSecondary),
+                      prefixIconConstraints:
+                          const BoxConstraints(minWidth: 36, minHeight: 36),
+                      filled: true,
+                      fillColor: const Color(0xFFF5F5F7),
+                      contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 10),
+                      isDense: true,
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none),
+                      enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none),
+                      focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: const BorderSide(
+                              color: AppColors.primary, width: 1.5)),
+                    ),
+                  ),
 
                   const SizedBox(height: 12),
                   const Divider(height: 1, color: Color(0xFFF5F5F5)),

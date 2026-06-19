@@ -19,7 +19,7 @@ import '../../features/profile/screens/edit_profile_screen.dart';
 import '../../features/profile/screens/change_password_screen.dart';
 import '../../features/profile/screens/legal_page_screen.dart';
 import '../../features/profile/screens/saved_addresses_screen.dart';
-import '../../features/splash/splash_screen.dart';
+import '../../features/splash/splash_screen.dart' show SplashScreen, splashReadyProvider;
 import '../../features/version/providers/app_version_provider.dart';
 import '../../features/voucher/screens/voucher_list_screen.dart';
 import '../../features/order/screens/order_stats_screen.dart';
@@ -30,6 +30,7 @@ class _AuthListenable extends ChangeNotifier {
   _AuthListenable(Ref ref) {
     ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
     ref.listen<AppVersionState>(appVersionProvider, (_, __) => notifyListeners());
+    ref.listen<bool>(splashReadyProvider, (_, __) => notifyListeners());
   }
 }
 
@@ -42,11 +43,12 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     refreshListenable: listenable,
     redirect: (context, state) {
-      final auth     = ref.read(authProvider);
-      final version  = ref.read(appVersionProvider);
-      final location = state.matchedLocation;
+      final auth        = ref.read(authProvider);
+      final version     = ref.read(appVersionProvider);
+      final splashReady = ref.read(splashReadyProvider);
+      final location    = state.matchedLocation;
 
-      if (!auth.isInitialized) return location == '/splash' ? null : '/splash';
+      if (!auth.isInitialized || !splashReady) return location == '/splash' ? null : '/splash';
 
       // Keep on splash while force update dialog is shown
       if (version.needsForceUpdate) return '/splash';

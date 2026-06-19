@@ -8,6 +8,7 @@ class ActiveCityState {
   final int? cityId;
   final String cityName;
   final String currentAddress;
+  final String? currentPlaceName;
   final bool isDetecting;
   final bool isFromGps;
 
@@ -15,21 +16,29 @@ class ActiveCityState {
     this.cityId,
     this.cityName = '',
     this.currentAddress = '',
+    this.currentPlaceName,
     this.isDetecting = false,
     this.isFromGps = false,
   });
+
+  /// Tên hiển thị: placeName nếu có, fallback về currentAddress
+  String get displayAddress =>
+      (currentPlaceName?.isNotEmpty == true) ? currentPlaceName! : currentAddress;
 
   ActiveCityState copyWith({
     int? cityId,
     String? cityName,
     String? currentAddress,
+    String? currentPlaceName,
     bool? isDetecting,
     bool? isFromGps,
+    bool clearPlaceName = false,
   }) =>
       ActiveCityState(
         cityId: cityId ?? this.cityId,
         cityName: cityName ?? this.cityName,
         currentAddress: currentAddress ?? this.currentAddress,
+        currentPlaceName: clearPlaceName ? null : (currentPlaceName ?? this.currentPlaceName),
         isDetecting: isDetecting ?? this.isDetecting,
         isFromGps: isFromGps ?? this.isFromGps,
       );
@@ -88,20 +97,25 @@ class ActiveCityNotifier extends StateNotifier<ActiveCityState> {
       final registeredCityName = user?.cityName ?? '';
 
       state = state.copyWith(
-        // Ưu tiên city đã đăng ký, chỉ dùng GPS city nếu chưa có city nào
-        cityId:         registeredCityId ?? detectedId,
-        cityName:       registeredCityId != null ? registeredCityName : detectedName,
-        currentAddress: address ?? detectedName,
-        isDetecting: false,
-        isFromGps: true,
+        cityId:          registeredCityId ?? detectedId,
+        cityName:        registeredCityId != null ? registeredCityName : detectedName,
+        currentAddress:  address ?? detectedName,
+        clearPlaceName:  true,
+        isDetecting:     false,
+        isFromGps:       true,
       );
     } catch (_) {
       state = state.copyWith(isDetecting: false);
     }
   }
 
-  void overrideAddress(String address) {
-    state = state.copyWith(currentAddress: address, isFromGps: false);
+  void overrideAddress(String address, {String? placeName}) {
+    state = state.copyWith(
+      currentAddress:   address,
+      currentPlaceName: placeName,
+      clearPlaceName:   placeName == null,
+      isFromGps:        false,
+    );
   }
 
   void overrideCity(CityItem city) {

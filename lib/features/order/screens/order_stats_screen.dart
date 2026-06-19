@@ -97,10 +97,26 @@ class _State extends ConsumerState<OrderStatsScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
+        centerTitle: true,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.arrow_back_rounded,
+                    size: 20, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ),
+        leadingWidth: 60,
         title: const Text('Điểm thưởng',
             style: TextStyle(
                 fontSize: 17, fontWeight: FontWeight.w700,
@@ -114,86 +130,138 @@ class _State extends ConsumerState<OrderStatsScreen> {
           ? const Center(child: CircularProgressIndicator(
               color: AppColors.primary, strokeWidth: 2))
           : ListView(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
               children: [
 
-                // ── Points header ──────────────────────────────────────────
+                // ── Points hero card ───────────────────────────────────────
                 Container(
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Color(0xFFE8720C), Color(0xFFFF9A3C)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8, offset: const Offset(0, 2))],
                   ),
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 28),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    const Text('Điểm tích lũy',
-                        style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    const SizedBox(height: 8),
-                    Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text('$_points',
-                          style: const TextStyle(
-                              color: Colors.white, fontSize: 56,
-                              fontWeight: FontWeight.w800, height: 1)),
-                      const SizedBox(width: 8),
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8),
-                        child: Text('điểm',
-                            style: TextStyle(color: Colors.white70, fontSize: 16)),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(_rankLabel(_points),
-                            style: const TextStyle(
-                                color: Colors.white, fontSize: 12,
-                                fontWeight: FontWeight.w700)),
-                      ),
-                    ]),
-                    const SizedBox(height: 14),
-                    _RankProgress(points: _points),
-                  ]),
-                ),
-
-                const SizedBox(height: 8),
-
-                // ── Section header: Thống kê ───────────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                  child: Row(children: [
-                    Container(width: 4, height: 18,
-                        decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(2))),
-                    const SizedBox(width: 8),
-                    const Text('Thống kê',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary)),
-                  ]),
-                ),
-                Container(
-                  color: Colors.white,
+                  clipBehavior: Clip.antiAlias,
                   child: Column(children: [
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Color(0xFFE8720C), Color(0xFFFF9A3C)],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                      child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                        Row(crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Expanded(
+                            child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                              const Text('Điểm tích lũy',
+                                  style: TextStyle(
+                                      color: Colors.white70, fontSize: 12)),
+                              const SizedBox(height: 4),
+                              Row(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
+                                  children: [
+                                Text('$_points',
+                                    style: const TextStyle(
+                                        color: Colors.white, fontSize: 52,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1)),
+                                const SizedBox(width: 6),
+                                const Padding(
+                                  padding: EdgeInsets.only(bottom: 6),
+                                  child: Text('điểm',
+                                      style: TextStyle(
+                                          color: Colors.white70,
+                                          fontSize: 15)),
+                                ),
+                              ]),
+                            ]),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(_rankLabel(_points),
+                                style: const TextStyle(
+                                    color: Colors.white, fontSize: 12,
+                                    fontWeight: FontWeight.w700)),
+                          ),
+                        ]),
+                        const SizedBox(height: 14),
+                        _RankProgress(points: _points),
+                      ]),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      child: Row(children: [
+                        const Icon(Icons.emoji_events_rounded,
+                            size: 16, color: AppColors.primary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(_nextMilestone(),
+                              style: const TextStyle(
+                                  fontSize: 12.5,
+                                  color: AppColors.textSecondary)),
+                        ),
+                      ]),
+                    ),
+                  ]),
+                ),
+
+                const SizedBox(height: 12),
+
+                // ── Stats card ────────────────────────────────────────────
+                Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8, offset: const Offset(0, 2))],
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Column(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                      child: Row(children: [
+                        Container(width: 3, height: 16,
+                            decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2))),
+                        const SizedBox(width: 8),
+                        const Text('Thống kê đơn hàng',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary)),
+                      ]),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF0F0F0)),
                     _StatsRow(icon: Icons.receipt_long_outlined,
                         label: 'Tổng đơn', value: '$_totalOrders'),
-                    const Divider(height: 1, indent: 56, color: Color(0xFFF5F5F5)),
+                    const Divider(height: 1, indent: 56,
+                        color: Color(0xFFF5F5F5)),
                     _StatsRow(icon: Icons.check_circle_outline_rounded,
                         label: 'Hoàn thành', value: '$_completedOrders',
                         valueColor: AppColors.success),
-                    const Divider(height: 1, indent: 56, color: Color(0xFFF5F5F5)),
+                    const Divider(height: 1, indent: 56,
+                        color: Color(0xFFF5F5F5)),
                     _StatsRow(icon: Icons.cancel_outlined,
                         label: 'Đã huỷ', value: '$_cancelledOrders',
                         valueColor: AppColors.danger),
-                    const Divider(height: 1, indent: 56, color: Color(0xFFF5F5F5)),
+                    const Divider(height: 1, indent: 56,
+                        color: Color(0xFFF5F5F5)),
                     _StatsRow(icon: Icons.payments_outlined,
                         label: 'Tổng chi tiêu',
                         value: Fmt.currency(_totalSpent)),
@@ -205,7 +273,8 @@ class _State extends ConsumerState<OrderStatsScreen> {
                           value: _serviceLabel(_favoriteService!),
                           valueColor: AppColors.primary),
                     ],
-                    const Divider(height: 1, indent: 56, color: Color(0xFFF5F5F5)),
+                    const Divider(height: 1, indent: 56,
+                        color: Color(0xFFF5F5F5)),
                     _StatsRow(icon: Icons.trending_up_rounded,
                         label: 'Tỉ lệ hoàn thành',
                         value: _totalOrders > 0
@@ -215,28 +284,36 @@ class _State extends ConsumerState<OrderStatsScreen> {
                   ]),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 12),
 
-                // ── Section header: Cách tích điểm ────────────────────────
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-                  child: Row(children: [
-                    Container(width: 4, height: 18,
-                        decoration: BoxDecoration(
-                            color: AppColors.primary,
-                            borderRadius: BorderRadius.circular(2))),
-                    const SizedBox(width: 8),
-                    const Text('Cách tích điểm',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w700,
-                            color: AppColors.textPrimary)),
-                  ]),
-                ),
+                // ── How to earn card ──────────────────────────────────────
                 Container(
-                  color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.04),
+                        blurRadius: 8, offset: const Offset(0, 2))],
+                  ),
+                  clipBehavior: Clip.antiAlias,
                   child: Column(children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                      child: Row(children: [
+                        Container(width: 3, height: 16,
+                            decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(2))),
+                        const SizedBox(width: 8),
+                        const Text('Cách tích điểm',
+                            style: TextStyle(
+                                fontSize: 14, fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary)),
+                      ]),
+                    ),
+                    const Divider(height: 1, color: Color(0xFFF0F0F0)),
                     _HowItem(Icons.check_circle_rounded, AppColors.success,
-                        '+1 điểm', 'Mỗi đơn hoàn thành'),
+                        '+1 điểm', 'Mỗi đơn hàng hoàn thành'),
                     const Divider(height: 1, indent: 56,
                         color: Color(0xFFF5F5F5)),
                     _HowItem(Icons.local_offer_rounded, AppColors.primary,
@@ -248,11 +325,16 @@ class _State extends ConsumerState<OrderStatsScreen> {
                         '5 đơn → Thường xuyên · 20 → Thân thiết · 50 → VIP'),
                   ]),
                 ),
-
-                const SizedBox(height: 48),
               ],
             ),
     );
+  }
+
+  String _nextMilestone() {
+    if (_points >= 50) return 'Bạn đã đạt hạng cao nhất — Khách VIP!';
+    if (_points >= 20) return 'Còn ${50 - _points} đơn để lên hạng Khách VIP';
+    if (_points >= 5)  return 'Còn ${20 - _points} đơn để lên hạng Thân thiết';
+    return 'Còn ${5 - _points} đơn để lên hạng Thường xuyên';
   }
 }
 

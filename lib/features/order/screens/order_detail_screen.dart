@@ -10,6 +10,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/services/notification_service.dart';
@@ -199,72 +200,62 @@ class _State extends ConsumerState<OrderDetailScreen> with WidgetsBindingObserve
       barrierDismissible: false,
       builder: (ctx) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: Colors.white,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 64, height: 64,
+                width: 68, height: 68,
                 decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(18),
+                  color: AppColors.success.withValues(alpha: 0.10),
+                  shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.star_rounded,
-                    color: AppColors.warning, size: 36),
+                child: const Icon(Icons.check_circle_rounded,
+                    color: AppColors.success, size: 38),
               ),
               const SizedBox(height: 16),
-              const Text('Đánh giá tài xế',
-                  style: TextStyle(
+              Text('Đơn hàng hoàn thành!',
+                  style: GoogleFonts.beVietnamPro(
                       fontSize: 18, fontWeight: FontWeight.w800,
                       color: AppColors.textPrimary)),
               const SizedBox(height: 8),
-              Text(
-                'Đơn hàng đã hoàn thành!\nĐánh giá của bạn giúp ${_order!.driverName ?? 'tài xế'} cải thiện chất lượng dịch vụ và nhận thêm đơn hàng.',
+              const Text(
+                'Hành trình kết thúc tốt đẹp.\nBạn có muốn đánh giá tài xế không?',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                    fontSize: 13,
-                    color: AppColors.textSecondary,
-                    height: 1.5),
+                style: TextStyle(
+                    fontSize: 13, color: AppColors.textSecondary, height: 1.5),
               ),
-              const SizedBox(height: 6),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: AppColors.warning.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(8),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity, height: 50,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                    textStyle: GoogleFonts.beVietnamPro(
+                        fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _showRating();
+                  },
+                  child: const Text('Đánh giá ngay'),
                 ),
-                child: const Text('⭐ Chỉ mất 5 giây thôi!',
-                    style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.warning)),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.warning,
-                  minimumSize: const Size(double.infinity, 48),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  elevation: 0,
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity, height: 40,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: TextButton.styleFrom(
+                      foregroundColor: AppColors.textSecondary,
+                      textStyle: GoogleFonts.beVietnamPro(fontSize: 14)),
+                  child: const Text('Để sau'),
                 ),
-                onPressed: () {
-                  Navigator.pop(ctx);
-                  _showRating();
-                },
-                child: const Text('Đánh giá ngay',
-                    style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white)),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: const Text('Để sau',
-                    style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: 14)),
               ),
             ],
           ),
@@ -344,15 +335,36 @@ class _State extends ConsumerState<OrderDetailScreen> with WidgetsBindingObserve
   Widget build(BuildContext context) {
     final canCancel = _order?.canCancel ?? false;
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF6F6F6),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        centerTitle: false,
+        centerTitle: true,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: GestureDetector(
+              onTap: () => context.pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 36, height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.arrow_back_rounded,
+                    size: 20, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
+        ),
+        leadingWidth: 60,
         title: Text(
           _order != null ? 'Đơn #${_order!.code}' : 'Chi tiết đơn',
-          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700,
+          style: GoogleFonts.beVietnamPro(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
               color: AppColors.textPrimary),
         ),
         bottom: const PreferredSize(
@@ -381,22 +393,30 @@ class _State extends ConsumerState<OrderDetailScreen> with WidgetsBindingObserve
 
     if (canCancel) {
       return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Color(0xFFF0F0F0))),
+          ),
           child: SizedBox(
+            width: double.infinity,
             height: 50,
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.danger,
                 side: const BorderSide(color: AppColors.danger),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                textStyle: GoogleFonts.beVietnamPro(
+                    fontSize: 15, fontWeight: FontWeight.w700),
               ),
               onPressed: _cancelling ? null : _cancelOrder,
               child: _cancelling
                   ? const SizedBox(height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.danger))
-                  : const Text('Hủy đơn hàng',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: AppColors.danger))
+                  : const Text('Hủy đơn hàng'),
             ),
           ),
         ),
@@ -405,20 +425,26 @@ class _State extends ConsumerState<OrderDetailScreen> with WidgetsBindingObserve
 
     if ((order.isCompleted || order.isCancelled) && order.serviceType != 'topup') {
       return SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Color(0xFFF0F0F0))),
+          ),
           child: SizedBox(
+            width: double.infinity,
             height: 50,
-            child: ElevatedButton.icon(
-              style: ElevatedButton.styleFrom(
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
                 backgroundColor: AppColors.primary,
-                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                textStyle: GoogleFonts.beVietnamPro(
+                    fontSize: 15, fontWeight: FontWeight.w700),
               ),
               icon: const Icon(Icons.replay_rounded, size: 18),
-              label: const Text('Đặt lại',
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+              label: const Text('Đặt lại'),
               onPressed: () {
                 switch (order.serviceType) {
                   case 'delivery': context.push('/booking/delivery', extra: order);
@@ -450,71 +476,65 @@ class _Body extends StatelessWidget {
       color: AppColors.primary,
       onRefresh: onRefresh,
       child: ListView(
-      padding: EdgeInsets.zero,
-      children: [
-        const SizedBox(height: 8),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          // ── Status ───────────────────────────────────────────────
+          _StatusCard(order: order),
+          const SizedBox(height: 12),
 
-        // ── Status ─────────────────────────────────────────────────
-        _StatusCard(order: order),
-        const SizedBox(height: 8),
+          // ── Driver ───────────────────────────────────────────────
+          if (order.driverName != null) ...[
+            _DriverCard(order: order),
+            const SizedBox(height: 12),
+          ],
 
-        // ── Driver ─────────────────────────────────────────────────
-        if (order.driverName != null) ...[
-          _DriverCard(order: order),
-          const SizedBox(height: 8),
-        ],
+          // ── Map ──────────────────────────────────────────────────
+          if (order.driverLat != null && order.isActive) ...[
+            _DriverMapCard(order: order),
+            const SizedBox(height: 12),
+          ],
 
-        // ── Map ─────────────────────────────────────────────────────
-        if (order.driverLat != null && order.isActive) ...[
-          _DriverMapCard(order: order),
-          const SizedBox(height: 8),
-        ],
+          // ── Route ────────────────────────────────────────────────
+          if (order.pickupAddress != null || order.deliveryAddress != null) ...[
+            _RouteCard(order: order),
+            const SizedBox(height: 12),
+          ],
 
-        // ── Route ───────────────────────────────────────────────────
-        if (order.pickupAddress != null || order.deliveryAddress != null) ...[
-          _RouteCard(order: order),
-          const SizedBox(height: 8),
-        ],
+          // ── Order info ───────────────────────────────────────────
+          _OrderInfoCard(order: order),
 
-        // ── Order info ──────────────────────────────────────────────
-        _OrderInfoCard(order: order),
+          // ── Note ─────────────────────────────────────────────────
+          if (order.orderNote != null && order.orderNote!.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _NoteCard(note: order.orderNote!),
+          ],
 
-        // ── Note ────────────────────────────────────────────────────
-        if (order.orderNote != null && order.orderNote!.isNotEmpty) ...[
-          const SizedBox(height: 8),
-          _NoteCard(note: order.orderNote!),
-        ],
-
-        // ── Rating ────────────────────────────────────────────────
-        if (order.canRate) ...[
-          const SizedBox(height: 8),
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-            child: SizedBox(
+          // ── Rating ───────────────────────────────────────────────
+          if (order.canRate) ...[
+            const SizedBox(height: 12),
+            SizedBox(
               width: double.infinity,
               height: 50,
-              child: ElevatedButton.icon(
+              child: FilledButton.icon(
                 onPressed: onRate,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.warning,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(12)),
+                  elevation: 0,
+                  textStyle: GoogleFonts.beVietnamPro(
+                      fontSize: 15, fontWeight: FontWeight.w700),
                 ),
                 icon: const Icon(Icons.star_rounded, size: 18),
-                label: const Text('Đánh giá tài xế',
-                    style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700)),
+                label: const Text('Đánh giá tài xế'),
               ),
             ),
-          ),
-        ],
+          ],
+
           if (order.driverRating != null) ...[
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             _RatingDisplay(rating: order.driverRating!),
           ],
-          const SizedBox(height: 32),
         ],
       ),
     );
@@ -565,22 +585,22 @@ class _StatusCard extends StatelessWidget {
   List<(String, String, IconData)> get _steps {
     if (_isRide) {
       return [
-        ('pending',    'Đang tìm tài xế',       Icons.schedule_rounded),
-        ('assigned',   'Tài xế đang đến',        Icons.person_pin_rounded),
-        ('processing', 'Tài xế đã đến điểm đón', Icons.person_pin_circle_rounded),
-        ('completed',  'Hoàn thành',              Icons.check_circle_rounded),
+        ('pending',    'Tìm tài xế', Icons.schedule_rounded),
+        ('assigned',   'Đang đến',   Icons.person_pin_rounded),
+        ('processing', 'Đã đến',     Icons.person_pin_circle_rounded),
+        ('completed',  'Hoàn thành', Icons.check_circle_rounded),
       ];
     }
     final processingLabel = switch (order.serviceType) {
-      'shopping' => 'Đang mua hàng',
-      'topup'    => 'Đang nạp tiền',
-      _          => 'Đang lấy hàng',
+      'shopping' => 'Mua hàng',
+      'topup'    => 'Nạp tiền',
+      _          => 'Lấy hàng',
     };
     return [
-      ('pending',    'Đang tìm tài xế', Icons.schedule_rounded),
-      ('assigned',   'Tài xế đã nhận',  Icons.person_pin_rounded),
-      ('processing', processingLabel,    Icons.inventory_2_outlined),
-      ('completed',  'Hoàn thành',      Icons.check_circle_rounded),
+      ('pending',    'Tìm tài xế',    Icons.schedule_rounded),
+      ('assigned',   'Đã nhận',       Icons.person_pin_rounded),
+      ('processing', processingLabel,  Icons.inventory_2_outlined),
+      ('completed',  'Hoàn thành',    Icons.check_circle_rounded),
     ];
   }
 
@@ -589,115 +609,115 @@ class _StatusCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (color, iconData, subtitle) = _meta(order.status, order.serviceType);
-    final steps      = _steps;
-    final currentIdx = _statusOrder.indexOf(order.status);
+    final steps       = _steps;
+    final currentIdx  = _statusOrder.indexOf(order.status);
     final isCancelled = order.status == 'cancelled';
 
-    return Container(
-      width: double.infinity,
-      color: Colors.white,
-      child: ClipRect(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(height: 3, color: color),
+    return _Card(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Colored banner ──────────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            ),
+            child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
+              Container(
+                width: 52, height: 52,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(iconData, color: color, size: 26),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(Fmt.orderStatus(order.status),
+                        style: GoogleFonts.beVietnamPro(
+                            fontSize: 17, fontWeight: FontWeight.w800, color: color)),
+                    const SizedBox(height: 3),
+                    Text(subtitle,
+                        style: GoogleFonts.beVietnamPro(
+                            fontSize: 12.5, color: color.withValues(alpha: 0.8), height: 1.4)),
+                    if (order.status == 'pending') ...[
+                      const SizedBox(height: 8),
+                      _PendingDots(color: color),
+                    ],
+                  ],
+                ),
+              ),
+            ]),
+          ),
+
+          // ── Horizontal timeline ─────────────────────────────────
+          if (!isCancelled) ...[
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
+              padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // ── Current status ────────────────────────────────────
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Icon(iconData, color: color, size: 28),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              Fmt.orderStatus(order.status),
-                              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: color),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              subtitle,
-                              style: TextStyle(fontSize: 12, color: color.withValues(alpha: 0.85)),
-                            ),
-                            if (order.status == 'pending') ...[
-                              const SizedBox(height: 8),
-                              _PendingDots(color: color),
-                            ],
-                          ],
+                children: steps.asMap().entries.expand((e) {
+                  final i       = e.key;
+                  final (key, label, icon) = e.value;
+                  final stepIdx = _statusOrder.indexOf(key);
+                  final isDone  = currentIdx >= stepIdx && currentIdx != -1;
+                  final isLast  = i == steps.length - 1;
+
+                  final stepCol = Expanded(
+                    child: Column(children: [
+                      Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: isDone ? color : const Color(0xFFF0F0F0),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(icon, size: 16,
+                            color: isDone ? Colors.white : AppColors.textSecondary),
+                      ),
+                      const SizedBox(height: 7),
+                      Text(label,
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.beVietnamPro(
+                              fontSize: 10.5,
+                              fontWeight: isDone ? FontWeight.w700 : FontWeight.w500,
+                              color: isDone ? color : AppColors.textSecondary,
+                              height: 1.4)),
+                    ]),
+                  );
+
+                  if (isLast) return [stepCol];
+
+                  final connector = SizedBox(
+                    width: 20,
+                    child: Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: Center(
+                        child: Container(
+                          height: 2,
+                          decoration: BoxDecoration(
+                            color: stepIdx < currentIdx
+                                ? color.withValues(alpha: 0.45)
+                                : const Color(0xFFE0E0E0),
+                            borderRadius: BorderRadius.circular(1),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  );
 
-                  // ── Progress timeline ─────────────────────────────────
-                  if (!isCancelled) ...[
-                    const SizedBox(height: 14),
-                    const Divider(height: 1, color: AppColors.divider),
-                    const SizedBox(height: 12),
-                    ...steps.asMap().entries.map((entry) {
-                      final i = entry.key;
-                      final (key, label, icon) = entry.value;
-                      final stepIdx = _statusOrder.indexOf(key);
-                      final isDone  = currentIdx >= stepIdx && currentIdx != -1;
-                      final isLast  = i == steps.length - 1;
-
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                            width: 22,
-                            child: Column(
-                              children: [
-                                Container(
-                                  width: 22, height: 22,
-                                  decoration: BoxDecoration(
-                                    color: isDone ? color : AppColors.background,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(
-                                      color: isDone ? color : AppColors.divider,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Icon(icon, size: 11,
-                                      color: isDone ? Colors.white : AppColors.textSecondary),
-                                ),
-                                if (!isLast)
-                                  Container(
-                                    width: 1.5, height: 16,
-                                    color: isDone
-                                        ? color.withValues(alpha: 0.25)
-                                        : AppColors.divider,
-                                  ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Padding(
-                            padding: const EdgeInsets.only(top: 4),
-                            child: Text(
-                              label,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: isDone ? FontWeight.w600 : FontWeight.w400,
-                                color: isDone ? AppColors.textPrimary : AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      );
-                    }),
-                  ],
-                ],
+                  return [stepCol, connector];
+                }).toList(),
               ),
             ),
           ],
-        ),
+        ],
       ),
     );
   }
@@ -827,7 +847,7 @@ class _RouteCard extends StatelessWidget {
                   if (hasPickup) ...[
                     _RouteStop(
                       label: _isTopup ? 'Địa điểm' : _pickupLabel,
-                      title: order.storeName,
+                      title: order.storeName ?? order.pickupPlaceName,
                       address: order.pickupAddress!,
                       phone: order.pickupPhone,
                     ),
@@ -837,6 +857,7 @@ class _RouteCard extends StatelessWidget {
                   if (hasDelivery && !isSameAddr)
                     _RouteStop(
                       label: _deliveryLabel,
+                      title: order.receiverName,
                       address: order.deliveryAddress!,
                       phone: order.deliveryPhone,
                     ),
@@ -920,7 +941,7 @@ class _OrderInfoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final serviceColor = AppColors.serviceColor(order.serviceType);
-    return _FlatCard(
+    return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -990,24 +1011,24 @@ class _OrderInfoCard extends StatelessWidget {
 
           // Fee highlight row
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             decoration: BoxDecoration(
               color: serviceColor.withValues(alpha: 0.06),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
               border: Border.all(color: serviceColor.withValues(alpha: 0.18)),
             ),
             child: Row(children: [
               Icon(Icons.payments_outlined, size: 18, color: serviceColor),
               const SizedBox(width: 10),
-              const Text('Phí vận chuyển',
-                  style: TextStyle(
-                      fontSize: 13,
+              Text('Phí vận chuyển',
+                  style: GoogleFonts.beVietnamPro(
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary)),
               const Spacer(),
               Text(Fmt.currency(order.shippingFee),
-                  style: TextStyle(
-                      fontSize: 16,
+                  style: GoogleFonts.beVietnamPro(
+                      fontSize: 17,
                       fontWeight: FontWeight.w800,
                       color: serviceColor)),
             ]),
@@ -1068,7 +1089,7 @@ class _NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _FlatCard(
+    return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1097,7 +1118,7 @@ class _RatingDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _FlatCard(
+    return _Card(
       child: Row(children: [
         const Icon(Icons.star_rounded, size: 16, color: AppColors.warning),
         const SizedBox(width: 6),
@@ -1151,7 +1172,7 @@ class _DriverCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _FlatCard(
+    return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1190,14 +1211,14 @@ class _DriverCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(order.driverName!,
-                      style: const TextStyle(
+                      style: GoogleFonts.beVietnamPro(
                           fontWeight: FontWeight.w700,
                           fontSize: 16,
                           color: AppColors.textPrimary)),
                   if (order.driverPhone != null) ...[
                     const SizedBox(height: 2),
                     Text(order.driverPhone!,
-                        style: const TextStyle(
+                        style: GoogleFonts.beVietnamPro(
                             fontSize: 13, color: AppColors.textSecondary)),
                   ],
                 ],
@@ -1415,7 +1436,7 @@ class _DriverMapCardState extends State<_DriverMapCard> {
     final lat = widget.order.driverLat!;
     final lng = widget.order.driverLng!;
 
-    return _FlatCard(
+    return _Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1480,15 +1501,26 @@ class _DriverMapCardState extends State<_DriverMapCard> {
 
 // ─── Shared Widgets ───────────────────────────────────────────────────────────
 
-class _FlatCard extends StatelessWidget {
+class _Card extends StatelessWidget {
   final Widget child;
-  const _FlatCard({required this.child});
+  final EdgeInsetsGeometry padding;
+  const _Card({required this.child, this.padding = const EdgeInsets.all(16)});
 
   @override
   Widget build(BuildContext context) => Container(
     width: double.infinity,
-    padding: const EdgeInsets.all(16),
-    color: Colors.white,
+    padding: padding,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.05),
+          blurRadius: 8,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    ),
     child: child,
   );
 }
@@ -1502,17 +1534,17 @@ class _CardHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(children: [
     Container(
-      width: 30, height: 30,
+      width: 34, height: 34,
       decoration: BoxDecoration(
-        color: iconColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        color: iconColor.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(10),
       ),
-      child: Icon(icon, size: 16, color: iconColor),
+      child: Icon(icon, size: 18, color: iconColor),
     ),
     const SizedBox(width: 10),
     Text(label,
-        style: const TextStyle(
-            fontSize: 14,
+        style: GoogleFonts.beVietnamPro(
+            fontSize: 15,
             fontWeight: FontWeight.w700,
             color: AppColors.textPrimary)),
   ]);
@@ -1564,8 +1596,10 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
   int _rating = 5;
   final _noteCtrl = TextEditingController();
   bool _submitting = false;
+  final _tags = <String>{};
 
   static const _labels = ['', 'Rất tệ', 'Tệ', 'Bình thường', 'Tốt', 'Tuyệt vời!'];
+  static const _quickTags = ['Giao nhanh', 'Thân thiện', 'Cẩn thận', 'Lịch sự', 'Đúng giờ', 'Chuyên nghiệp'];
 
   @override
   void dispose() { _noteCtrl.dispose(); super.dispose(); }
@@ -1578,6 +1612,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
         data: {
           'rating': _rating,
           if (_noteCtrl.text.trim().isNotEmpty) 'note': _noteCtrl.text.trim(),
+          if (_tags.isNotEmpty) 'tags': _tags.toList(),
         },
       );
       widget.onDone();
@@ -1586,93 +1621,202 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
     }
   }
 
+  Color get _labelColor {
+    if (_rating >= 4) return AppColors.warning;
+    if (_rating == 3) return AppColors.textSecondary;
+    return AppColors.danger;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      padding: EdgeInsets.fromLTRB(
-          24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 24),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Container(
-          width: 40, height: 4,
-          decoration: BoxDecoration(
-            color: AppColors.divider,
-            borderRadius: BorderRadius.circular(2),
-          ),
-        ),
-        const SizedBox(height: 20),
+    final name = widget.driverName.trim();
+    final initials = name.isNotEmpty ? name.split(' ').last[0].toUpperCase() : 'T';
 
-        Container(
-          width: 56, height: 56,
-          decoration: BoxDecoration(
-            color: AppColors.success.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: const Icon(Icons.check_circle_rounded,
-              color: AppColors.success, size: 30),
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        const SizedBox(height: 12),
-        const Text('Đơn hàng hoàn thành!',
-            style: TextStyle(fontWeight: FontWeight.w700, fontSize: 18)),
-        const SizedBox(height: 4),
-        Text('Đánh giá tài xế ${widget.driverName}',
-            style: const TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40, height: 4,
+            decoration: BoxDecoration(
+              color: const Color(0xFFE0E0E0),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 24),
 
-        const SizedBox(height: 20),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(5, (i) {
-            final star = i + 1;
-            return GestureDetector(
-              onTap: () => setState(() => _rating = star),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Icon(
-                  star <= _rating ? Icons.star_rounded : Icons.star_border_rounded,
-                  color: AppColors.warning, size: 40,
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+
+              // Avatar
+              Container(
+                width: 72, height: 72,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: Text(initials,
+                    style: GoogleFonts.beVietnamPro(
+                      fontSize: 28, fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
                 ),
               ),
-            );
-          }),
-        ),
-        const SizedBox(height: 4),
-        Text(_labels[_rating],
-            style: const TextStyle(
-                color: AppColors.warning, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 10),
+              Text(name.isEmpty ? 'Tài xế' : name,
+                style: GoogleFonts.beVietnamPro(
+                  fontSize: 17, fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              const Text('Đánh giá chuyến đi của bạn',
+                style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
 
-        const SizedBox(height: 16),
-        TextField(
-          controller: _noteCtrl,
-          maxLines: 2,
-          decoration: const InputDecoration(
-            hintText: 'Nhận xét thêm (tuỳ chọn)...',
-            prefixIcon: Icon(Icons.chat_bubble_outline_rounded, size: 18),
-          ),
-        ),
-        const SizedBox(height: 20),
-        Row(children: [
-          Expanded(
-            child: OutlinedButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Bỏ qua'),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: ElevatedButton(
-              onPressed: _submitting ? null : _submit,
-              child: _submitting
-                  ? const SizedBox(height: 20, width: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('Gửi đánh giá'),
-            ),
+              const SizedBox(height: 24),
+
+              // Stars
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (i) {
+                  final star = i + 1;
+                  return GestureDetector(
+                    onTap: () => setState(() => _rating = star),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Icon(
+                        star <= _rating ? Icons.star_rounded : Icons.star_outline_rounded,
+                        color: star <= _rating ? AppColors.warning : const Color(0xFFD0D0D0),
+                        size: 48,
+                      ),
+                    ),
+                  );
+                }),
+              ),
+              const SizedBox(height: 6),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: Text(
+                  _labels[_rating],
+                  key: ValueKey(_rating),
+                  style: GoogleFonts.beVietnamPro(
+                    fontSize: 14, fontWeight: FontWeight.w600,
+                    color: _labelColor,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Quick tags
+              Wrap(
+                spacing: 8, runSpacing: 8,
+                children: _quickTags.map((tag) {
+                  final selected = _tags.contains(tag);
+                  return GestureDetector(
+                    onTap: () => setState(() {
+                      if (selected) { _tags.remove(tag); } else { _tags.add(tag); }
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppColors.primary.withValues(alpha: 0.10)
+                            : const Color(0xFFF5F5F5),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: selected ? AppColors.primary : Colors.transparent,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Text(tag,
+                        style: GoogleFonts.beVietnamPro(
+                          fontSize: 13, fontWeight: FontWeight.w500,
+                          color: selected ? AppColors.primary : AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+
+              const SizedBox(height: 16),
+
+              // Note field
+              TextField(
+                controller: _noteCtrl,
+                maxLines: 2,
+                style: const TextStyle(fontSize: 14),
+                decoration: InputDecoration(
+                  hintText: 'Nhận xét thêm (tuỳ chọn)...',
+                  hintStyle: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  filled: true,
+                  fillColor: const Color(0xFFF6F6F6),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Submit
+              SizedBox(
+                width: double.infinity, height: 50,
+                child: FilledButton(
+                  onPressed: _submitting ? null : _submit,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.5),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    elevation: 0,
+                    textStyle: GoogleFonts.beVietnamPro(
+                        fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                  child: _submitting
+                      ? const SizedBox(width: 22, height: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: Colors.white))
+                      : const Text('Gửi đánh giá'),
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                width: double.infinity, height: 40,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.textSecondary,
+                    textStyle: GoogleFonts.beVietnamPro(
+                        fontSize: 14, fontWeight: FontWeight.w500),
+                  ),
+                  child: const Text('Bỏ qua'),
+                ),
+              ),
+            ]),
           ),
         ]),
-      ]),
+      ),
     );
   }
 }

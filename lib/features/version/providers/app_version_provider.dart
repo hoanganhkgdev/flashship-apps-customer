@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/constants/app_constants.dart';
@@ -7,14 +8,12 @@ import '../../../core/constants/app_constants.dart';
 class AppVersionState {
   final bool isChecked;
   final bool needsForceUpdate;
-  final bool needsSoftUpdate;
   final String? storeUrl;
   final String message;
 
   const AppVersionState({
     this.isChecked      = false,
     this.needsForceUpdate = false,
-    this.needsSoftUpdate  = false,
     this.storeUrl,
     this.message = 'Vui lòng cập nhật ứng dụng để tiếp tục sử dụng.',
   });
@@ -35,21 +34,23 @@ class AppVersionNotifier extends StateNotifier<AppVersionState> {
       );
       final data = res.data as Map<String, dynamic>;
 
-      final minVersion     = data['min_version']    as String? ?? '1.0.0';
-      final latestVersion  = data['latest_version'] as String? ?? '1.0.0';
-      final forceUpdate    = data['force_update']   as bool?   ?? false;
-      final forceMessage   = data['force_message']  as String? ?? '';
-      final androidUrl     = data['android_url']    as String?;
-      final iosUrl         = data['ios_url']        as String?;
-      final storeUrl       = Platform.isIOS ? iosUrl : androidUrl;
+      debugPrint('[VersionCheck] current=$current, API response=$data');
+
+      final rawForce = data['force_update'];
+      final forceUpdate = rawForce == true || rawForce == 1 || rawForce == '1' || rawForce == 'true';
+      final forceMessage = data['force_message'] as String? ?? '';
+      final androidUrl   = data['android_url']   as String?;
+      final iosUrl       = data['ios_url']       as String?;
+      final storeUrl     = Platform.isIOS ? iosUrl : androidUrl;
+
+      final minVersion = data['min_version'] as String? ?? '1.0.0';
 
       final needsForce = forceUpdate && _isOlderThan(current, minVersion);
-      final needsSoft  = !needsForce && _isOlderThan(current, latestVersion);
+      debugPrint('[VersionCheck] forceUpdate=$forceUpdate, minVersion=$minVersion, needsForce=$needsForce');
 
       state = AppVersionState(
         isChecked:        true,
         needsForceUpdate: needsForce,
-        needsSoftUpdate:  needsSoft,
         storeUrl:         storeUrl,
         message:          forceMessage.isNotEmpty
             ? forceMessage

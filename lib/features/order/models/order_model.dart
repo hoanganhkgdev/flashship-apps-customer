@@ -15,6 +15,7 @@ class OrderModel {
   final String? receiverName;
   final String? orderNote;
   final String? storeName;
+  final String? pickupPlaceName;
   final String paymentMethod;
   final int? codAmount;
   final double? distanceKm;
@@ -49,6 +50,7 @@ class OrderModel {
     this.receiverName,
     this.orderNote,
     this.storeName,
+    this.pickupPlaceName,
     this.paymentMethod = 'prepaid',
     this.codAmount,
     this.distanceKm,
@@ -84,6 +86,7 @@ class OrderModel {
     receiverName: j['receiver_name'] as String?,
     orderNote: j['order_note'] as String?,
     storeName: j['store_name'] as String?,
+    pickupPlaceName: j['pickup_place_name'] as String?,
     paymentMethod: j['payment_method'] as String? ?? 'prepaid',
     codAmount: (j['cod_amount'] as num?)?.toInt(),
     distanceKm: j['distance_km'] != null ? double.tryParse(j['distance_km'].toString()) : null,
@@ -124,7 +127,7 @@ class OrderModel {
     pickupPhone: pickupPhone, senderName: senderName,
     deliveryAddress: deliveryAddress, deliveryLat: deliveryLat, deliveryLng: deliveryLng,
     deliveryPhone: deliveryPhone, receiverName: receiverName,
-    orderNote: orderNote, storeName: storeName,
+    orderNote: orderNote, storeName: storeName, pickupPlaceName: pickupPlaceName,
     paymentMethod: paymentMethod, codAmount: codAmount, distanceKm: distanceKm,
     shippingFee: shippingFee, discountAmount: discountAmount,
     nightSurcharge: nightSurcharge, voucherCode: voucherCode,
@@ -140,7 +143,7 @@ class OrderModel {
     pickupPhone: pickupPhone, senderName: senderName,
     deliveryAddress: deliveryAddress, deliveryLat: deliveryLat, deliveryLng: deliveryLng,
     deliveryPhone: deliveryPhone, receiverName: receiverName,
-    orderNote: orderNote, storeName: storeName,
+    orderNote: orderNote, storeName: storeName, pickupPlaceName: pickupPlaceName,
     paymentMethod: paymentMethod, codAmount: codAmount, distanceKm: distanceKm,
     shippingFee: shippingFee, discountAmount: discountAmount,
     nightSurcharge: nightSurcharge, voucherCode: voucherCode,
