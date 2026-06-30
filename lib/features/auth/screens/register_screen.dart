@@ -32,6 +32,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   _City?      _selectedCity;
   bool        _loadingCities = false;
   bool        _cityError     = false;
+  bool        _citiesLoadFailed = false;
 
   @override
   void initState() {
@@ -48,7 +49,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   Future<void> _loadCities() async {
-    setState(() => _loadingCities = true);
+    setState(() { _loadingCities = true; _citiesLoadFailed = false; });
     try {
       final res  = await Dio().get('${AppConstants.baseUrl}/cities');
       final list = res.data['data'] as List? ?? [];
@@ -57,14 +58,24 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           _cities = list
               .map((e) => _City(id: e['id'] as int, name: e['name'] as String))
               .toList();
+          _citiesLoadFailed = _cities.isEmpty;
         });
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted) setState(() => _citiesLoadFailed = true);
+    }
     if (mounted) setState(() => _loadingCities = false);
   }
 
   void _openCitySheet() {
-    if (_cities.isEmpty) return;
+    if (_loadingCities) return;
+    if (_cities.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Không tải được danh sách thành phố. Đang thử lại...'),
+      ));
+      _loadCities();
+      return;
+    }
     showModalBottomSheet<_City>(
       context: context,
       isScrollControlled: true,
@@ -205,6 +216,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   selected: _selectedCity,
                   loading: _loadingCities,
                   hasError: _cityError,
+                  loadFailed: _citiesLoadFailed,
                   onTap: _openCitySheet,
                 ),
 
@@ -410,12 +422,14 @@ class _CityPickerField extends StatelessWidget {
   final _City?       selected;
   final bool         loading;
   final bool         hasError;
+  final bool         loadFailed;
   final VoidCallback onTap;
 
   const _CityPickerField({
     required this.selected,
     required this.loading,
     required this.hasError,
+    this.loadFailed = false,
     required this.onTap,
   });
 
@@ -431,7 +445,7 @@ class _CityPickerField extends StatelessWidget {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: hasError ? AppColors.danger : const Color(0xFFE0E0E0),
+                  color: (hasError || loadFailed) ? AppColors.danger : const Color(0xFFE0E0E0),
                 ),
               ),
               child: Row(children: [
@@ -440,7 +454,7 @@ class _CityPickerField extends StatelessWidget {
                   child: Icon(
                     Icons.location_city_outlined,
                     size: 20,
-                    color: hasError ? AppColors.danger : AppColors.textSecondary,
+                    color: (hasError || loadFailed) ? AppColors.danger : AppColors.textSecondary,
                   ),
                 ),
                 Expanded(
@@ -459,20 +473,27 @@ class _CityPickerField extends StatelessWidget {
                                   color: AppColors.textSecondary)),
                         ])
                       : Text(
-                          selected?.name ?? 'Chọn thành phố',
+                          loadFailed
+                              ? 'Lỗi tải danh sách — chạm để thử lại'
+                              : (selected?.name ?? 'Chọn thành phố'),
                           style: GoogleFonts.beVietnamPro(
                             fontSize: 15,
                             fontWeight: selected != null
                                 ? FontWeight.w500
                                 : FontWeight.w400,
-                            color: selected != null
-                                ? AppColors.textPrimary
-                                : AppColors.textSecondary,
+                            color: loadFailed
+                                ? AppColors.danger
+                                : (selected != null
+                                    ? AppColors.textPrimary
+                                    : AppColors.textSecondary),
                           ),
                         ),
                 ),
-                Icon(Icons.keyboard_arrow_down_rounded,
-                    color: AppColors.textSecondary, size: 20),
+                Icon(
+                  loadFailed ? Icons.refresh_rounded : Icons.keyboard_arrow_down_rounded,
+                  color: loadFailed ? AppColors.danger : AppColors.textSecondary,
+                  size: 20,
+                ),
               ]),
             ),
           ),

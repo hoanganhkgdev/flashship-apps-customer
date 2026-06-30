@@ -275,6 +275,10 @@ class _State extends ConsumerState<RideBookingScreen> {
       setState(() => _error = 'Vui lòng chọn điểm đón và điểm đến');
       return;
     }
+    if (_pickupLat == null || _pickupLng == null || _destLat == null || _destLng == null) {
+      setState(() => _error = 'Thiếu toạ độ chính xác. Vui lòng chọn lại điểm đón/đến từ gợi ý hoặc bản đồ.');
+      return;
+    }
     final phone = ref.read(authProvider).user?.phone ?? '';
     setState(() { _submitting = true; _error = null; });
     try {

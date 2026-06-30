@@ -301,6 +301,10 @@ class _State extends ConsumerState<DeliveryBookingScreen> {
       setState(() => _error = 'Vui lòng chọn điểm lấy và điểm giao');
       return;
     }
+    if (_pickupLat == null || _pickupLng == null || _destLat == null || _destLng == null) {
+      setState(() => _error = 'Thiếu toạ độ chính xác. Vui lòng chọn lại điểm lấy/giao từ gợi ý hoặc bản đồ.');
+      return;
+    }
     if (_deliveryPhoneCtrl.text.trim().isEmpty) {
       _sheetCtrl.animateTo(1.0,
           duration: const Duration(milliseconds: 300),
