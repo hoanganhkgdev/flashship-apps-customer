@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
@@ -16,6 +18,8 @@ class ApiClient {
       headers: {'Accept': 'application/json'},
     ));
 
+    _dio.httpClientAdapter = _buildAdapter();
+
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final prefs = await SharedPreferences.getInstance();
@@ -29,6 +33,25 @@ class ApiClient {
         handler.next(error);
       },
     ));
+  }
+
+  IOHttpClientAdapter _buildAdapter() {
+    final adapter = IOHttpClientAdapter();
+    adapter.createHttpClient = () {
+      final client = HttpClient();
+      client.idleTimeout = const Duration(seconds: 8);
+      return client;
+    };
+    return adapter;
+  }
+
+  /// Đóng connection cũ (không tái dùng được nữa) rồi gắn adapter mới —
+  /// gọi khi app resume từ background lâu, để request tiếp theo mở socket
+  /// mới thay vì tái dùng socket có thể đã bị OS đóng băng lúc app ở nền.
+  void resetConnection() {
+    final old = _dio.httpClientAdapter;
+    _dio.httpClientAdapter = _buildAdapter();
+    old.close(force: true);
   }
 
   Future<Response> get(String path, {Map<String, dynamic>? params}) =>
