@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import '../../../core/api/api_client.dart';
 import '../../../core/constants/app_constants.dart';
@@ -119,8 +120,14 @@ class _State extends ConsumerState<RideBookingScreen> {
   }
 
   Future<void> _loadGps() async {
-    final pos = await LocationService.getCurrentPosition();
-    if (pos == null || !mounted) return;
+    final Position pos;
+    try {
+      pos = await LocationService.getCurrentPosition();
+    } on LocationException catch (e) {
+      if (mounted) LocationService.showFailureDialog(context, e);
+      return;
+    }
+    if (!mounted) return;
     _myLat = pos.latitude;
     _myLng = pos.longitude;
     _pickupLat = pos.latitude;

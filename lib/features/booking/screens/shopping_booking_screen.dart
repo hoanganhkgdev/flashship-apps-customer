@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/api/api_client.dart';
 import '../../../features/order/providers/order_provider.dart';
@@ -70,8 +71,14 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
   }
 
   Future<void> _loadGps() async {
-    final pos = await LocationService.getCurrentPosition();
-    if (pos == null || !mounted) return;
+    final Position pos;
+    try {
+      pos = await LocationService.getCurrentPosition();
+    } on LocationException catch (e) {
+      if (mounted) LocationService.showFailureDialog(context, e);
+      return;
+    }
+    if (!mounted) return;
     _deliveryLat = pos.latitude;
     _deliveryLng = pos.longitude;
     final addr = await LocationService.addressFromCoords(pos.latitude, pos.longitude);

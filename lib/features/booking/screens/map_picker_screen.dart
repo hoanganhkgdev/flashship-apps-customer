@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_theme.dart';
@@ -47,8 +48,13 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
   }
 
   Future<void> _loadGpsLocation() async {
-    final pos = await LocationService.getCurrentPosition();
-    if (!mounted || pos == null) return;
+    final Position pos;
+    try {
+      pos = await LocationService.getCurrentPosition();
+    } on LocationException {
+      return;
+    }
+    if (!mounted) return;
     _centerLat = pos.latitude;
     _centerLng = pos.longitude;
     if (_mapReady && _controller != null) {

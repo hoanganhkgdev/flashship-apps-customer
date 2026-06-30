@@ -23,6 +23,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
   List<AddressModel>       _savedAddresses = [];
   List<AddressResult>      _suggestions   = [];
   bool _searching       = false;
+  bool _searchError     = false;
   bool _selecting       = false;
   bool _showAllHistory  = false;
   Timer? _debounce;
@@ -63,14 +64,19 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
   void _onChanged(String value) {
     _debounce?.cancel();
     if (value.trim().length < 3) {
-      setState(() { _suggestions = []; _searching = false; });
+      setState(() { _suggestions = []; _searching = false; _searchError = false; });
       return;
     }
-    setState(() => _searching = true);
+    setState(() { _searching = true; _searchError = false; });
     _debounce = Timer(const Duration(milliseconds: 400), () async {
-      final results = await AddressSearchService.search(value);
-      if (!mounted) return;
-      setState(() { _suggestions = results; _searching = false; });
+      try {
+        final results = await AddressSearchService.search(value);
+        if (!mounted) return;
+        setState(() { _suggestions = results; _searching = false; });
+      } catch (_) {
+        if (!mounted) return;
+        setState(() { _suggestions = []; _searching = false; _searchError = true; });
+      }
     });
   }
 
@@ -291,7 +297,27 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                     children: [
                       const SizedBox(height: 12),
                       _mapCard(),
-                      if (_suggestions.isEmpty && !_searching)
+                      if (_suggestions.isEmpty && !_searching && _searchError)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 60),
+                          child: Center(
+                            child: Column(children: [
+                              const Icon(Icons.wifi_off_rounded,
+                                  size: 28, color: AppColors.textSecondary),
+                              const SizedBox(height: 8),
+                              const Text('Lỗi kết nối, không tải được gợi ý địa chỉ',
+                                  style: TextStyle(
+                                      fontSize: 14,
+                                      color: AppColors.textSecondary)),
+                              const SizedBox(height: 8),
+                              TextButton(
+                                onPressed: () => _onChanged(_controller.text),
+                                child: const Text('Thử lại'),
+                              ),
+                            ]),
+                          ),
+                        )
+                      else if (_suggestions.isEmpty && !_searching)
                         const Padding(
                           padding: EdgeInsets.only(top: 60),
                           child: Center(

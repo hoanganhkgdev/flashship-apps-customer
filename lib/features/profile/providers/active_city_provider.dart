@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/services/location_service.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -68,8 +69,10 @@ class ActiveCityNotifier extends StateNotifier<ActiveCityState> {
   Future<void> detectFromGps() async {
     state = state.copyWith(isDetecting: true);
     try {
-      final pos = await LocationService.getCurrentPosition();
-      if (pos == null) {
+      final Position pos;
+      try {
+        pos = await LocationService.getCurrentPosition();
+      } on LocationException {
         state = state.copyWith(isDetecting: false);
         return;
       }

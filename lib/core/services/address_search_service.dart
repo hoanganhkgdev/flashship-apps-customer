@@ -25,6 +25,8 @@ class AddressSearchService {
     receiveTimeout: const Duration(seconds: 5),
   ));
 
+  /// Throws on network/API failure so callers can distinguish "lỗi kết nối"
+  /// from "không có kết quả". Only ZERO_RESULTS/empty predictions return [].
   static Future<List<AddressResult>> search(
     String query, {
     double? lat,
@@ -33,51 +35,51 @@ class AddressSearchService {
     String? filterKeyword,
   }) async {
     if (query.trim().length < 3) return [];
-    try {
-      final params = <String, dynamic>{
-        'input':      query,
-        'key':        AppConstants.googleMapsApiKey,
-        'language':   'vi',
-        'components': 'country:vn',
-      };
-      if (lat != null && lng != null) {
-        params['location'] = '$lat,$lng';
-        params['radius']   = ((circleRadius ?? 25.0) * 1000).toInt();
-      }
 
-      final res = await _dio.get(
-        'https://maps.googleapis.com/maps/api/place/autocomplete/json',
-        queryParameters: params,
-      );
-
-      final status = res.data['status'] as String?;
-      if (status != 'OK' && status != 'ZERO_RESULTS') return [];
-
-      final predictions = res.data['predictions'] as List? ?? [];
-      final all = predictions.map((e) {
-        final sf = e['structured_formatting'] as Map? ?? {};
-        return AddressResult(
-          display:       e['description'] as String? ?? '',
-          mainText:      sf['main_text'] as String? ?? e['description'] as String? ?? '',
-          secondaryText: sf['secondary_text'] as String? ?? '',
-          placeId:       e['place_id'] as String? ?? '',
-        );
-      }).toList();
-
-      if (filterKeyword != null && filterKeyword.isNotEmpty) {
-        final keywords = filterKeyword.toLowerCase().split('|');
-        bool matches(AddressResult r) {
-          final text = '${r.display} ${r.secondaryText}'.toLowerCase();
-          return keywords.any((kw) => text.contains(kw.trim()));
-        }
-        final filtered = all.where(matches).toList();
-        if (filtered.isNotEmpty) return filtered;
-      }
-
-      return all.take(5).toList();
-    } catch (_) {
-      return [];
+    final params = <String, dynamic>{
+      'input':      query,
+      'key':        AppConstants.googleMapsApiKey,
+      'language':   'vi',
+      'components': 'country:vn',
+    };
+    if (lat != null && lng != null) {
+      params['location'] = '$lat,$lng';
+      params['radius']   = ((circleRadius ?? 25.0) * 1000).toInt();
     }
+
+    final res = await _dio.get(
+      'https://maps.googleapis.com/maps/api/place/autocomplete/json',
+      queryParameters: params,
+    );
+
+    final status = res.data['status'] as String?;
+    if (status == 'ZERO_RESULTS') return [];
+    if (status != 'OK') {
+      throw Exception('Google Places autocomplete failed: $status');
+    }
+
+    final predictions = res.data['predictions'] as List? ?? [];
+    final all = predictions.map((e) {
+      final sf = e['structured_formatting'] as Map? ?? {};
+      return AddressResult(
+        display:       e['description'] as String? ?? '',
+        mainText:      sf['main_text'] as String? ?? e['description'] as String? ?? '',
+        secondaryText: sf['secondary_text'] as String? ?? '',
+        placeId:       e['place_id'] as String? ?? '',
+      );
+    }).toList();
+
+    if (filterKeyword != null && filterKeyword.isNotEmpty) {
+      final keywords = filterKeyword.toLowerCase().split('|');
+      bool matches(AddressResult r) {
+        final text = '${r.display} ${r.secondaryText}'.toLowerCase();
+        return keywords.any((kw) => text.contains(kw.trim()));
+      }
+      final filtered = all.where(matches).toList();
+      if (filtered.isNotEmpty) return filtered;
+    }
+
+    return all.take(5).toList();
   }
 
   static Future<AddressResult?> getDetail(AddressResult result) async {
