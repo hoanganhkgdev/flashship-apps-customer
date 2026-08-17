@@ -9,6 +9,7 @@ class VoucherModel {
   final int? maxDiscount;
   final List<String>? serviceTypes;
   final DateTime? expiresAt;
+  final bool appOnly;
 
   const VoucherModel({
     required this.id,
@@ -21,6 +22,7 @@ class VoucherModel {
     this.maxDiscount,
     this.serviceTypes,
     this.expiresAt,
+    this.appOnly = false,
   });
 
   factory VoucherModel.fromJson(Map<String, dynamic> j) => VoucherModel(
@@ -36,5 +38,6 @@ class VoucherModel {
         expiresAt: j['expires_at'] != null
             ? DateTime.tryParse(j['expires_at'] as String)
             : null,
+        appOnly: j['app_only'] as bool? ?? false,
       );
 }

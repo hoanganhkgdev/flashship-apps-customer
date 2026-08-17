@@ -17,6 +17,7 @@ import '../../../features/notification/models/notification_item.dart';
 import '../../../features/notification/providers/notification_provider.dart';
 import '../../../features/order/models/order_model.dart';
 import '../../../features/order/providers/order_provider.dart';
+import '../../../features/profile/models/address_model.dart';
 import '../../../features/profile/providers/addresses_provider.dart';
 import '../../../core/services/address_history_service.dart';
 import '../../../features/profile/providers/active_city_provider.dart';
@@ -25,6 +26,7 @@ import '../../booking/screens/map_picker_screen.dart';
 
 import '../models/banner_model.dart';
 import '../models/service_type_model.dart';
+import '../providers/active_drivers_provider.dart';
 import '../providers/banner_provider.dart';
 import '../providers/service_type_provider.dart';
 import '../../voucher/providers/voucher_provider.dart';
@@ -261,17 +263,105 @@ class _HomeTab extends ConsumerWidget {
   const _HomeTab();
 
   void _openBooking(BuildContext ctx, WidgetRef ref, String type,
-      {OrderModel? reorder}) {
+      {OrderModel? reorder, AddressModel? destAddress}) {
     if (!ref.read(authProvider).isAuthenticated) {
       ctx.push('/login');
       return;
     }
+    // destAddress: dựng OrderModel tối giản chỉ set điểm đến, tái dùng cơ chế
+    // prefill reorderFrom sẵn có trong các booking screen (id/code/status/... không dùng tới).
+    final extra = destAddress != null
+        ? OrderModel(
+            id: 0,
+            code: '',
+            serviceType: type,
+            status: 'draft',
+            shippingFee: 0,
+            createdAt: '',
+            deliveryAddress: destAddress.address,
+            deliveryLat: destAddress.latitude,
+            deliveryLng: destAddress.longitude,
+          )
+        : reorder;
     switch (type) {
-      case 'delivery': ctx.push('/booking/delivery', extra: reorder); break;
-      case 'shopping': ctx.push('/booking/shopping', extra: reorder); break;
+      case 'delivery': ctx.push('/booking/delivery', extra: extra); break;
+      case 'shopping': ctx.push('/booking/shopping', extra: extra); break;
       case 'topup':    ctx.push('/booking/topup');    break;
-      default:         ctx.push('/booking/$type', extra: reorder);    break;
+      default:         ctx.push('/booking/$type', extra: extra);    break;
     }
+  }
+
+  Future<void> _pickAddressService(
+      BuildContext context, WidgetRef ref, AddressModel address) async {
+    final type = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                width: 36, height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFDDDDDD),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('Đặt đến ${address.displayTitle}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary)),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ListTile(
+                leading: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.delivery_dining_rounded,
+                      color: AppColors.primary, size: 18),
+                ),
+                title: const Text('Giao hàng',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () => Navigator.pop(ctx, 'delivery'),
+              ),
+              ListTile(
+                leading: Container(
+                  width: 36, height: 36,
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.shopping_bag_rounded,
+                      color: AppColors.primary, size: 18),
+                ),
+                title: const Text('Mua hộ',
+                    style: TextStyle(fontWeight: FontWeight.w600)),
+                onTap: () => Navigator.pop(ctx, 'shopping'),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (type == null || !context.mounted) return;
+    _openBooking(context, ref, type, destAddress: address);
   }
 
   @override
@@ -320,11 +410,18 @@ class _HomeTab extends ConsumerWidget {
               ),
             ),
 
-            // ── Banners carousel (full-width) ─────────────────────────────
-            const SliverToBoxAdapter(child: _BannersSection()),
+            // ── Trust badge (tài xế đang hoạt động) ────────────────────────
+            const SliverToBoxAdapter(child: _TrustBadge()),
 
             // ── Ưu đãi dành cho bạn ──────────────────────────────────────
             const SliverToBoxAdapter(child: _VoucherSection()),
+
+            // ── Đặt nhanh (địa chỉ đã lưu) ─────────────────────────────────
+            SliverToBoxAdapter(
+              child: _SavedAddressQuickRow(
+                onPickAddress: (addr) => _pickAddressService(context, ref, addr),
+              ),
+            ),
 
             // ── Đặt lại nhanh ────────────────────────────────────────────
             SliverToBoxAdapter(
@@ -334,6 +431,11 @@ class _HomeTab extends ConsumerWidget {
               ),
             ),
 
+            // ── Hạng thành viên ─────────────────────────────────────────
+            const SliverToBoxAdapter(child: _MembershipProgressBar()),
+
+            // ── Mời bạn bè ───────────────────────────────────────────────
+            const SliverToBoxAdapter(child: _ReferralCard()),
 
             // ── Hỗ trợ ──────────────────────────────────────────────────
             const SliverToBoxAdapter(child: _SupportSection()),
@@ -781,6 +883,45 @@ class _ServiceIconItem extends StatelessWidget {
 }
 
 
+// ── Trust badge (tài xế đang hoạt động tại thành phố) ──────────────────────────
+
+class _TrustBadge extends ConsumerWidget {
+  const _TrustBadge();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final cityName = ref.watch(activeCityProvider).cityName;
+    final count = ref.watch(activeDriversCountProvider).valueOrNull;
+    if (count == null || count <= 0 || cityName.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.success.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          const _PulsingDot(color: AppColors.success),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text('$count tài xế đang hoạt động tại $cityName',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.success)),
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 // ── Banners section ───────────────────────────────────────────────────────────
 
 class _BannersSection extends ConsumerStatefulWidget {
@@ -976,6 +1117,11 @@ class _VoucherSection extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final vouchers = ref.watch(voucherProvider).valueOrNull ?? [];
     if (vouchers.isEmpty) return const SizedBox.shrink();
+    // Voucher appOnly lên đầu danh sách, giữ nguyên thứ tự tương đối trong mỗi nhóm
+    final sorted = [
+      ...vouchers.where((v) => v.appOnly),
+      ...vouchers.where((v) => !v.appOnly),
+    ];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1013,10 +1159,10 @@ class _VoucherSection extends ConsumerWidget {
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: vouchers.length,
+            itemCount: sorted.length,
             separatorBuilder: (_, __) => const SizedBox(width: 10),
             itemBuilder: (_, i) {
-              final v = vouchers[i];
+              final v = sorted[i];
               final color = _typeColor(v.type);
               final icon = _typeIcon(v.type);
               final isExpiringSoon = v.expiresAt != null &&
@@ -1125,6 +1271,24 @@ class _VoucherSection extends ConsumerWidget {
                                     color: Colors.white)),
                           ),
                         ),
+                      if (v.appOnly)
+                        Positioned(
+                          top: 8, left: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.rectangle,
+                              borderRadius: BorderRadius.all(Radius.circular(20)),
+                            ),
+                            child: const Text('Chỉ có trên app',
+                                style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white)),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1160,6 +1324,194 @@ class _DashedLinePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _DashedLinePainter oldDelegate) =>
+      oldDelegate.color != color;
+}
+
+// ── Saved address quick row (Đặt nhanh) ─────────────────────────────────────────
+
+class _SavedAddressQuickRow extends ConsumerWidget {
+  final void Function(AddressModel address) onPickAddress;
+  const _SavedAddressQuickRow({required this.onPickAddress});
+
+  static IconData _icon(String label) => switch (label) {
+    'Nhà'     => Icons.home_rounded,
+    'Cơ quan' => Icons.business_rounded,
+    _         => Icons.location_on_rounded,
+  };
+
+  static Color _color(String label) => switch (label) {
+    'Nhà'     => AppColors.primary,
+    'Cơ quan' => const Color(0xFF3B82F6),
+    _         => const Color(0xFF8B5CF6),
+  };
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final addresses = ref.watch(addressesProvider).valueOrNull ?? [];
+    if (addresses.isEmpty) return const SizedBox.shrink();
+    final shown = addresses.take(2).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+          child: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.primary.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.bolt_rounded,
+                  size: 15, color: AppColors.primary),
+            ),
+            const SizedBox(width: 8),
+            const Text('Đặt nhanh',
+                style: TextStyle(
+                    fontSize: 17, fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary)),
+          ]),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              for (final addr in shown) ...[
+                Expanded(
+                  child: _AddressQuickTile(
+                    address: addr,
+                    icon: _icon(addr.label),
+                    color: _color(addr.label),
+                    onTap: () => onPickAddress(addr),
+                  ),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: _AddQuickTile(
+                  onTap: () => context.push('/profile/addresses'),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+      ],
+    );
+  }
+}
+
+class _AddressQuickTile extends StatelessWidget {
+  final AddressModel address;
+  final IconData icon;
+  final Color color;
+  final VoidCallback onTap;
+  const _AddressQuickTile({
+    required this.address,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        height: 74,
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 18, color: color),
+            const SizedBox(height: 6),
+            Text(address.label.isNotEmpty ? address.label : 'Địa chỉ',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.w700, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AddQuickTile extends StatelessWidget {
+  final VoidCallback onTap;
+  const _AddQuickTile({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        height: 74,
+        child: CustomPaint(
+          painter: _DashedBorderPainter(
+            color: AppColors.textSecondary.withValues(alpha: 0.4),
+          ),
+          child: const Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_rounded,
+                    size: 18, color: AppColors.textSecondary),
+                SizedBox(height: 4),
+                Text('Thêm',
+                    style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.textSecondary)),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DashedBorderPainter extends CustomPainter {
+  final Color color;
+  const _DashedBorderPainter({required this.color});
+
+  static const _dashWidth = 4.0;
+  static const _dashGap = 3.0;
+  static const _radius = 12.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    final rrect = RRect.fromRectAndRadius(
+        Offset.zero & size, const Radius.circular(_radius));
+    final path = Path()..addRRect(rrect);
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final len = (distance + _dashWidth > metric.length)
+            ? metric.length - distance
+            : _dashWidth;
+        canvas.drawPath(
+            metric.extractPath(distance, distance + len), paint);
+        distance += _dashWidth + _dashGap;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedBorderPainter oldDelegate) =>
       oldDelegate.color != color;
 }
 
@@ -1300,6 +1652,152 @@ class _QuickReorderSection extends ConsumerWidget {
         ),
         const SizedBox(height: 8),
       ],
+    );
+  }
+}
+
+// ── Membership progress bar ─────────────────────────────────────────────────────
+
+class _MembershipProgressBar extends ConsumerWidget {
+  const _MembershipProgressBar();
+
+  static const _coralBg  = Color(0xFFFFF1EE);
+  static const _coralAcc = Color(0xFFFF6F59);
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!ref.watch(authProvider).isAuthenticated) return const SizedBox.shrink();
+
+    final orders    = ref.watch(orderListProvider).orders;
+    final completed = orders.where((o) => o.isCompleted).length;
+
+    if (completed >= 50) {
+      return Padding(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: _coralBg,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(children: [
+            const Icon(Icons.workspace_premium_rounded,
+                size: 18, color: _coralAcc),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Text('Bạn đang là khách VIP',
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: _coralAcc)),
+            ),
+          ]),
+        ),
+      );
+    }
+
+    final int nextThreshold;
+    final String nextTierLabel;
+    if (completed < 5) {
+      nextThreshold = 5;
+      nextTierLabel = 'Thường xuyên';
+    } else if (completed < 20) {
+      nextThreshold = 20;
+      nextTierLabel = 'Thân thiết';
+    } else {
+      nextThreshold = 50;
+      nextTierLabel = 'Khách VIP';
+    }
+    final remaining = nextThreshold - completed;
+    final progress  = (completed / nextThreshold).clamp(0.0, 1.0);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: _coralBg,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Còn $remaining đơn để lên hạng $nextTierLabel',
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: _coralAcc)),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: _coralAcc.withValues(alpha: 0.15),
+                valueColor: const AlwaysStoppedAnimation(_coralAcc),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Referral card ────────────────────────────────────────────────────────────
+
+class _ReferralCard extends StatelessWidget {
+  const _ReferralCard();
+
+  static const _tealBg  = Color(0xFFE6F7F6);
+  static const _tealAcc = Color(0xFF14B8A6);
+  static const _tealTxt = Color(0xFF0F766E);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: GestureDetector(
+        onTap: () {
+          // TODO: chưa có route/màn hình referral trong router (core/router/app_router.dart)
+          // — cần tạo màn hình + endpoint mời bạn bè trước khi wiring.
+        },
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: _tealBg,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(children: [
+            Container(
+              width: 40, height: 40,
+              decoration: BoxDecoration(
+                color: _tealAcc.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.card_giftcard_rounded,
+                  color: _tealAcc, size: 20),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Mời bạn bè, nhận ưu đãi',
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: _tealTxt)),
+                  SizedBox(height: 2),
+                  Text('Cả hai cùng được giảm giá đơn tiếp theo',
+                      style: TextStyle(fontSize: 12, color: _tealTxt)),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right_rounded, color: _tealAcc),
+          ]),
+        ),
+      ),
     );
   }
 }
@@ -1631,7 +2129,8 @@ class _ActiveOrderBannerState extends ConsumerState<_ActiveOrderBanner> {
 }
 
 class _PulsingDot extends StatefulWidget {
-  const _PulsingDot();
+  final Color color;
+  const _PulsingDot({this.color = AppColors.primary});
 
   @override
   State<_PulsingDot> createState() => _PulsingDotState();
@@ -1662,8 +2161,8 @@ class _PulsingDotState extends State<_PulsingDot>
     opacity: _anim,
     child: Container(
       width: 8, height: 8,
-      decoration: const BoxDecoration(
-          color: AppColors.primary, shape: BoxShape.circle),
+      decoration: BoxDecoration(
+          color: widget.color, shape: BoxShape.circle),
     ),
   );
 }
