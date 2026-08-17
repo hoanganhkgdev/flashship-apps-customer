@@ -6,6 +6,7 @@ import '../../../core/services/address_history_service.dart';
 import '../../../core/services/address_search_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../profile/models/address_model.dart';
+import '../../profile/providers/addresses_provider.dart';
 import 'map_picker_screen.dart';
 
 class AddressPickerScreen extends ConsumerStatefulWidget {
@@ -263,6 +264,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                       // Map card
                       const SizedBox(height: 8),
                       _mapCard(),
+                      _quickSavedRow(),
                       // Tab bar
                       Container(
                         color: Colors.white,
@@ -463,6 +465,37 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
     );
   }
 
+  // 2 ô nhanh Nhà/Công ty từ addressesProvider — bấm vào set địa chỉ ngay,
+  // không cần gõ tìm. Ẩn hẳn nếu chưa có địa chỉ nào thuộc 2 nhãn này.
+  Widget _quickSavedRow() {
+    final addresses = ref.watch(addressesProvider).valueOrNull ?? [];
+    AddressModel? home;
+    AddressModel? office;
+    for (final a in addresses) {
+      home   ??= a.label == 'Nhà'     ? a : null;
+      office ??= a.label == 'Cơ quan' ? a : null;
+    }
+    final quick = [if (home != null) home, if (office != null) office];
+    if (quick.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Row(
+        children: [
+          for (int i = 0; i < quick.length; i++) ...[
+            Expanded(
+              child: _QuickSavedTile(
+                addr: quick[i],
+                onTap: () => _selectFromSaved(quick[i]),
+              ),
+            ),
+            if (i < quick.length - 1) const SizedBox(width: 10),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _mapCard() => Padding(
     padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
     child: GestureDetector(
@@ -521,6 +554,41 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
     ),
     clipBehavior: Clip.antiAlias,
     child: Column(children: children),
+  );
+}
+
+// ── Quick saved address tile (Nhà/Công ty) ──────────────────────────────────────
+
+class _QuickSavedTile extends StatelessWidget {
+  final AddressModel addr;
+  final VoidCallback onTap;
+  const _QuickSavedTile({required this.addr, required this.onTap});
+
+  Color get _color => addr.label == 'Nhà' ? AppColors.primary : const Color(0xFF3B82F6);
+  IconData get _icon => addr.label == 'Nhà' ? Icons.home_rounded : Icons.business_rounded;
+
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    behavior: HitTestBehavior.opaque,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: _color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(children: [
+        Icon(_icon, size: 16, color: _color),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(addr.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w700, color: _color)),
+        ),
+      ]),
+    ),
   );
 }
 
