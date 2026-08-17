@@ -348,9 +348,9 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                   top: Radius.circular(20)),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, -4),
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 6,
+                  offset: const Offset(0, -2),
                 ),
               ],
             ),
@@ -436,20 +436,28 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: AppColors.primary))
                   else
-                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      if (_fee != null && _voucherDiscount > 0)
-                        Text(Fmt.currency(_fee!),
-                            style: const TextStyle(
-                                fontSize: 13, fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                                decoration: TextDecoration.lineThrough,
-                                decorationColor: AppColors.textSecondary)),
-                      Text(_fee == null ? '—' : Fmt.currency(netFee),
-                          style: TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.w800,
-                              color: _fee != null
-                                  ? AppColors.primary
-                                  : AppColors.textSecondary)),
+                    Column(crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min, children: [
+                      Row(mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.baseline,
+                          textBaseline: TextBaseline.alphabetic,
+                          children: [
+                        if (_fee != null && _voucherDiscount > 0) ...[
+                          Text(Fmt.currency(_fee!),
+                              style: const TextStyle(
+                                  fontSize: 13, fontWeight: FontWeight.w500,
+                                  color: AppColors.textSecondary,
+                                  decoration: TextDecoration.lineThrough,
+                                  decorationColor: AppColors.textSecondary)),
+                          const SizedBox(width: 6),
+                        ],
+                        Text(_fee == null ? '—' : Fmt.currency(netFee),
+                            style: TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.w500,
+                                color: _fee != null
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary)),
+                      ]),
                       if (!_loadingFee && _nightSurcharge > 0)
                         Row(mainAxisSize: MainAxisSize.min, children: [
                           const Icon(Icons.nightlight_round,
@@ -517,11 +525,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(
-          color: Colors.black.withValues(alpha: 0.04),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        )],
+        border: Border.all(color: AppColors.divider, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -680,11 +684,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(14),
-        boxShadow: [BoxShadow(
-          color: Colors.black.withValues(alpha: 0.04),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        )],
+        border: Border.all(color: AppColors.divider, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

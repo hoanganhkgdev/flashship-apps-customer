@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -365,150 +366,123 @@ class _Header extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFFCC5A08), Color(0xFFE8720C), Color(0xFFF59E30)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
+        color: AppColors.primary,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
         ),
       ),
-      child: Stack(
-        clipBehavior: Clip.hardEdge,
-        children: [
-          // ── Decorative circles ─────────────────────────────────────────
-          Positioned(top: -30, right: -30,
-              child: _HeaderCircle(140, 0.08)),
-          Positioned(top: 60, right: 80,
-              child: _HeaderCircle(60, 0.05)),
+      child: SafeArea(
+        bottom: false,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
 
-          // ── Content ────────────────────────────────────────────────────
-          SafeArea(
-            bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 16, 0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-
-                      // ── Top row: avatar/greeting + notification bell ──────
-                      Row(children: [
-                        // Greeting + address
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () async {
-                              final result = await Navigator.of(context)
-                                  .push<MapPickResult>(
-                                MaterialPageRoute(
-                                    builder: (_) => const AddressPickerScreen()),
-                              );
-                              if (result != null && context.mounted) {
-                                ref
-                                    .read(activeCityProvider.notifier)
-                                    .overrideAddress(result.address,
-                                        placeName: result.placeName);
-                              }
-                            },
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(mainAxisSize: MainAxisSize.min, children: [
-                                  const Icon(Icons.location_on_rounded,
-                                      size: 12, color: Colors.white70),
-                                  const SizedBox(width: 3),
-                                  const Text('Giao đến',
-                                      style: TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w500)),
-                                  const Icon(Icons.keyboard_arrow_down_rounded,
-                                      size: 13, color: Colors.white70),
-                                ]),
-                                const SizedBox(height: 3),
-                                if (isDetecting)
-                                  const SizedBox(
-                                      width: 14, height: 14,
-                                      child: CircularProgressIndicator(
-                                          strokeWidth: 1.5, color: Colors.white))
-                                else if (currentPlaceName != null && currentPlaceName!.isNotEmpty) ...[
-                                  Text(currentPlaceName!,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 14, fontWeight: FontWeight.w700,
-                                          color: Colors.white, letterSpacing: -0.2)),
-                                  const SizedBox(height: 1),
-                                  Text(currentAddress.isNotEmpty
-                                          ? currentAddress
-                                          : 'Đang xác định vị trí...',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 11, color: Colors.white70)),
-                                ] else
-                                  Text(currentAddress.isNotEmpty
-                                          ? currentAddress
-                                          : 'Đang xác định vị trí...',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: const TextStyle(
-                                          fontSize: 14, fontWeight: FontWeight.w700,
-                                          color: Colors.white, letterSpacing: -0.2)),
-                              ],
-                            ),
-                          ),
+                  // ── Top row: avatar/greeting + notification bell ──────
+                  Row(children: [
+                    // Greeting + address
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () async {
+                          final result = await Navigator.of(context)
+                              .push<MapPickResult>(
+                            MaterialPageRoute(
+                                builder: (_) => const AddressPickerScreen()),
+                          );
+                          if (result != null && context.mounted) {
+                            ref
+                                .read(activeCityProvider.notifier)
+                                .overrideAddress(result.address,
+                                    placeName: result.placeName);
+                          }
+                        },
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.location_on_rounded,
+                                  size: 12, color: Colors.white70),
+                              const SizedBox(width: 3),
+                              const Text('Giao đến',
+                                  style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500)),
+                              const Icon(Icons.keyboard_arrow_down_rounded,
+                                  size: 13, color: Colors.white70),
+                            ]),
+                            const SizedBox(height: 3),
+                            if (isDetecting)
+                              const SizedBox(
+                                  width: 14, height: 14,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 1.5, color: Colors.white))
+                            else if (currentPlaceName != null && currentPlaceName!.isNotEmpty) ...[
+                              Text(currentPlaceName!,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 14, fontWeight: FontWeight.w700,
+                                      color: Colors.white, letterSpacing: -0.2)),
+                              const SizedBox(height: 1),
+                              Text(currentAddress.isNotEmpty
+                                      ? currentAddress
+                                      : 'Đang xác định vị trí...',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 11, color: Colors.white70)),
+                            ] else
+                              Text(currentAddress.isNotEmpty
+                                      ? currentAddress
+                                      : 'Đang xác định vị trí...',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                      fontSize: 14, fontWeight: FontWeight.w700,
+                                      color: Colors.white, letterSpacing: -0.2)),
+                          ],
                         ),
+                      ),
+                    ),
 
-                        // Notification shortcut
-                        GestureDetector(
-                          onTap: () =>
-                              ref.read(_homeTabProvider.notifier).state = 2,
-                          behavior: HitTestBehavior.opaque,
-                          child: Container(
-                            width: 36, height: 36,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.18),
-                              shape: BoxShape.circle,
-                            ),
-                            child: const Center(
-                              child: Icon(Icons.notifications_outlined,
-                                  color: Colors.white, size: 22),
-                            ),
-                          ),
+                    // Notification shortcut
+                    GestureDetector(
+                      onTap: () =>
+                          ref.read(_homeTabProvider.notifier).state = 2,
+                      behavior: HitTestBehavior.opaque,
+                      child: Container(
+                        width: 36, height: 36,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.18),
+                          shape: BoxShape.circle,
                         ),
-                      ]),
+                        child: const Center(
+                          child: Icon(Icons.notifications_outlined,
+                              color: Colors.white, size: 22),
+                        ),
+                      ),
+                    ),
+                  ]),
 
-                      const SizedBox(height: 4),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 10),
-              ],
+                  const SizedBox(height: 14),
+                  const _SearchBar(),
+                ],
+              ),
             ),
-          ),
-        ],
+
+            const SizedBox(height: 14),
+          ],
+        ),
       ),
     );
   }
-}
-
-class _HeaderCircle extends StatelessWidget {
-  final double size;
-  final double opacity;
-  const _HeaderCircle(this.size, this.opacity);
-
-  @override
-  Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: Colors.white.withValues(alpha: opacity),
-        ),
-      );
 }
 
 // ── Recent address row ────────────────────────────────────────────────────────
@@ -632,7 +606,7 @@ class _SearchBarState extends State<_SearchBar> {
       height: 46,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
       ),
       child: Row(children: [
         const SizedBox(width: 14),
@@ -764,71 +738,40 @@ class _ServiceIconItem extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
+        padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [color.withValues(alpha: 0.06), Colors.white],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: color.withValues(alpha: 0.10),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))],
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 4,
+              offset: const Offset(0, 1))],
         ),
-        clipBehavior: Clip.antiAlias,
-        child: Stack(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Positioned(
-              right: -12, top: -12,
-              child: Container(
-                width: 60, height: 60,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
+            Container(
+              width: 38, height: 38,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(10),
               ),
+              child: Icon(_icon(svc.key), color: color, size: 22),
             ),
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        width: 38, height: 38,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(_icon(svc.key), color: color, size: 24),
-                      ),
-                      Icon(Icons.arrow_forward_rounded, size: 14, color: color),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(svc.label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
-                  ),
-                  const SizedBox(height: 1),
-                  Text(_sub(svc.key),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    width: 24, height: 3,
-                    decoration: BoxDecoration(
-                        color: color, borderRadius: BorderRadius.circular(2)),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 8),
+            Text(svc.label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
+            ),
+            const SizedBox(height: 1),
+            Text(_sub(svc.key),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 10, color: AppColors.textSecondary),
             ),
           ],
         ),
@@ -1081,23 +1024,14 @@ class _VoucherSection extends ConsumerWidget {
               return GestureDetector(
                 onTap: () => context.push('/vouchers'),
                 child: Container(
-                  width: 200,
+                  width: 170,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: color.withValues(alpha: 0.10),
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )],
+                    border: Border.all(color: color.withValues(alpha: 0.20), width: 1),
                   ),
                   child: Stack(
                     children: [
-                      Positioned(
-                        right: -6, bottom: -6,
-                        child: Icon(icon, size: 48,
-                            color: color.withValues(alpha: 0.06)),
-                      ),
                       Padding(
                         padding: const EdgeInsets.all(14),
                         child: Column(
@@ -1107,7 +1041,7 @@ class _VoucherSection extends ConsumerWidget {
                               Container(
                                 width: 32, height: 32,
                                 decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.12),
+                                  color: color.withValues(alpha: 0.18),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(icon, size: 16, color: color),
@@ -1115,26 +1049,13 @@ class _VoucherSection extends ConsumerWidget {
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(v.discountLabel,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
                                     style: TextStyle(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w800,
                                         color: color)),
                               ),
-                              if (isExpiringSoon)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.danger
-                                        .withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Text('Sắp hết',
-                                      style: TextStyle(
-                                          fontSize: 9,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.danger)),
-                                ),
                             ]),
                             const Spacer(),
                             if (v.description != null)
@@ -1145,26 +1066,65 @@ class _VoucherSection extends ConsumerWidget {
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
                                       color: AppColors.textSecondary)),
-                            const SizedBox(height: 4),
-                            Row(children: [
-                              Text(v.code,
-                                  style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: color,
-                                      letterSpacing: 0.5)),
-                              const Spacer(),
-                              Container(
-                                width: 24, height: 3,
-                                decoration: BoxDecoration(
-                                  color: color,
-                                  borderRadius: BorderRadius.circular(2),
-                                ),
+                            const SizedBox(height: 6),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 1,
+                              child: CustomPaint(
+                                painter: _DashedLinePainter(
+                                    color: color.withValues(alpha: 0.35)),
                               ),
-                            ]),
+                            ),
+                            const SizedBox(height: 6),
+                            GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () async {
+                                await Clipboard.setData(
+                                    ClipboardData(text: v.code));
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                        content: Text(
+                                            'Đã sao chép mã ${v.code}')),
+                                  );
+                                }
+                              },
+                              child: Row(children: [
+                                Expanded(
+                                  child: Text(v.code,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: color,
+                                          letterSpacing: 0.5)),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(Icons.copy_rounded, size: 13, color: color),
+                              ]),
+                            ),
                           ],
                         ),
                       ),
+                      if (isExpiringSoon)
+                        Positioned(
+                          top: 8, right: 8,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: const BoxDecoration(
+                              color: AppColors.danger,
+                              shape: BoxShape.rectangle,
+                              borderRadius: BorderRadius.all(Radius.circular(20)),
+                            ),
+                            child: const Text('Sắp hết',
+                                style: TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white)),
+                          ),
+                        ),
                     ],
                   ),
                 ),
@@ -1176,6 +1136,31 @@ class _VoucherSection extends ConsumerWidget {
       ],
     );
   }
+}
+
+class _DashedLinePainter extends CustomPainter {
+  final Color color;
+  const _DashedLinePainter({required this.color});
+
+  static const _dashWidth = 4.0;
+  static const _dashSpace = 3.0;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1;
+    double startX = 0;
+    while (startX < size.width) {
+      canvas.drawLine(
+          Offset(startX, 0), Offset(startX + _dashWidth, 0), paint);
+      startX += _dashWidth + _dashSpace;
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _DashedLinePainter oldDelegate) =>
+      oldDelegate.color != color;
 }
 
 // ── Quick reorder section ─────────────────────────────────────────────────────
@@ -1246,11 +1231,7 @@ class _QuickReorderSection extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
-                    boxShadow: [BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    )],
+                    border: Border.all(color: AppColors.divider, width: 1),
                   ),
                   child: Stack(
                     children: [
@@ -1573,14 +1554,16 @@ class _ActiveOrderBannerState extends ConsumerState<_ActiveOrderBanner> {
     _subscribeRTDB(order.code);
     final (statusLabel, statusIcon) = _statusInfo(order.status, order.serviceType);
     final isPending = order.status == 'pending';
+    final serviceColor = AppColors.serviceColor(order.serviceType);
 
     return GestureDetector(
       onTap: () => context.push('/order/${order.code}'),
       child: Container(
         margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
         decoration: BoxDecoration(
-          color: AppColors.primary,
+          color: serviceColor.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: serviceColor.withValues(alpha: 0.25), width: 1),
         ),
         child: Column(children: [
           // Top bar
@@ -1588,30 +1571,30 @@ class _ActiveOrderBannerState extends ConsumerState<_ActiveOrderBanner> {
             padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
             child: Row(children: [
               Icon(Fmt.serviceIcon(order.serviceType),
-                  size: 20, color: Colors.white),
+                  size: 20, color: serviceColor),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(Fmt.serviceLabel(order.serviceType),
-                    style: const TextStyle(
+                    style: TextStyle(
                         fontSize: 13, fontWeight: FontWeight.w600,
-                        color: Colors.white)),
+                        color: serviceColor)),
               ),
               // Active orders count badge
               if (active.length > 1)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.2),
+                    color: serviceColor.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text('+${active.length - 1} đơn',
-                      style: const TextStyle(
+                      style: TextStyle(
                           fontSize: 11, fontWeight: FontWeight.w600,
-                          color: Colors.white)),
+                          color: serviceColor)),
                 ),
               const SizedBox(width: 6),
-              const Icon(Icons.chevron_right_rounded,
-                  color: Colors.white, size: 18),
+              Icon(Icons.chevron_right_rounded,
+                  color: serviceColor, size: 18),
             ]),
           ),
 
@@ -1619,13 +1602,13 @@ class _ActiveOrderBannerState extends ConsumerState<_ActiveOrderBanner> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-            decoration: BoxDecoration(
+            decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius: const BorderRadius.vertical(
+              borderRadius: BorderRadius.vertical(
                   bottom: Radius.circular(14)),
             ),
             child: Row(children: [
-              Icon(statusIcon, size: 18, color: AppColors.primary),
+              Icon(statusIcon, size: 18, color: serviceColor),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(statusLabel,

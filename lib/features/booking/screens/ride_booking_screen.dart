@@ -433,13 +433,7 @@ class _State extends ConsumerState<RideBookingScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.10),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
+                  border: Border.all(color: AppColors.divider, width: 1),
                 ),
                 child: IntrinsicHeight(
                   child: Row(
@@ -637,8 +631,8 @@ class _State extends ConsumerState<RideBookingScreen> {
                   shape: BoxShape.circle,
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.15),
-                      blurRadius: 8,
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 6,
                     ),
                   ],
                 ),
@@ -659,9 +653,9 @@ class _State extends ConsumerState<RideBookingScreen> {
                     top: Radius.circular(20)),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
-                    blurRadius: 16,
-                    offset: const Offset(0, -4),
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, -2),
                   ),
                 ],
               ),
@@ -701,10 +695,9 @@ class _State extends ConsumerState<RideBookingScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: (_nearbyDrivers.isNotEmpty
-                                ? AppColors.success
-                                : AppColors.textSecondary)
-                            .withValues(alpha: 0.10),
+                        color: _nearbyDrivers.isNotEmpty
+                            ? const Color(0xFFE7F7EF)
+                            : const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Row(
@@ -798,20 +791,28 @@ class _State extends ConsumerState<RideBookingScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2))
                     else
                       Column(crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                        if (_fee != null && _voucherDiscount > 0)
-                          Text(Fmt.currency(_fee!),
-                              style: const TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w500,
-                                  color: AppColors.textSecondary,
-                                  decoration: TextDecoration.lineThrough,
-                                  decorationColor: AppColors.textSecondary)),
-                        Text(_fee == null ? '—' : Fmt.currency(netFee),
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.w800,
-                                color: _fee != null
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary)),
+                        Row(mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
+                            children: [
+                          if (_fee != null && _voucherDiscount > 0) ...[
+                            Text(Fmt.currency(_fee!),
+                                style: const TextStyle(
+                                    fontSize: 13, fontWeight: FontWeight.w500,
+                                    color: AppColors.textSecondary,
+                                    decoration: TextDecoration.lineThrough,
+                                    decorationColor: AppColors.textSecondary)),
+                            const SizedBox(width: 6),
+                          ],
+                          Text(_fee == null ? '—' : Fmt.currency(netFee),
+                              style: TextStyle(
+                                  fontSize: 20, fontWeight: FontWeight.w500,
+                                  color: _fee != null
+                                      ? AppColors.primary
+                                      : AppColors.textSecondary)),
+                        ]),
                         if (!_loadingFee && _nightSurcharge > 0)
                           Row(mainAxisSize: MainAxisSize.min, children: [
                             const Icon(Icons.nightlight_round,
