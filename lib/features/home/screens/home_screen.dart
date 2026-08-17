@@ -31,6 +31,7 @@ import '../providers/banner_provider.dart';
 import '../providers/service_type_provider.dart';
 import '../../voucher/providers/voucher_provider.dart';
 import '../../../features/profile/providers/support_provider.dart';
+import '../widgets/bottom_nav.dart';
 
 final _homeTabProvider = StateProvider<int>((ref) => 0);
 
@@ -100,6 +101,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      extendBody: true,
       body: IndexedStack(
         index: tab,
         children: [
@@ -109,105 +111,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const _ProfileTab(),
         ],
       ),
-      bottomNavigationBar: _BottomNav(
-        selectedIndex: tab,
+      bottomNavigationBar: BottomNav(
+        currentIndex: tab,
         unreadCount: unreadCount,
         onTap: (i) => ref.read(_homeTabProvider.notifier).state = i,
-      ),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Custom bottom nav (driver-style)
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _NavItem {
-  final IconData on;
-  final IconData off;
-  final String label;
-  const _NavItem(this.on, this.off, this.label);
-}
-
-class _BottomNav extends StatelessWidget {
-  final int selectedIndex;
-  final int unreadCount;
-  final ValueChanged<int> onTap;
-
-  const _BottomNav({
-    required this.selectedIndex,
-    required this.unreadCount,
-    required this.onTap,
-  });
-
-  static const _tabs = [
-    _NavItem(Icons.home_rounded,               Icons.home_outlined,              'Trang chủ'),
-    _NavItem(Icons.history_rounded,            Icons.history_outlined,           'Hoạt động'),
-    _NavItem(Icons.notifications_rounded,      Icons.notifications_outlined,     'Thông báo'),
-    _NavItem(Icons.person_rounded,             Icons.person_outline_rounded,     'Tài khoản'),
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final bottom = MediaQuery.of(context).padding.bottom;
-    return Container(
-      margin: EdgeInsets.fromLTRB(12, 0, 12, bottom + 8),
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 16,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: List.generate(_tabs.length, (i) {
-          final tab      = _tabs[i];
-          final selected = i == selectedIndex;
-          final showBadge = i == 2 && unreadCount > 0;
-          final color = selected ? AppColors.primary : const Color(0xFF9E9E9E);
-
-          return Expanded(
-            child: GestureDetector(
-              onTap: () => onTap(i),
-              behavior: HitTestBehavior.opaque,
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 16, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: selected
-                        ? AppColors.primary.withValues(alpha: 0.10)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: showBadge
-                      ? Badge(
-                          label: Text('$unreadCount',
-                              style: const TextStyle(fontSize: 10)),
-                          child: Icon(selected ? tab.on : tab.off,
-                              size: 22, color: color),
-                        )
-                      : Icon(selected ? tab.on : tab.off,
-                          size: 22, color: color),
-                ),
-                const SizedBox(height: 3),
-                Text(tab.label,
-                    style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: selected
-                            ? FontWeight.w700
-                            : FontWeight.w400,
-                        color: color)),
-              ]),
-            ),
-          );
-        }),
       ),
     );
   }
@@ -441,6 +348,12 @@ class _HomeTab extends ConsumerWidget {
             const SliverToBoxAdapter(child: _SupportSection()),
 
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
+
+            // Chừa chỗ cho thanh bottom nav kính mờ (extendBody: true ở
+            // HomeScreen) — không thì phần cuối bị nav che mất.
+            SliverToBoxAdapter(
+              child: SizedBox(height: BottomNav.reservedHeight(context)),
+            ),
           ],
         ),
       ),
@@ -2320,7 +2233,8 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                               onRefresh: () async =>
                                   ref.read(orderListProvider.notifier).fetch(),
                               child: ListView.builder(
-                                padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                                padding: EdgeInsets.fromLTRB(16, 12, 16,
+                                    32 + BottomNav.reservedHeight(context)),
                                 itemCount: filtered.length +
                                     (state.hasMore && _selectedType == 'all' ? 1 : 0),
                                 itemBuilder: (_, i) {
@@ -2735,7 +2649,8 @@ class _NotificationsTabState extends ConsumerState<_NotificationsTab>
                             .read(notificationProvider.notifier)
                             .fetchFromServer(),
                         child: ListView.builder(
-                          padding: const EdgeInsets.only(top: 8, bottom: 32),
+                          padding: EdgeInsets.only(top: 8,
+                              bottom: 32 + BottomNav.reservedHeight(context)),
                           itemCount: listItems.length,
                           itemBuilder: (_, i) => listItems[i],
                         ),
@@ -3284,7 +3199,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
             ],
           ),
 
-          const SizedBox(height: 48),
+          SizedBox(height: 48 + BottomNav.reservedHeight(context)),
         ],
       ),
     );
