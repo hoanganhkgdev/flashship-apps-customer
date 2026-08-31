@@ -27,7 +27,8 @@ class DefaultFirebaseOptions {
     projectId: 'flashship-app',
     storageBucket: 'flashship-app.firebasestorage.app',
     iosBundleId: 'com.flashship.customer',
-    databaseURL: 'https://flashship-app-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://flashship-app-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
@@ -36,6 +37,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '219581386028',
     projectId: 'flashship-app',
     storageBucket: 'flashship-app.firebasestorage.app',
-    databaseURL: 'https://flashship-app-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://flashship-app-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
 }

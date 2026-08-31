@@ -4,7 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../constants/app_constants.dart';
 
-enum LocationFailure { serviceDisabled, permissionDenied, permissionDeniedForever }
+enum LocationFailure {
+  serviceDisabled,
+  permissionDenied,
+  permissionDeniedForever
+}
 
 class LocationException implements Exception {
   final LocationFailure reason;
@@ -62,8 +66,8 @@ class LocationService {
       final res = await _dio.get(
         'https://maps.googleapis.com/maps/api/geocode/json',
         queryParameters: {
-          'latlng':   '$lat,$lng',
-          'key':      AppConstants.googleMapsApiKey,
+          'latlng': '$lat,$lng',
+          'key': AppConstants.googleMapsApiKey,
           'language': 'vi',
         },
       );
@@ -76,26 +80,46 @@ class LocationService {
     }
   }
 
+  /// Fetches the current GPS position and resolves it to a human-readable
+  /// address, showing the recovery dialog on failure. Returns null when
+  /// location couldn't be obtained or the widget was unmounted mid-flight.
+  static Future<(Position, String?)?> resolveCurrentLocation(
+    BuildContext context,
+  ) async {
+    final Position pos;
+    try {
+      pos = await getCurrentPosition();
+    } on LocationException catch (e) {
+      if (context.mounted) await showFailureDialog(context, e);
+      return null;
+    }
+    if (!context.mounted) return null;
+    final addr = await addressFromCoords(pos.latitude, pos.longitude);
+    if (!context.mounted) return null;
+    return (pos, addr);
+  }
+
   /// Shows a recovery dialog for [LocationException] — opens location
   /// settings when GPS is off, opens app settings when permission was
   /// permanently denied. Call from a catch block around [getCurrentPosition].
-  static Future<void> showFailureDialog(BuildContext context, LocationException e) async {
+  static Future<void> showFailureDialog(
+      BuildContext context, LocationException e) async {
     final (title, message, action) = switch (e.reason) {
       LocationFailure.serviceDisabled => (
-        'Định vị đang tắt',
-        'Vui lòng bật định vị (GPS) để sử dụng tính năng này.',
-        Geolocator.openLocationSettings,
-      ),
+          'Định vị đang tắt',
+          'Vui lòng bật định vị (GPS) để sử dụng tính năng này.',
+          Geolocator.openLocationSettings,
+        ),
       LocationFailure.permissionDenied => (
-        'Cần quyền truy cập vị trí',
-        'FlashShip cần quyền vị trí để xác định điểm đón chính xác.',
-        Geolocator.openAppSettings,
-      ),
+          'Cần quyền truy cập vị trí',
+          'Flash Ship cần quyền vị trí để xác định điểm đón chính xác.',
+          Geolocator.openAppSettings,
+        ),
       LocationFailure.permissionDeniedForever => (
-        'Quyền vị trí đã bị từ chối',
-        'Vui lòng vào Cài đặt > FlashShip > Vị trí để bật quyền truy cập.',
-        Geolocator.openAppSettings,
-      ),
+          'Quyền vị trí đã bị từ chối',
+          'Vui lòng vào Cài đặt > Flash Ship > Vị trí để bật quyền truy cập.',
+          Geolocator.openAppSettings,
+        ),
     };
 
     if (!context.mounted) return;
@@ -110,7 +134,10 @@ class LocationService {
             child: const Text('Để sau'),
           ),
           FilledButton(
-            onPressed: () { Navigator.pop(ctx); action(); },
+            onPressed: () {
+              Navigator.pop(ctx);
+              action();
+            },
             child: const Text('Mở cài đặt'),
           ),
         ],

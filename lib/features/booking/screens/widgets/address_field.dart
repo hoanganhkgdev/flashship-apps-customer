@@ -177,7 +177,8 @@ class _AddressFieldState extends State<AddressField> {
               ? const Padding(
                   padding: EdgeInsets.all(12),
                   child: SizedBox(
-                    width: 18, height: 18,
+                    width: 18,
+                    height: 18,
                     child: CircularProgressIndicator(strokeWidth: 2),
                   ),
                 )
@@ -185,7 +186,8 @@ class _AddressFieldState extends State<AddressField> {
                   ? const Padding(
                       padding: EdgeInsets.all(14),
                       child: SizedBox(
-                        width: 16, height: 16,
+                        width: 16,
+                        height: 16,
                         child: CircularProgressIndicator(
                             strokeWidth: 1.5, color: AppColors.textSecondary),
                       ),
@@ -198,7 +200,8 @@ class _AddressFieldState extends State<AddressField> {
                     ),
         ),
         validator: widget.required
-            ? (v) => (v == null || v.trim().isEmpty) ? 'Trường này bắt buộc' : null
+            ? (v) =>
+                (v == null || v.trim().isEmpty) ? 'Trường này bắt buộc' : null
             : null,
       ),
     );
@@ -218,16 +221,16 @@ class _SuggestionsList extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       elevation: 6,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(AppRadius.md),
       shadowColor: Colors.black.withValues(alpha: 0.12),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(color: AppColors.divider),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           child: ListView.separated(
             padding: EdgeInsets.zero,
             shrinkWrap: true,
@@ -262,10 +265,11 @@ class _SuggestionTile extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Container(
-              width: 32, height: 32,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: const Icon(
                 Icons.location_on_rounded,
@@ -279,9 +283,11 @@ class _SuggestionTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    result.mainText.isNotEmpty ? result.mainText : result.display,
+                    result.mainText.isNotEmpty
+                        ? result.mainText
+                        : result.display,
                     style: const TextStyle(
-                      fontSize: 13,
+                      fontSize: AppFontSize.body,
                       fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary,
                     ),
@@ -293,7 +299,7 @@ class _SuggestionTile extends StatelessWidget {
                     Text(
                       result.secondaryText,
                       style: const TextStyle(
-                        fontSize: 11,
+                        fontSize: AppFontSize.caption,
                         color: AppColors.textSecondary,
                       ),
                       maxLines: 1,

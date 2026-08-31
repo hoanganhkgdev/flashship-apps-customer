@@ -20,11 +20,11 @@ class PricingConfig {
 
   factory PricingConfig.fromJson(Map<String, dynamic> j) => PricingConfig(
         serviceType: j['service_type'] as String,
-        label:       j['label']        as String,
-        baseFee:     (j['base_fee']    as num).toInt(),
-        baseKm:      (j['base_km']     as num).toInt(),
-        perKmFee:    (j['per_km_fee']  as num).toInt(),
-        configJson:  j['config_json'] as Map<String, dynamic>?,
+        label: j['label'] as String,
+        baseFee: (j['base_fee'] as num).toInt(),
+        baseKm: (j['base_km'] as num).toInt(),
+        perKmFee: (j['per_km_fee'] as num).toInt(),
+        configJson: j['config_json'] as Map<String, dynamic>?,
       );
 }
 
@@ -40,7 +40,7 @@ final pricingConfigsProvider =
 final pricingForProvider = Provider.family<AsyncValue<PricingConfig?>, String>(
   (ref, serviceType) {
     return ref.watch(pricingConfigsProvider).whenData(
-      (list) => list.where((c) => c.serviceType == serviceType).firstOrNull,
-    );
+          (list) => list.where((c) => c.serviceType == serviceType).firstOrNull,
+        );
   },
 );

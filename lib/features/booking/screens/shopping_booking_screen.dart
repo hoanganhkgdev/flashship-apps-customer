@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/api/api_client.dart';
-import '../../../features/order/providers/order_provider.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
@@ -11,6 +8,8 @@ import '../../../features/auth/models/user_model.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/order/models/order_model.dart';
 import '../../../features/voucher/screens/voucher_picker_screen.dart';
+import '../utils/booking_submit.dart';
+import '../utils/pricing_estimate.dart';
 import 'address_picker_screen.dart';
 import 'map_picker_screen.dart';
 
@@ -41,13 +40,13 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
   String? _deliveryAddr;
   double? _deliveryLat, _deliveryLng;
 
-  int?    _fee;
-  int     _nightSurcharge = 0;
+  int? _fee;
+  int _nightSurcharge = 0;
   double? _distanceKm;
-  bool    _loadingFee = false;
-  bool    _submitting  = false;
+  bool _loadingFee = false;
+  bool _submitting = false;
   String? _error;
-  int     _voucherDiscount = 0;
+  int _voucherDiscount = 0;
   String? _voucherCode;
 
   @override
@@ -55,13 +54,13 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
     super.initState();
     final reorder = widget.reorderFrom;
     if (reorder != null) {
-      _deliveryAddr            = reorder.deliveryAddress;
-      _deliveryLat             = reorder.deliveryLat;
-      _deliveryLng             = reorder.deliveryLng;
-      _deliveryPhoneCtrl.text  = reorder.deliveryPhone ?? '';
-      _stops.first.address     = reorder.pickupAddress;
-      _stops.first.lat         = reorder.pickupLat;
-      _stops.first.lng         = reorder.pickupLng;
+      _deliveryAddr = reorder.deliveryAddress;
+      _deliveryLat = reorder.deliveryLat;
+      _deliveryLng = reorder.deliveryLng;
+      _deliveryPhoneCtrl.text = reorder.deliveryPhone ?? '';
+      _stops.first.address = reorder.pickupAddress;
+      _stops.first.lat = reorder.pickupLat;
+      _stops.first.lng = reorder.pickupLng;
       WidgetsBinding.instance.addPostFrameCallback((_) => _estimate());
     } else {
       final user = ref.read(authProvider).user;
@@ -71,24 +70,19 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
   }
 
   Future<void> _loadGps() async {
-    final Position pos;
-    try {
-      pos = await LocationService.getCurrentPosition();
-    } on LocationException catch (e) {
-      if (mounted) LocationService.showFailureDialog(context, e);
-      return;
-    }
-    if (!mounted) return;
+    final result = await LocationService.resolveCurrentLocation(context);
+    if (result == null || !mounted) return;
+    final (pos, addr) = result;
     _deliveryLat = pos.latitude;
     _deliveryLng = pos.longitude;
-    final addr = await LocationService.addressFromCoords(pos.latitude, pos.longitude);
-    if (!mounted) return;
     if (addr != null) setState(() => _deliveryAddr = addr);
   }
 
   @override
   void dispose() {
-    for (final s in _stops) { s.dispose(); }
+    for (final s in _stops) {
+      s.dispose();
+    }
     _deliveryPhoneCtrl.dispose();
     super.dispose();
   }
@@ -96,34 +90,36 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
   Future<void> _estimate() async {
     final first = _stops.first;
     if (first.address == null || _deliveryAddr == null) return;
-    setState(() { _loadingFee = true; _fee = null; });
-    try {
-      final params = <String, dynamic>{
-        'service_type': 'shopping',
-        'stop_count':   _stops.length,
-      };
-      if (first.lat != null && first.lng != null &&
-          _deliveryLat != null && _deliveryLng != null) {
-        params['pickup_lat']   = first.lat;
-        params['pickup_lng']   = first.lng;
-        params['delivery_lat'] = _deliveryLat;
-        params['delivery_lng'] = _deliveryLng;
-      } else {
-        params['pickup_address']   = first.address;
-        params['delivery_address'] = _deliveryAddr;
-      }
-      final res = await ref.read(apiClientProvider).get(
-        '/customer/pricing/estimate', params: params,
-      );
-      final data = (res.data['data'] ?? res.data) as Map<String, dynamic>;
-      setState(() {
-        _fee            = (data['fee'] as num).toInt();
-        _nightSurcharge = (data['night_surcharge'] as num?)?.toInt() ?? 0;
-        _distanceKm     = (data['distance_km'] as num?)?.toDouble();
-      });
-    } catch (_) {} finally {
-      if (mounted) setState(() => _loadingFee = false);
+    setState(() {
+      _loadingFee = true;
+      _fee = null;
+    });
+    final params = <String, dynamic>{
+      'service_type': 'shopping',
+      'stop_count': _stops.length,
+    };
+    if (first.lat != null &&
+        first.lng != null &&
+        _deliveryLat != null &&
+        _deliveryLng != null) {
+      params['pickup_lat'] = first.lat;
+      params['pickup_lng'] = first.lng;
+      params['delivery_lat'] = _deliveryLat;
+      params['delivery_lng'] = _deliveryLng;
+    } else {
+      params['pickup_address'] = first.address;
+      params['delivery_address'] = _deliveryAddr;
     }
+    final estimate = await fetchPricingEstimate(ref, params);
+    if (!mounted) return;
+    if (estimate != null) {
+      setState(() {
+        _fee = estimate.fee;
+        _nightSurcharge = estimate.nightSurcharge;
+        _distanceKm = estimate.distanceKm;
+      });
+    }
+    setState(() => _loadingFee = false);
   }
 
   void _addStop() {
@@ -147,10 +143,10 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
     );
     if (result == null || !mounted) return;
     setState(() {
-      _stops[index].address   = result.address;
+      _stops[index].address = result.address;
       _stops[index].placeName = result.placeName;
-      _stops[index].lat       = result.lat;
-      _stops[index].lng       = result.lng;
+      _stops[index].lat = result.lat;
+      _stops[index].lng = result.lng;
     });
     _estimate();
   }
@@ -162,8 +158,8 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
     if (result == null || !mounted) return;
     setState(() {
       _deliveryAddr = result.address;
-      _deliveryLat  = result.lat;
-      _deliveryLng  = result.lng;
+      _deliveryLat = result.lat;
+      _deliveryLng = result.lng;
     });
     _estimate();
   }
@@ -173,7 +169,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
       MaterialPageRoute(
         builder: (_) => VoucherPickerScreen(
           serviceType: 'shopping',
-          orderFee:    _fee,
+          orderFee: _fee,
           appliedCode: _voucherCode,
         ),
       ),
@@ -181,7 +177,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
     if (!mounted) return;
     if (result != null) {
       setState(() {
-        _voucherCode     = result.code;
+        _voucherCode = result.code.isEmpty ? null : result.code;
         _voucherDiscount = result.discount;
       });
     }
@@ -193,7 +189,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
     }
     final buf = StringBuffer();
     for (var i = 0; i < _stops.length; i++) {
-      final s    = _stops[i];
+      final s = _stops[i];
       final name = s.placeName ?? s.address ?? '';
       final desc = s.descCtrl.text.trim();
       buf.writeln('=== Điểm ${i + 1}: $name ===');
@@ -215,7 +211,8 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
         return;
       }
       if (_stops[i].descCtrl.text.trim().isEmpty) {
-        setState(() => _error = 'Vui lòng nhập thông tin hàng tại điểm ${i + 1}');
+        setState(
+            () => _error = 'Vui lòng nhập thông tin hàng tại điểm ${i + 1}');
         return;
       }
     }
@@ -224,114 +221,137 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
       return;
     }
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _submitting = true; _error = null; });
-    try {
-      final first     = _stops.first;
-      final codAmount = _calcCodAmount();
-      final netFee    = (_fee ?? 0) - _voucherDiscount;
-      final res = await ref.read(apiClientProvider).post('/customer/orders', data: {
-        'service_type':        'shopping',
-        'pickup_address':      first.address!,
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final first = _stops.first;
+    final codAmount = _calcCodAmount();
+    final netFee = ((_fee ?? 0) - _voucherDiscount).clamp(0, _fee ?? 0);
+    await submitBookingOrder(
+      ref: ref,
+      context: context,
+      data: {
+        'service_type': 'shopping',
+        'pickup_address': first.address!,
         if (first.placeName?.isNotEmpty == true)
           'pickup_place_name': first.placeName,
-        'delivery_address':    _deliveryAddr!,
-        'pickup_phone':        '',
-        'delivery_phone':   _deliveryPhoneCtrl.text.trim(),
-        'receiver_name':    ref.read(authProvider).user?.name ?? '',
-        'order_note':       _buildNote(),
-        'stop_count':       _stops.length,
-        'payment_method':   'cod',
-        'cod_amount':       codAmount,
-        'total_amount':     netFee,
-        if (first.lat != null)    'pickup_lat':   first.lat,
-        if (first.lng != null)    'pickup_lng':   first.lng,
+        'delivery_address': _deliveryAddr!,
+        'pickup_phone': '',
+        'delivery_phone': _deliveryPhoneCtrl.text.trim(),
+        'receiver_name': ref.read(authProvider).user?.name ?? '',
+        'order_note': _buildNote(),
+        'stop_count': _stops.length,
+        'payment_method': 'cod',
+        'cod_amount': codAmount,
+        'total_amount': netFee,
+        if (first.lat != null) 'pickup_lat': first.lat,
+        if (first.lng != null) 'pickup_lng': first.lng,
         if (_deliveryLat != null) 'delivery_lat': _deliveryLat,
         if (_deliveryLng != null) 'delivery_lng': _deliveryLng,
         if (_voucherCode != null) 'voucher_code': _voucherCode,
-      });
-      final code = (res.data['data'] ?? res.data)['code'] as String;
-      ref.read(orderListProvider.notifier).fetch();
-      if (mounted) context.pushReplacement('/order/$code', extra: 'fromBooking');
-    } catch (e) {
-      String msg = 'Không thể đặt đơn.';
-      try { msg = (e as dynamic).response?.data['message'] ?? msg; } catch (_) {}
-      setState(() { _error = msg; _submitting = false; });
-    }
+      },
+      onError: (message) {
+        if (mounted) {
+          setState(() {
+            _error = message;
+            _submitting = false;
+          });
+        }
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final netFee    = (_fee ?? 0) - _voucherDiscount;
-    final user      = ref.watch(authProvider).user;
+    final netFee = ((_fee ?? 0) - _voucherDiscount).clamp(0, _fee ?? 0);
+    final user = ref.watch(authProvider).user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F7),
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded),
-          color: AppColors.textPrimary,
-          onPressed: () => context.pop(),
+        toolbarHeight: 70,
+        leadingWidth: 60,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: GestureDetector(
+              onTap: () => context.pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ),
-        title: Text(Fmt.serviceLabel('shopping'),
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+        title: Text(
+          'Mua hộ',
+          style: TextStyle(
+            fontSize: AppFontSize.display,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textPrimary,
+          ),
+        ),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF0F0F0)),
+          child: Divider(height: 1, color: AppColors.divider),
         ),
       ),
       body: Column(
         children: [
-
           // ── Scrollable form ────────────────────────────────────────────
           Expanded(
             child: Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 28),
                 children: [
                   ...List.generate(_stops.length, (i) => _buildStopCard(i)),
-
                   if (_stops.length < 5) ...[
                     const SizedBox(height: 6),
                     GestureDetector(
                       onTap: _addStop,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: AppColors.primary.withValues(alpha: 0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 22, height: 22,
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
+                      child: CustomPaint(
+                        painter: const _DashedOutlinePainter(),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 22,
+                                height: 22,
+                                decoration: BoxDecoration(
+                                  color: AppColors.primarySoft,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.add_rounded,
+                                    size: 14, color: AppColors.primary),
                               ),
-                              child: const Icon(Icons.add_rounded,
-                                  size: 14, color: AppColors.primary),
-                            ),
-                            const SizedBox(width: 8),
-                            const Text('Thêm điểm mua',
-                                style: TextStyle(
-                                    fontSize: 13, fontWeight: FontWeight.w600,
-                                    color: AppColors.primary)),
-                          ],
+                              const SizedBox(width: 8),
+                              Text('Thêm điểm mua',
+                                  style: TextStyle(
+                                      fontSize: AppFontSize.body,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.primary)),
+                            ],
+                          ),
                         ),
                       ),
                     ),
                   ],
-
                   const SizedBox(height: 12),
                   _buildDeliveryCard(user),
                 ],
@@ -341,133 +361,145 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
 
           // ── Bottom bar ─────────────────────────────────────────────────
           Container(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad + 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 6,
-                  offset: const Offset(0, -2),
-                ),
-              ],
+            padding: EdgeInsets.fromLTRB(20, 16, 20, bottomPad + 16),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+              border: Border(top: BorderSide(color: AppColors.divider)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-
                 // Service + distance
                 Row(children: [
                   Container(
-                    width: 36, height: 36,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
-                    child: const Icon(Icons.shopping_bag_rounded,
-                        color: AppColors.primary, size: 18),
+                    child: const Icon(Icons.shopping_bag_outlined,
+                        color: AppColors.primary, size: 19),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(Fmt.serviceLabel('shopping'),
-                            style: const TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w700,
+                        Text('Mua hộ',
+                            style: TextStyle(
+                                fontSize: AppFontSize.bodyLarge,
+                                fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary)),
                         if (_distanceKm != null)
                           Text('${_distanceKm!.toStringAsFixed(1)} km',
                               style: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppFontSize.caption,
                                   color: AppColors.textSecondary)),
                       ],
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: AppColors.textSecondary.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     child: Text(
                       '${_stops.length} điểm mua',
                       style: const TextStyle(
-                          fontSize: 11, fontWeight: FontWeight.w600,
+                          fontSize: AppFontSize.caption,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.textSecondary),
                     ),
                   ),
                 ]),
 
                 const SizedBox(height: 14),
-                const Divider(height: 1, color: Color(0xFFF5F5F5)),
+                const Divider(height: 1, color: AppColors.surfaceAlt),
                 const SizedBox(height: 12),
 
                 // Price + voucher
                 Row(children: [
                   GestureDetector(
-                    onTap: (_stops.first.address != null && _deliveryAddr != null)
-                        ? _showVoucherSheet : null,
+                    onTap:
+                        (_stops.first.address != null && _deliveryAddr != null)
+                            ? _showVoucherSheet
+                            : null,
                     child: Row(mainAxisSize: MainAxisSize.min, children: [
                       Icon(Icons.local_offer_outlined,
                           size: 16,
                           color: _voucherCode != null
                               ? AppColors.primary
-                              : (_stops.first.address != null && _deliveryAddr != null)
+                              : (_stops.first.address != null &&
+                                      _deliveryAddr != null)
                                   ? AppColors.textSecondary
-                                  : AppColors.textSecondary.withValues(alpha: 0.4)),
+                                  : AppColors.textSecondary
+                                      .withValues(alpha: 0.4)),
                       const SizedBox(width: 5),
                       Text(_voucherCode ?? 'Ưu đãi',
                           style: TextStyle(
-                              fontSize: 13, fontWeight: FontWeight.w600,
+                              fontSize: AppFontSize.body,
+                              fontWeight: FontWeight.w600,
                               color: _voucherCode != null
                                   ? AppColors.primary
-                                  : (_stops.first.address != null && _deliveryAddr != null)
+                                  : (_stops.first.address != null &&
+                                          _deliveryAddr != null)
                                       ? AppColors.textSecondary
-                                      : AppColors.textSecondary.withValues(alpha: 0.4))),
+                                      : AppColors.textSecondary
+                                          .withValues(alpha: 0.4))),
                     ]),
                   ),
                   const Spacer(),
                   if (_loadingFee)
-                    const SizedBox(width: 16, height: 16,
+                    const SizedBox(
+                        width: 16,
+                        height: 16,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: AppColors.primary))
                   else
-                    Column(crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min, children: [
-                      Row(mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.baseline,
-                          textBaseline: TextBaseline.alphabetic,
-                          children: [
-                        if (_fee != null && _voucherDiscount > 0) ...[
-                          Text(Fmt.currency(_fee!),
-                              style: const TextStyle(
-                                  fontSize: 13, fontWeight: FontWeight.w500,
-                                  color: AppColors.textSecondary,
-                                  decoration: TextDecoration.lineThrough,
-                                  decorationColor: AppColors.textSecondary)),
-                          const SizedBox(width: 6),
-                        ],
-                        Text(_fee == null ? '—' : Fmt.currency(netFee),
-                            style: TextStyle(
-                                fontSize: 20, fontWeight: FontWeight.w500,
-                                color: _fee != null
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary)),
-                      ]),
-                      if (!_loadingFee && _nightSurcharge > 0)
-                        Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Icon(Icons.nightlight_round,
-                              size: 10, color: AppColors.warning),
-                          const SizedBox(width: 3),
-                          Text('+${Fmt.currency(_nightSurcharge)} đêm',
-                              style: const TextStyle(
-                                  fontSize: 10, color: AppColors.warning)),
+                    Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.baseline,
+                              textBaseline: TextBaseline.alphabetic,
+                              children: [
+                                if (_fee != null && _voucherDiscount > 0) ...[
+                                  Text(Fmt.currency(_fee!),
+                                      style: const TextStyle(
+                                          fontSize: AppFontSize.body,
+                                          fontWeight: FontWeight.w500,
+                                          color: AppColors.textSecondary,
+                                          decoration:
+                                              TextDecoration.lineThrough,
+                                          decorationColor:
+                                              AppColors.textSecondary)),
+                                  const SizedBox(width: 6),
+                                ],
+                                Text(_fee == null ? '—' : Fmt.currency(netFee),
+                                    style: TextStyle(
+                                        fontSize: AppFontSize.display,
+                                        fontWeight: FontWeight.w600,
+                                        color: _fee != null
+                                            ? AppColors.primary
+                                            : AppColors.textSecondary)),
+                              ]),
+                          if (!_loadingFee && _nightSurcharge > 0)
+                            Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.nightlight_round,
+                                  size: 10, color: AppColors.warning),
+                              const SizedBox(width: 3),
+                              Text('+${Fmt.currency(_nightSurcharge)} đêm',
+                                  style: const TextStyle(
+                                      fontSize: AppFontSize.caption,
+                                      color: AppColors.warning)),
+                            ]),
                         ]),
-                    ]),
                 ]),
 
                 if (_error != null) ...[
@@ -476,9 +508,11 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                     const Icon(Icons.error_outline_rounded,
                         color: AppColors.danger, size: 14),
                     const SizedBox(width: 6),
-                    Expanded(child: Text(_error!,
-                        style: const TextStyle(
-                            color: AppColors.danger, fontSize: 12))),
+                    Expanded(
+                        child: Text(_error!,
+                            style: const TextStyle(
+                                color: AppColors.danger,
+                                fontSize: AppFontSize.caption))),
                   ]),
                 ],
 
@@ -494,17 +528,18 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                           AppColors.primary.withValues(alpha: 0.5),
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                      shape: const StadiumBorder(),
                     ),
                     child: _submitting
-                        ? const SizedBox(width: 20, height: 20,
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
-                        : Text(
-                            'Đặt ${Fmt.serviceLabel('shopping').toLowerCase()} ngay',
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700,
+                        : Text('Đặt mua hộ ngay',
+                            style: TextStyle(
+                                fontSize: AppFontSize.bodyLarge,
+                                fontWeight: FontWeight.w600,
                                 color: Colors.white)),
                   ),
                 ),
@@ -517,27 +552,27 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
   }
 
   Widget _buildStopCard(int i) {
-    final stop    = _stops[i];
+    final stop = _stops[i];
     final hasInfo = stop.descCtrl.text.isNotEmpty;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.divider, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
             child: Row(children: [
               Container(
-                width: 26, height: 26,
-                decoration: BoxDecoration(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
                   color: AppColors.primary,
                   shape: BoxShape.circle,
                 ),
@@ -545,22 +580,23 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                   child: Text('${i + 1}',
                       style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700)),
+                          fontSize: AppFontSize.caption,
+                          fontWeight: FontWeight.w600)),
                 ),
               ),
               const SizedBox(width: 10),
               Text('Điểm mua ${i + 1}',
-                  style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                  style: TextStyle(
+                      fontSize: AppFontSize.bodyLarge,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary)),
               const Spacer(),
               if (_stops.length > 1)
                 GestureDetector(
                   onTap: () => _removeStop(i),
                   child: Container(
-                    width: 28, height: 28,
+                    width: 28,
+                    height: 28,
                     decoration: BoxDecoration(
                       color: AppColors.danger.withValues(alpha: 0.08),
                       shape: BoxShape.circle,
@@ -572,7 +608,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
             ]),
           ),
 
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          const Divider(height: 1, color: AppColors.divider),
 
           // Address tap row
           GestureDetector(
@@ -582,13 +618,14 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
               padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
               child: Row(children: [
                 Container(
-                  width: 28, height: 28,
+                  width: 28,
+                  height: 28,
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
+                    color: AppColors.primarySoft,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: const Icon(Icons.location_on_outlined,
-                      size: 15, color: AppColors.primary),
+                      size: 16, color: AppColors.primary),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -601,7 +638,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  fontSize: 13,
+                                  fontSize: AppFontSize.bodyLarge,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary),
                             ),
@@ -612,7 +649,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: const TextStyle(
-                                    fontSize: 11,
+                                    fontSize: AppFontSize.body,
                                     color: AppColors.textSecondary),
                               ),
                             ],
@@ -621,7 +658,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                       : const Text(
                           'Chọn địa điểm mua hàng',
                           style: TextStyle(
-                              fontSize: 13,
+                              fontSize: AppFontSize.bodyLarge,
                               color: AppColors.textSecondary),
                         ),
                 ),
@@ -631,7 +668,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
             ),
           ),
 
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
+          const Divider(height: 1, color: AppColors.divider),
 
           // Inline description field
           Padding(
@@ -641,35 +678,38 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
               maxLines: null,
               minLines: 2,
               style: const TextStyle(
-                  fontSize: 13, color: AppColors.textPrimary,
+                  fontSize: AppFontSize.bodyLarge,
+                  color: AppColors.textPrimary,
                   fontWeight: FontWeight.w500),
               decoration: InputDecoration(
                 hintText: 'Mô tả hàng cần mua *',
                 hintStyle: const TextStyle(
-                    fontSize: 12, color: AppColors.textSecondary),
+                    fontSize: AppFontSize.bodyLarge,
+                    color: AppColors.textSecondary),
                 prefixIcon: Padding(
                   padding: const EdgeInsets.only(bottom: 20),
                   child: Icon(Icons.shopping_cart_outlined,
-                      size: 16, color: hasInfo
+                      size: 16,
+                      color: hasInfo
                           ? AppColors.primary
                           : AppColors.textSecondary),
                 ),
                 prefixIconConstraints:
                     const BoxConstraints(minWidth: 36, minHeight: 36),
                 filled: true,
-                fillColor: const Color(0xFFF7F8FA),
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 10),
+                fillColor: AppColors.surfaceAlt,
+                contentPadding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
                 border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                     borderSide: BorderSide.none),
                 enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                     borderSide: BorderSide.none),
                 focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: const BorderSide(
-                        color: AppColors.primary, width: 1.5)),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                    borderSide:
+                        const BorderSide(color: AppColors.primary, width: 1.5)),
               ),
               onChanged: (_) => setState(() {}),
             ),
@@ -682,19 +722,19 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
   Widget _buildDeliveryCard(UserModel? user) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
         border: Border.all(color: AppColors.divider, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
             child: Row(children: [
               Container(
-                width: 26, height: 26,
+                width: 26,
+                height: 26,
                 decoration: const BoxDecoration(
                   color: AppColors.danger,
                   shape: BoxShape.circle,
@@ -703,16 +743,14 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                     size: 13, color: Colors.white),
               ),
               const SizedBox(width: 10),
-              const Text('Giao hàng đến',
+              Text('Giao hàng đến',
                   style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                      fontSize: AppFontSize.bodyLarge,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary)),
             ]),
           ),
-
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
-
+          const Divider(height: 1, color: AppColors.divider),
           GestureDetector(
             onTap: _pickDeliveryAddress,
             behavior: HitTestBehavior.opaque,
@@ -720,10 +758,11 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
               padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
               child: Row(children: [
                 Container(
-                  width: 28, height: 28,
+                  width: 28,
+                  height: 28,
                   decoration: BoxDecoration(
                     color: AppColors.danger.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                   ),
                   child: const Icon(Icons.location_on_rounded,
                       size: 15, color: AppColors.danger),
@@ -739,7 +778,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  fontSize: 13,
+                                  fontSize: AppFontSize.bodyLarge,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.textPrimary),
                             ),
@@ -749,7 +788,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: AppFontSize.body,
                                   color: AppColors.textSecondary),
                             ),
                           ],
@@ -757,7 +796,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                       : const Text(
                           'Chọn địa chỉ giao hàng',
                           style: TextStyle(
-                              fontSize: 13,
+                              fontSize: AppFontSize.bodyLarge,
                               color: AppColors.textSecondary),
                         ),
                 ),
@@ -766,9 +805,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
               ]),
             ),
           ),
-
-          const Divider(height: 1, color: Color(0xFFF0F0F0)),
-
+          const Divider(height: 1, color: AppColors.divider),
           Padding(
             padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
             child: _CompactField(
@@ -777,13 +814,43 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
               icon: Icons.phone_outlined,
               keyboardType: TextInputType.phone,
               validator: (v) => (v == null || v.trim().isEmpty)
-                  ? 'Nhập SĐT người nhận' : null,
+                  ? 'Nhập SĐT người nhận'
+                  : null,
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class _DashedOutlinePainter extends CustomPainter {
+  const _DashedOutlinePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = AppColors.primary
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.2;
+    final path = Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          Offset.zero & size,
+          const Radius.circular(18),
+        ),
+      );
+    for (final metric in path.computeMetrics()) {
+      var distance = 0.0;
+      while (distance < metric.length) {
+        canvas.drawPath(metric.extractPath(distance, distance + 6), paint);
+        distance += 10;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 // ─── Compact Field ────────────────────────────────────────────────────────────
@@ -808,31 +875,34 @@ class _CompactField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      style: const TextStyle(fontSize: 13),
+      style: const TextStyle(fontSize: AppFontSize.bodyLarge),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(fontSize: 12, color: AppColors.textSecondary),
+        hintStyle: const TextStyle(
+            fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
         prefixIcon: Icon(icon, size: 16, color: AppColors.textSecondary),
-        prefixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        prefixIconConstraints:
+            const BoxConstraints(minWidth: 36, minHeight: 36),
         filled: true,
-        fillColor: const Color(0xFFF5F5F7),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        fillColor: AppColors.surfaceAlt,
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             borderSide: BorderSide.none),
         focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
         errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             borderSide: const BorderSide(color: AppColors.danger)),
         focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             borderSide: const BorderSide(color: AppColors.danger, width: 1.5)),
-        errorStyle: const TextStyle(fontSize: 10, height: 1),
+        errorStyle: const TextStyle(fontSize: AppFontSize.caption, height: 1),
       ),
       validator: validator,
     );

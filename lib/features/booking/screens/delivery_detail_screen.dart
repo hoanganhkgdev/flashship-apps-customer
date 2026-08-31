@@ -23,10 +23,10 @@ class DeliveryDetailScreen extends StatefulWidget {
 
   const DeliveryDetailScreen({
     super.key,
-    this.storeName     = '',
-    this.storePhone    = '',
+    this.storeName = '',
+    this.storePhone = '',
     this.deliveryPhone = '',
-    this.note          = '',
+    this.note = '',
   });
 
   @override
@@ -34,10 +34,10 @@ class DeliveryDetailScreen extends StatefulWidget {
 }
 
 class _State extends State<DeliveryDetailScreen> {
-  late final _nameCtrl     = TextEditingController(text: widget.storeName);
-  late final _storeCtrl    = TextEditingController(text: widget.storePhone);
+  late final _nameCtrl = TextEditingController(text: widget.storeName);
+  late final _storeCtrl = TextEditingController(text: widget.storePhone);
   late final _deliveryCtrl = TextEditingController(text: widget.deliveryPhone);
-  late final _noteCtrl     = TextEditingController(text: widget.note);
+  late final _noteCtrl = TextEditingController(text: widget.note);
 
   String? _error;
 
@@ -56,10 +56,10 @@ class _State extends State<DeliveryDetailScreen> {
       return;
     }
     Navigator.of(context).pop(DeliveryDetailResult(
-      storeName:     _nameCtrl.text.trim(),
-      storePhone:    _storeCtrl.text.trim(),
+      storeName: _nameCtrl.text.trim(),
+      storePhone: _storeCtrl.text.trim(),
       deliveryPhone: _deliveryCtrl.text.trim(),
-      note:          _noteCtrl.text.trim(),
+      note: _noteCtrl.text.trim(),
     ));
   }
 
@@ -71,32 +71,49 @@ class _State extends State<DeliveryDetailScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded,
-              color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
+        leadingWidth: 60,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ),
         title: const Text('Thông tin đơn hàng',
             style: TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w700,
+                fontSize: AppFontSize.display,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary)),
         actions: [
           TextButton(
             onPressed: _confirm,
             child: const Text('Xong',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
+                style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.primary)),
           ),
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF0F0F0)),
+          child: Divider(height: 1, color: AppColors.divider),
         ),
       ),
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-
           const SizedBox(height: 8),
 
           // ── Cửa hàng ─────────────────────────────────────────────────
@@ -169,22 +186,24 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-    child: Row(children: [
-      Container(
-        width: 4, height: 18,
-        decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(2),
-        ),
-      ),
-      const SizedBox(width: 8),
-      Text(title,
-          style: const TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w700,
-              color: AppColors.textPrimary)),
-    ]),
-  );
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+        child: Row(children: [
+          Container(
+            width: 4,
+            height: 18,
+            decoration: BoxDecoration(
+              color: AppColors.primary,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(title,
+              style: const TextStyle(
+                  fontSize: AppFontSize.bodyLarge,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary)),
+        ]),
+      );
 }
 
 // ── Field ─────────────────────────────────────────────────────────────────────
@@ -216,42 +235,42 @@ class _Field extends StatelessWidget {
       maxLines: maxLines,
       onChanged: onChanged,
       style: const TextStyle(
-          fontSize: 14, color: AppColors.textPrimary,
+          fontSize: AppFontSize.bodyLarge,
+          color: AppColors.textPrimary,
           fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(
-            fontSize: 14, color: AppColors.textSecondary),
+        labelStyle:
+            const TextStyle(fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
         floatingLabelStyle: const TextStyle(
-            fontSize: 13, color: AppColors.primary,
+            fontSize: AppFontSize.body,
+            color: AppColors.primary,
             fontWeight: FontWeight.w500),
         hintText: hint,
         hintStyle: const TextStyle(
-            fontSize: 13, color: AppColors.textSecondary,
+            fontSize: AppFontSize.bodyLarge,
+            color: AppColors.textSecondary,
             fontWeight: FontWeight.w400),
         alignLabelWithHint: true,
         filled: true,
         fillColor: error != null
             ? AppColors.danger.withValues(alpha: 0.04)
-            : const Color(0xFFF7F8FA),
+            : AppColors.surfaceAlt,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             borderSide: BorderSide.none),
         enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
             borderSide: error != null
-                ? BorderSide(
-                    color: AppColors.danger.withValues(alpha: 0.5))
+                ? BorderSide(color: AppColors.danger.withValues(alpha: 0.5))
                 : BorderSide.none),
         focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(
-                color: AppColors.primary, width: 1.5)),
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            borderSide: const BorderSide(color: AppColors.primary, width: 1.5)),
         errorText: error,
-        errorStyle: const TextStyle(
-            fontSize: 12, color: AppColors.danger),
+        errorStyle: const TextStyle(fontSize: AppFontSize.caption, color: AppColors.danger),
       ),
     );
   }

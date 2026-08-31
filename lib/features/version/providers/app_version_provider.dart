@@ -12,7 +12,7 @@ class AppVersionState {
   final String message;
 
   const AppVersionState({
-    this.isChecked      = false,
+    this.isChecked = false,
     this.needsForceUpdate = false,
     this.storeUrl,
     this.message = 'Vui lòng cập nhật ứng dụng để tiếp tục sử dụng.',
@@ -37,22 +37,36 @@ class AppVersionNotifier extends StateNotifier<AppVersionState> {
       debugPrint('[VersionCheck] current=$current, API response=$data');
 
       final rawForce = data['force_update'];
-      final forceUpdate = rawForce == true || rawForce == 1 || rawForce == '1' || rawForce == 'true';
+      final forceUpdate = rawForce == true ||
+          rawForce == 1 ||
+          rawForce == '1' ||
+          rawForce == 'true';
       final forceMessage = data['force_message'] as String? ?? '';
-      final androidUrl   = data['android_url']   as String?;
-      final iosUrl       = data['ios_url']       as String?;
-      final storeUrl     = Platform.isIOS ? iosUrl : androidUrl;
+      final androidUrl = data['android_url'] as String?;
+      final iosUrl = data['ios_url'] as String?;
+      final configuredUrl = Platform.isIOS ? iosUrl : androidUrl;
+      final storeUrl = configuredUrl?.trim().isNotEmpty == true
+          ? configuredUrl
+          : Platform.isIOS
+              ? 'https://apps.apple.com/vn/app/flash-ship-%C4%91%E1%BA%B7t-%C4%91%C6%A1n/id6768362686'
+              : 'https://play.google.com/store/apps/details?id=vn.flashship.customer';
 
-      final minVersion = data['min_version'] as String? ?? '1.0.0';
+      final platformMinKey =
+          Platform.isIOS ? 'ios_min_version' : 'android_min_version';
+      final minVersion =
+          data[platformMinKey]?.toString().trim().isNotEmpty == true
+              ? data[platformMinKey].toString()
+              : data['min_version']?.toString() ?? '1.0.0';
 
       final needsForce = forceUpdate && _isOlderThan(current, minVersion);
-      debugPrint('[VersionCheck] forceUpdate=$forceUpdate, minVersion=$minVersion, needsForce=$needsForce');
+      debugPrint(
+          '[VersionCheck] forceUpdate=$forceUpdate, minVersion=$minVersion, needsForce=$needsForce');
 
       state = AppVersionState(
-        isChecked:        true,
+        isChecked: true,
         needsForceUpdate: needsForce,
-        storeUrl:         storeUrl,
-        message:          forceMessage.isNotEmpty
+        storeUrl: storeUrl,
+        message: forceMessage.isNotEmpty
             ? forceMessage
             : 'Vui lòng cập nhật ứng dụng để tiếp tục sử dụng.',
       );
@@ -62,21 +76,26 @@ class AppVersionNotifier extends StateNotifier<AppVersionState> {
     }
   }
 
-  // Returns true if a < b  (e.g. "1.0.0" < "1.0.1")
+  // Returns true if a < b; hỗ trợ cả "1.2", "1.2.3+45", "1.2.3-beta".
   bool _isOlderThan(String a, String b) {
     final av = _parse(a);
     final bv = _parse(b);
-    for (var i = 0; i < 3; i++) {
-      if (av[i] < bv[i]) return true;
-      if (av[i] > bv[i]) return false;
+    final length = av.length > bv.length ? av.length : bv.length;
+    for (var i = 0; i < length; i++) {
+      final aPart = i < av.length ? av[i] : 0;
+      final bPart = i < bv.length ? bv[i] : 0;
+      if (aPart < bPart) return true;
+      if (aPart > bPart) return false;
     }
     return false;
   }
 
   List<int> _parse(String v) {
-    final parts = v.split('.').map((e) => int.tryParse(e) ?? 0).toList();
-    while (parts.length < 3) { parts.add(0); }
-    return parts;
+    final semanticVersion = v.trim().split('+').first.split('-').first;
+    return semanticVersion
+        .split('.')
+        .map((part) => int.tryParse(part) ?? 0)
+        .toList();
   }
 }
 

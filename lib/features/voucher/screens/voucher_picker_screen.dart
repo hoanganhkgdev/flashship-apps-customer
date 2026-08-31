@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/api/api_client.dart';
+import '../../../core/api/api_error.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../models/voucher_model.dart';
 import '../providers/voucher_provider.dart';
+import '../providers/voucher_validation_provider.dart';
 
 class VoucherPickResult {
   final String code;
@@ -47,29 +48,32 @@ class _State extends ConsumerState<VoucherPickerScreen> {
   }
 
   Future<void> _applyCode(String code) async {
-    if (code.trim().isEmpty) return;
-    setState(() { _applying = true; _error = null; });
+    final normalizedCode = code.trim().toUpperCase();
+    if (normalizedCode.isEmpty || _applying) return;
+    FocusScope.of(context).unfocus();
+    setState(() {
+      _applying = true;
+      _error = null;
+    });
     try {
-      final res = await ref.read(apiClientProvider).post(
-        '/customer/vouchers/validate',
-        data: {
-          'code':         code.trim().toUpperCase(),
-          'service_type': widget.serviceType,
-          'order_total':  widget.orderFee ?? 0,
-          'shipping_fee': widget.orderFee ?? 0,
-        },
-      );
-      final data     = res.data as Map<String, dynamic>;
-      final discount = (data['discount'] as num?)?.toInt() ?? 0;
+      final result = await ref.read(voucherValidationServiceProvider).validate(
+            code: normalizedCode,
+            serviceType: widget.serviceType,
+            orderFee: widget.orderFee ?? 0,
+          );
       if (!mounted) return;
-      Navigator.pop(context, VoucherPickResult(
-        code:     code.trim().toUpperCase(),
-        discount: discount,
-      ));
+      Navigator.pop(
+          context,
+          VoucherPickResult(
+            code: result.code,
+            discount: result.discount,
+          ));
     } catch (e) {
-      String msg = 'Mã không hợp lệ';
-      try { msg = (e as dynamic).response?.data['message'] ?? msg; } catch (_) {}
-      setState(() { _error = msg; _applying = false; });
+      if (!mounted) return;
+      setState(() {
+        _error = apiErrorMessage(e, 'Mã không hợp lệ');
+        _applying = false;
+      });
     }
   }
 
@@ -80,44 +84,63 @@ class _State extends ConsumerState<VoucherPickerScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        toolbarHeight: 70,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded,
-              color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
+        centerTitle: true,
+        leadingWidth: 72,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Center(
+            child: InkWell(
+              onTap: () => Navigator.pop(context),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  border: Border.all(color: AppColors.divider),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ),
-        title: const Text('Chọn ưu đãi',
+        title: Text('Chọn ưu đãi',
             style: TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w700,
+                fontSize: AppFontSize.display,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary)),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF0F0F0)),
+          child: Divider(height: 1, color: AppColors.divider),
         ),
       ),
       body: ListView(
         padding: EdgeInsets.zero,
         children: [
-
           // ── Code input ────────────────────────────────────────────────
           Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+            color: AppColors.surface,
+            padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
             child: Column(children: [
               Row(children: [
                 Expanded(
                   child: TextField(
                     controller: _ctrl,
                     textCapitalization: TextCapitalization.characters,
-                    style: const TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600,
+                    style: TextStyle(
+                        fontSize: AppFontSize.bodyLarge,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.textPrimary),
                     decoration: InputDecoration(
                       hintText: 'Nhập mã ưu đãi...',
-                      hintStyle: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w400,
+                      hintStyle: TextStyle(
+                          fontSize: AppFontSize.bodyLarge,
+                          fontWeight: FontWeight.w400,
                           color: AppColors.textSecondary),
                       prefixIcon: Icon(Icons.confirmation_number_outlined,
                           size: 18,
@@ -134,21 +157,21 @@ class _State extends ConsumerState<VoucherPickerScreen> {
                               })
                           : null,
                       filled: true,
-                      fillColor: const Color(0xFFF5F5F5),
+                      fillColor: AppColors.surfaceAlt,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 13),
                       border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide.none),
                       enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide.none),
                       focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: const BorderSide(
                               color: AppColors.primary, width: 1.5)),
                       errorBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: BorderSide(
                               color: AppColors.danger.withValues(alpha: 0.5))),
                     ),
@@ -156,31 +179,38 @@ class _State extends ConsumerState<VoucherPickerScreen> {
                       if (_error != null) setState(() => _error = null);
                       setState(() {});
                     },
-                    onSubmitted: _applyCode,
+                    onSubmitted: _applying ? null : _applyCode,
                   ),
                 ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _applying ? null : () => _applyCode(_ctrl.text),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    disabledBackgroundColor:
-                        AppColors.primary.withValues(alpha: 0.5),
-                    elevation: 0,
-                    minimumSize: const Size(0, 46),
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    padding: const EdgeInsets.symmetric(horizontal: 18),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                const SizedBox(width: 12),
+                SizedBox(
+                  width: 96,
+                  height: 52,
+                  child: ElevatedButton(
+                    onPressed: _applying || _ctrl.text.trim().isEmpty
+                        ? null
+                        : () => _applyCode(_ctrl.text),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: const Size(96, 52),
+                      maximumSize: const Size(96, 52),
+                      backgroundColor: AppColors.primary,
+                      disabledBackgroundColor:
+                          AppColors.primary.withValues(alpha: 0.5),
+                      elevation: 0,
+                      padding: EdgeInsets.zero,
+                    ),
+                    child: _applying
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 2, color: Colors.white))
+                        : Text('Áp dụng',
+                            style: TextStyle(
+                                fontSize: AppFontSize.bodyLarge,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white)),
                   ),
-                  child: _applying
-                      ? const SizedBox(width: 16, height: 16,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text('Áp dụng',
-                          style: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w700,
-                              color: Colors.white)),
                 ),
               ]),
               if (_error != null) ...[
@@ -191,7 +221,8 @@ class _State extends ConsumerState<VoucherPickerScreen> {
                   const SizedBox(width: 4),
                   Text(_error!,
                       style: const TextStyle(
-                          fontSize: 12, color: AppColors.danger)),
+                          fontSize: AppFontSize.caption,
+                          color: AppColors.danger)),
                 ]),
               ],
             ]),
@@ -203,43 +234,51 @@ class _State extends ConsumerState<VoucherPickerScreen> {
           voucherAsync.when(
             loading: () => const Padding(
               padding: EdgeInsets.all(40),
-              child: Center(child: CircularProgressIndicator(
-                  strokeWidth: 2, color: AppColors.primary)),
+              child: Center(
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: AppColors.primary)),
             ),
             error: (_, __) => const _EmptyState(),
             data: (vouchers) {
-              final applicable = vouchers.where((v) =>
-                  v.serviceTypes == null ||
-                  v.serviceTypes!.contains(widget.serviceType)).toList();
+              final now = DateTime.now();
+              final applicable = vouchers
+                  .where((v) =>
+                      v.isAvailable &&
+                      (v.expiresAt == null || v.expiresAt!.isAfter(now)) &&
+                      (v.serviceTypes == null ||
+                          v.serviceTypes!.contains(widget.serviceType)))
+                  .toList();
               if (applicable.isEmpty) return const _EmptyState();
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
                     child: Row(children: [
                       Container(
-                        width: 28, height: 28,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
                           color: AppColors.primary.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                         child: const Icon(Icons.local_offer_rounded,
                             size: 15, color: AppColors.primary),
                       ),
                       const SizedBox(width: 8),
-                      const Text('Ưu đãi của bạn',
+                      Text('Ưu đãi của bạn',
                           style: TextStyle(
-                              fontSize: 16, fontWeight: FontWeight.w800,
+                              fontSize: AppFontSize.title,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.textPrimary)),
                     ]),
                   ),
                   ...applicable.map((v) => _VoucherCard(
-                    voucher: v,
-                    isSelected: _selectedCode == v.code,
-                    orderFee: widget.orderFee ?? 0,
-                    onTap: () => _applyCode(v.code),
-                  )),
+                        voucher: v,
+                        isSelected: _selectedCode == v.code,
+                        orderFee: widget.orderFee ?? 0,
+                        onTap: () => _applyCode(v.code),
+                      )),
                 ],
               );
             },
@@ -250,13 +289,14 @@ class _State extends ConsumerState<VoucherPickerScreen> {
             const SizedBox(height: 12),
             Center(
               child: TextButton.icon(
-                onPressed: () => Navigator.pop(context,
-                    const VoucherPickResult(code: '', discount: 0)),
+                onPressed: () => Navigator.pop(
+                    context, const VoucherPickResult(code: '', discount: 0)),
                 icon: const Icon(Icons.remove_circle_outline_rounded,
                     size: 16, color: AppColors.danger),
                 label: const Text('Bỏ ưu đãi đang áp dụng',
                     style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w600,
+                        fontSize: AppFontSize.body,
+                        fontWeight: FontWeight.w600,
                         color: AppColors.danger)),
               ),
             ),
@@ -288,16 +328,16 @@ class _VoucherCard extends StatelessWidget {
       voucher.minOrderValue == null || orderFee >= voucher.minOrderValue!;
 
   Color get _color => switch (voucher.type) {
-    'freeship' => AppColors.info,
-    'percent'  => AppColors.success,
-    _          => AppColors.primary,
-  };
+        'freeship' => AppColors.accent2,
+        'percent' => AppColors.primary,
+        _ => AppColors.success,
+      };
 
   IconData get _icon => switch (voucher.type) {
-    'freeship' => Icons.local_shipping_rounded,
-    'percent'  => Icons.percent_rounded,
-    _          => Icons.card_giftcard_rounded,
-  };
+        'freeship' => Icons.local_shipping_outlined,
+        'percent' => Icons.percent_rounded,
+        _ => Icons.card_giftcard_outlined,
+      };
 
   @override
   Widget build(BuildContext context) {
@@ -309,40 +349,37 @@ class _VoucherCard extends StatelessWidget {
       child: GestureDetector(
         onTap: _canApply ? onTap : null,
         child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+          constraints: const BoxConstraints(minHeight: 96),
+          margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 6),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.card),
             border: isSelected
                 ? Border.all(color: _color, width: 1.5)
-                : null,
-            boxShadow: [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            )],
+                : Border.all(color: AppColors.divider),
           ),
           child: IntrinsicHeight(
             child: Row(
               children: [
                 // ── Left colored panel ──────────────────────────────
                 Container(
-                  width: 72,
+                  width: 78,
                   decoration: BoxDecoration(
                     color: _color.withValues(alpha: 0.08),
                     borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(14),
-                      bottomLeft: Radius.circular(14),
+                      topLeft: Radius.circular(17),
+                      bottomLeft: Radius.circular(17),
                     ),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Container(
-                        width: 38, height: 38,
+                        width: 44,
+                        height: 44,
                         decoration: BoxDecoration(
                           color: _color.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
                         ),
                         child: Icon(_icon, size: 20, color: _color),
                       ),
@@ -350,9 +387,11 @@ class _VoucherCard extends StatelessWidget {
                       Text(
                         voucher.discountLabel,
                         textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
+                            fontSize: AppFontSize.caption,
+                            fontWeight: FontWeight.w600,
                             color: _color),
                       ),
                     ],
@@ -364,10 +403,13 @@ class _VoucherCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: List.generate(6, (_) => Container(
-                      width: 1, height: 4,
-                      color: const Color(0xFFE0E0E0),
-                    )),
+                    children: List.generate(
+                        6,
+                        (_) => Container(
+                              width: 1,
+                              height: 4,
+                              color: AppColors.divider,
+                            )),
                   ),
                 ),
 
@@ -382,34 +424,34 @@ class _VoucherCard extends StatelessWidget {
                         Row(children: [
                           Expanded(
                             child: Text(voucher.code,
-                                style: const TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w700,
+                                style: TextStyle(
+                                    fontSize: AppFontSize.bodyLarge,
+                                    fontWeight: FontWeight.w600,
                                     color: AppColors.textPrimary,
                                     letterSpacing: 0.5)),
                           ),
                           if (isSelected)
                             Container(
-                              width: 22, height: 22,
+                              width: 28,
+                              height: 28,
                               decoration: BoxDecoration(
                                 color: _color,
                                 shape: BoxShape.circle,
                               ),
                               child: const Icon(Icons.check_rounded,
-                                  color: Colors.white, size: 14),
+                                  color: Colors.white, size: 18),
                             )
                           else if (isExpiringSoon)
                             Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.danger
-                                    .withValues(alpha: 0.1),
+                                color: AppColors.danger.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(4),
                               ),
-                              child: const Text('Sắp hết',
+                              child: Text('Sắp hết',
                                   style: TextStyle(
-                                      fontSize: 9,
+                                      fontSize: AppFontSize.caption,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.danger)),
                             ),
@@ -419,8 +461,8 @@ class _VoucherCard extends StatelessWidget {
                           Text(voucher.description!,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  fontSize: 12,
+                              style: TextStyle(
+                                  fontSize: AppFontSize.body,
                                   color: AppColors.textSecondary)),
                         ],
                         const SizedBox(height: 8),
@@ -428,22 +470,23 @@ class _VoucherCard extends StatelessWidget {
                           if (!_canApply && voucher.minOrderValue != null)
                             Text(
                               'Đơn tối thiểu ${Fmt.currency(voucher.minOrderValue!)}',
-                              style: const TextStyle(
-                                  fontSize: 11, color: AppColors.danger),
+                              style: TextStyle(
+                                  fontSize: AppFontSize.caption,
+                                  color: AppColors.danger),
                             )
                           else if (voucher.minOrderValue != null)
                             Text(
                               'Đơn từ ${Fmt.currency(voucher.minOrderValue!)}',
-                              style: const TextStyle(
-                                  fontSize: 11,
-                                  color: AppColors.textSecondary),
+                              style: TextStyle(
+                                  fontSize: AppFontSize.caption,
+                                  color: AppColors.textTertiary),
                             ),
                           const Spacer(),
                           if (voucher.expiresAt != null)
                             Text('HSD: ${Fmt.date(voucher.expiresAt!)}',
-                                style: const TextStyle(
-                                    fontSize: 10,
-                                    color: AppColors.textSecondary)),
+                                style: TextStyle(
+                                    fontSize: AppFontSize.caption,
+                                    color: AppColors.textTertiary)),
                         ]),
                       ],
                     ),
@@ -465,25 +508,28 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 48),
-    child: Column(children: [
-      Container(
-        width: 80, height: 80,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
-          shape: BoxShape.circle,
-        ),
-        child: const Icon(Icons.confirmation_number_outlined,
-            size: 38, color: AppColors.primary),
-      ),
-      const SizedBox(height: 14),
-      const Text('Không có ưu đãi nào',
-          style: TextStyle(
-              fontSize: 15, fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary)),
-      const SizedBox(height: 6),
-      const Text('Nhập mã thủ công ở trên để áp dụng',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-    ]),
-  );
+        padding: const EdgeInsets.only(top: 48),
+        child: Column(children: [
+          Container(
+            width: 80,
+            height: 80,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.confirmation_number_outlined,
+                size: 38, color: AppColors.primary),
+          ),
+          const SizedBox(height: 14),
+          const Text('Không có ưu đãi nào',
+              style: TextStyle(
+                  fontSize: AppFontSize.bodyLarge,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary)),
+          const SizedBox(height: 6),
+          const Text('Nhập mã thủ công ở trên để áp dụng',
+              style: TextStyle(
+                  fontSize: AppFontSize.body, color: AppColors.textSecondary)),
+        ]),
+      );
 }

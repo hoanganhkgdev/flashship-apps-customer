@@ -23,15 +23,16 @@ class BookingHeader extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: svc.bgColor,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         children: [
           Container(
-            width: 48, height: 48,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: svc.color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(svc.icon, color: svc.color, size: 26),
           ),
@@ -42,13 +43,14 @@ class BookingHeader extends StatelessWidget {
               children: [
                 Text(title,
                     style: TextStyle(
-                      fontWeight: FontWeight.w700, fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      fontSize: AppFontSize.bodyLarge,
                       color: svc.color,
                     )),
                 const SizedBox(height: 3),
                 Text(subtitle,
                     style: const TextStyle(
-                        fontSize: 13, color: AppColors.textSecondary)),
+                        fontSize: AppFontSize.body, color: AppColors.textSecondary)),
               ],
             ),
           ),
@@ -56,19 +58,21 @@ class BookingHeader extends StatelessWidget {
             GestureDetector(
               onTap: onPricingTap,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: svc.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.receipt_long_outlined, size: 14, color: svc.color),
+                    Icon(Icons.receipt_long_outlined,
+                        size: 14, color: svc.color),
                     const SizedBox(width: 4),
                     Text('Bảng giá',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: AppFontSize.caption,
                           fontWeight: FontWeight.w600,
                           color: svc.color,
                         )),

@@ -37,7 +37,6 @@ class FlashShipApp extends ConsumerStatefulWidget {
 
 class _FlashShipAppState extends ConsumerState<FlashShipApp>
     with WidgetsBindingObserver {
-
   bool _forceDialogShown = false;
 
   @override
@@ -65,7 +64,6 @@ class _FlashShipAppState extends ConsumerState<FlashShipApp>
         ref.read(orderListProvider.notifier).fetch();
       }
       // Re-check version mỗi lần app resume
-      _forceDialogShown = false;
       ref.read(appVersionProvider.notifier).check();
     }
   }
@@ -83,10 +81,12 @@ class _FlashShipAppState extends ConsumerState<FlashShipApp>
         canPop: false,
         child: AlertDialog(
           backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Row(children: [
             Container(
-              width: 36, height: 36,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
                 color: AppColors.primary,
                 borderRadius: BorderRadius.circular(10),
@@ -98,14 +98,16 @@ class _FlashShipAppState extends ConsumerState<FlashShipApp>
             const SizedBox(width: 10),
             const Text('Cập nhật bắt buộc',
                 style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
+                    fontSize: AppFontSize.bodyLarge,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.textPrimary)),
           ]),
           content: Text(
             v.message,
             style: const TextStyle(
-                fontSize: 14, color: AppColors.textSecondary, height: 1.5),
+                fontSize: AppFontSize.body,
+                color: AppColors.textSecondary,
+                height: 1.5),
           ),
           actions: [
             SizedBox(
@@ -119,8 +121,8 @@ class _FlashShipAppState extends ConsumerState<FlashShipApp>
                 ),
                 child: const Text('Cập nhật ngay',
                     style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
+                        fontSize: AppFontSize.bodyLarge,
+                        fontWeight: FontWeight.w600,
                         color: Colors.white)),
               ),
             ),
@@ -144,7 +146,11 @@ class _FlashShipAppState extends ConsumerState<FlashShipApp>
 
     // Lắng nghe version state — show dialog khi đang dùng app
     ref.listen<AppVersionState>(appVersionProvider, (prev, next) {
-      if (next.needsForceUpdate) {
+      // Splash tự hiển thị dialog lúc khởi động; listener này chỉ dùng khi
+      // force update được bật trong lúc khách đang sử dụng ứng dụng.
+      final isOnSplash =
+          router.routeInformationProvider.value.uri.path == '/splash';
+      if (next.needsForceUpdate && !isOnSplash) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _showForceDialog(next);
         });
@@ -152,10 +158,11 @@ class _FlashShipAppState extends ConsumerState<FlashShipApp>
     });
 
     return MaterialApp.router(
-      title: 'FlashShip',
+      title: 'Flash Ship',
       theme: AppTheme.light,
       routerConfig: router,
       debugShowCheckedModeBanner: false,
+      // Dùng cỡ chữ chuẩn của hệ điều hành, không phóng đại toàn app.
       builder: (context, child) => GestureDetector(
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
         behavior: HitTestBehavior.translucent,

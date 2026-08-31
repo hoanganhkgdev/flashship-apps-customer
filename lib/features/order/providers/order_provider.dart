@@ -11,10 +11,10 @@ class OrderListState {
   final String? error;
 
   const OrderListState({
-    this.orders      = const [],
-    this.isLoading   = true,
+    this.orders = const [],
+    this.isLoading = true,
     this.isLoadingMore = false,
-    this.hasMore     = false,
+    this.hasMore = false,
     this.error,
   });
 
@@ -24,13 +24,14 @@ class OrderListState {
     bool? isLoadingMore,
     bool? hasMore,
     String? error,
-  }) => OrderListState(
-    orders:        orders        ?? this.orders,
-    isLoading:     isLoading     ?? this.isLoading,
-    isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-    hasMore:       hasMore       ?? this.hasMore,
-    error:         error,
-  );
+  }) =>
+      OrderListState(
+        orders: orders ?? this.orders,
+        isLoading: isLoading ?? this.isLoading,
+        isLoadingMore: isLoadingMore ?? this.isLoadingMore,
+        hasMore: hasMore ?? this.hasMore,
+        error: error,
+      );
 }
 
 class OrderListNotifier extends StateNotifier<OrderListState> {
@@ -47,13 +48,13 @@ class OrderListNotifier extends StateNotifier<OrderListState> {
     // Giữ orders cũ khi loading để tránh flicker
     state = state.copyWith(isLoading: true);
     try {
-      final res  = await _api.get('/customer/orders', params: {'page': 1});
+      final res = await _api.get('/customer/orders', params: {'page': 1});
       final data = res.data['data'] as List? ?? [];
       final meta = res.data['meta'] as Map? ?? {};
       state = OrderListState(
-        orders:    data.map((e) => OrderModel.fromJson(e)).toList(),
+        orders: data.map((e) => OrderModel.fromJson(e)).toList(),
         isLoading: false,
-        hasMore:   meta['has_more'] == true,
+        hasMore: meta['has_more'] == true,
       );
     } catch (e) {
       final statusCode = (e as dynamic).response?.statusCode as int?;
@@ -70,13 +71,13 @@ class OrderListNotifier extends StateNotifier<OrderListState> {
     state = state.copyWith(isLoadingMore: true);
     try {
       _page++;
-      final res  = await _api.get('/customer/orders', params: {'page': _page});
+      final res = await _api.get('/customer/orders', params: {'page': _page});
       final data = res.data['data'] as List? ?? [];
       final meta = res.data['meta'] as Map? ?? {};
       state = state.copyWith(
-        orders:        [...state.orders, ...data.map((e) => OrderModel.fromJson(e))],
+        orders: [...state.orders, ...data.map((e) => OrderModel.fromJson(e))],
         isLoadingMore: false,
-        hasMore:       meta['has_more'] == true,
+        hasMore: meta['has_more'] == true,
       );
     } catch (_) {
       _page--;

@@ -83,9 +83,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final res = await _api.post('/customer/auth/verify-otp-register', data: {
-        'phone':    phone,
-        'otp':      otp,
-        'name':     name,
+        'phone': phone,
+        'otp': otp,
+        'name': name,
         'password': password,
         if (cityId != null) 'city_id': cityId,
       });
@@ -101,19 +101,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
     required String name,
     required String phone,
     required String password,
-    int?    cityId,
+    int? cityId,
     double? latitude,
     double? longitude,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       final res = await _api.post('/customer/auth/register', data: {
-        'name':                  name,
-        'phone':                 phone,
-        'password':              password,
+        'name': name,
+        'phone': phone,
+        'password': password,
         'password_confirmation': password,
-        if (cityId != null)    'city_id':   cityId,
-        if (latitude != null)  'latitude':  latitude,
+        if (cityId != null) 'city_id': cityId,
+        if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
       });
       await _saveSession(res.data);
@@ -144,9 +144,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _api.post('/customer/auth/reset-password', data: {
-        'phone':                 phone,
-        'otp':                   otp,
-        'password':              password,
+        'phone': phone,
+        'otp': otp,
+        'password': password,
         'password_confirmation': password,
       });
       state = state.copyWith(isLoading: false);
@@ -175,6 +175,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<String?> updateProfile({
     required String name,
     String? email,
+    DateTime? birthDate,
     int? cityId,
     String? cityName,
   }) async {
@@ -182,6 +183,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final res = await _api.patch('/customer/auth/profile', data: {
         'name': name,
         if (email != null) 'email': email.isEmpty ? null : email,
+        if (birthDate != null)
+          'birth_date': '${birthDate.year.toString().padLeft(4, '0')}-'
+              '${birthDate.month.toString().padLeft(2, '0')}-'
+              '${birthDate.day.toString().padLeft(2, '0')}',
         if (cityId != null) 'city_id': cityId,
       });
       final user = UserModel.fromJson(
@@ -218,8 +223,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }) async {
     try {
       await _api.patch('/customer/auth/password', data: {
-        'current_password':          current,
-        'new_password':              next,
+        'current_password': current,
+        'new_password': next,
         'new_password_confirmation': next,
       });
       return null;
@@ -269,7 +274,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(AppConstants.tokenKey, token);
     await prefs.setString(AppConstants.userKey, jsonEncode(user.toJson()));
-    state = state.copyWith(token: token, user: user, isLoading: false, isInitialized: true);
+    state = state.copyWith(
+        token: token, user: user, isLoading: false, isInitialized: true);
     _registerFcmToken(token);
   }
 
@@ -277,7 +283,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final fcmToken = await NotificationService.getToken();
       if (fcmToken == null) return;
-      await _api.post('/customer/auth/fcm-token', data: {'fcm_token': fcmToken});
+      await _api
+          .post('/customer/auth/fcm-token', data: {'fcm_token': fcmToken});
     } catch (_) {}
   }
 
@@ -296,10 +303,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       }
       final type = (e as dynamic).type?.toString() ?? '';
       final message = e.toString();
-      if (type.contains('connectionTimeout') || type.contains('receiveTimeout')) {
+      if (type.contains('connectionTimeout') ||
+          type.contains('receiveTimeout')) {
         return 'Timeout: server không phản hồi';
       }
-      if (type.contains('connectionError') || message.contains('SocketException')) {
+      if (type.contains('connectionError') ||
+          message.contains('SocketException')) {
         return 'Không kết nối được server';
       }
       return 'Lỗi: $message';

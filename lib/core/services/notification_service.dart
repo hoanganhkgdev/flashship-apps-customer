@@ -18,18 +18,19 @@ class NotificationService {
     String? orderCode,
   })? _onIncomingNotification;
 
-  static set onIncomingNotification(void Function({
-    required String title,
-    required String body,
-    String? orderCode,
-  })? callback) {
+  static set onIncomingNotification(
+      void Function({
+        required String title,
+        required String body,
+        String? orderCode,
+      })? callback) {
     _onIncomingNotification = callback;
     if (callback != null) {
       // Flush các thông báo đang chờ
       for (final n in _pendingNotifications) {
         callback(
-          title:     n['title'] ?? '',
-          body:      n['body']  ?? '',
+          title: n['title'] ?? '',
+          body: n['body'] ?? '',
           orderCode: n['orderCode'],
         );
       }
@@ -48,7 +49,9 @@ class NotificationService {
   static Future<void> init() async {
     if (Platform.isIOS) {
       await FirebaseMessaging.instance.requestPermission(
-        alert: true, badge: true, sound: true,
+        alert: true,
+        badge: true,
+        sound: true,
       );
     } else {
       await FirebaseMessaging.instance.requestPermission();
@@ -80,14 +83,18 @@ class NotificationService {
       _onIncomingNotification!(title: title, body: body, orderCode: orderCode);
     } else {
       _pendingNotifications.add({
-        'title': title, 'body': body, 'orderCode': orderCode,
+        'title': title,
+        'body': body,
+        'orderCode': orderCode,
       });
     }
   }
 
   static void _onMessage(RemoteMessage message) {
-    final title = message.notification?.title ?? message.data['title'] as String? ?? '';
-    final body  = message.notification?.body  ?? message.data['body']  as String? ?? '';
+    final title =
+        message.notification?.title ?? message.data['title'] as String? ?? '';
+    final body =
+        message.notification?.body ?? message.data['body'] as String? ?? '';
     if (message.data['type'] == 'order_status') {
       final code = message.data['order_code'] as String?;
       if (code != null) _statusController.add(code);
@@ -98,8 +105,10 @@ class NotificationService {
   }
 
   static void _onTap(RemoteMessage message) {
-    final title = message.notification?.title ?? message.data['title'] as String? ?? '';
-    final body  = message.notification?.body  ?? message.data['body']  as String? ?? '';
+    final title =
+        message.notification?.title ?? message.data['title'] as String? ?? '';
+    final body =
+        message.notification?.body ?? message.data['body'] as String? ?? '';
     if (message.data['type'] == 'order_status') {
       final code = message.data['order_code'] as String?;
       _dispatch(title, body, orderCode: code);

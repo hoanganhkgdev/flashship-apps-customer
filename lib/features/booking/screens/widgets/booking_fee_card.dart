@@ -20,25 +20,26 @@ class BookingFeeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color      = AppColors.serviceColor(serviceType);
-    final finalFee   = fee != null ? (fee! - discount).clamp(0, fee!) : null;
+    final color = AppColors.serviceColor(serviceType);
+    final finalFee = fee != null ? (fee! - discount).clamp(0, fee!) : null;
     final hasDiscount = discount > 0 && fee != null;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(color: color.withValues(alpha: 0.2)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 40, height: 40,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Icon(Icons.receipt_outlined, color: color, size: 20),
           ),
@@ -50,33 +51,33 @@ class BookingFeeCard extends StatelessWidget {
                 Text('Phí vận chuyển',
                     style: TextStyle(
                         color: AppColors.textSecondary,
-                        fontSize: 12,
+                        fontSize: AppFontSize.caption,
                         fontWeight: FontWeight.w500)),
                 const SizedBox(height: 2),
                 if (loading)
                   Text('Đang tính...',
                       style: TextStyle(
                           color: color,
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18))
+                          fontWeight: FontWeight.w600,
+                          fontSize: AppFontSize.title))
                 else if (fee != null) ...[
                   if (hasDiscount)
                     Text(Fmt.currency(fee!),
                         style: TextStyle(
                             color: AppColors.textSecondary,
-                            fontSize: 13,
+                            fontSize: AppFontSize.body,
                             decoration: TextDecoration.lineThrough,
                             decorationColor: AppColors.textSecondary)),
                   Text(Fmt.currency(finalFee!),
                       style: TextStyle(
                           color: color,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 20)),
+                          fontWeight: FontWeight.w700,
+                          fontSize: AppFontSize.titleLarge)),
                   if (hasDiscount)
                     Text('Tiết kiệm ${Fmt.currency(discount)}',
                         style: const TextStyle(
                             color: AppColors.success,
-                            fontSize: 11,
+                            fontSize: AppFontSize.caption,
                             fontWeight: FontWeight.w600)),
                 ],
               ],
@@ -88,13 +89,11 @@ class BookingFeeCard extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Text('${distanceKm!.toStringAsFixed(1)} km',
                   style: TextStyle(
-                      color: color,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600)),
+                      color: color, fontSize: AppFontSize.caption, fontWeight: FontWeight.w600)),
             ),
           ],
         ],

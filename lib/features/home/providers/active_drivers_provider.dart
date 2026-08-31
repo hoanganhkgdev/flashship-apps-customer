@@ -4,7 +4,8 @@ import '../../profile/providers/active_city_provider.dart';
 
 // Backend chưa có endpoint GET /customer/drivers/active-count — provider này
 // trả null khi gọi lỗi (404/...), widget hiển thị sẽ tự ẩn thay vì hardcode số giả.
-final activeDriversCountProvider = FutureProvider.autoDispose<int?>((ref) async {
+final activeDriversCountProvider =
+    FutureProvider.autoDispose<int?>((ref) async {
   final cityName = ref.watch(activeCityProvider).cityName;
   if (cityName.isEmpty) return null;
   try {

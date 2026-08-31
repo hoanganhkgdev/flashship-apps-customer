@@ -8,26 +8,27 @@ class LatLng {
 }
 
 const Map<String, LatLng> kCityCenters = {
-  'Cần Thơ':  LatLng(10.0452, 105.7469),
+  'Cần Thơ': LatLng(10.0452, 105.7469),
   'Rạch Giá': LatLng(10.0126, 105.0809),
 };
 
 const double kAddressSearchRadiusKm = 25.0;
 
 const Map<String, String> kCitySearchFilter = {
-  'Cần Thơ':  'Cần Thơ',
+  'Cần Thơ': 'Cần Thơ',
   'Rạch Giá': 'Kiên Giang|Rạch Giá',
 };
 
 class AppConstants {
-  static const String baseUrl         = 'https://app.flashship.vn/api';
-  static const String tokenKey        = 'auth_token';
-  static const String userKey         = 'user_data';
-  static const String googleMapsApiKey = 'AIzaSyDnE3bCwhzy4tJ22BVmRMyolwuyCx-1rQc';
+  static const String baseUrl = 'https://app.flashship.vn/api';
+  static const String tokenKey = 'auth_token';
+  static const String userKey = 'user_data';
+  static const String googleMapsApiKey =
+      'AIzaSyDnE3bCwhzy4tJ22BVmRMyolwuyCx-1rQc';
 
   static const String facebookUrl = 'https://facebook.com/flashship.vn';
-  static const String zaloUrl     = 'https://zalo.me/flashship';
-  static const String hotline     = '1900xxxx';
+  static const String zaloUrl = 'https://zalo.me/flashship';
+  static const String hotline = '1900xxxx';
 }
 
 class ServiceDef {

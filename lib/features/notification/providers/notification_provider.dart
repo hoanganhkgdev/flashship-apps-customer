@@ -14,19 +14,20 @@ class NotificationState {
   final bool hasMore;
 
   const NotificationState({
-    this.items        = const [],
+    this.items = const [],
     this.isLoadingMore = false,
-    this.hasMore      = true,
+    this.hasMore = true,
   });
 
   NotificationState copyWith({
     List<NotificationItem>? items,
     bool? isLoadingMore,
     bool? hasMore,
-  }) => NotificationState(
-        items:         items         ?? this.items,
+  }) =>
+      NotificationState(
+        items: items ?? this.items,
         isLoadingMore: isLoadingMore ?? this.isLoadingMore,
-        hasMore:       hasMore       ?? this.hasMore,
+        hasMore: hasMore ?? this.hasMore,
       );
 }
 
@@ -58,7 +59,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> _loadLocal() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final raw   = prefs.getString(_kStorageKey);
+      final raw = prefs.getString(_kStorageKey);
       if (raw != null) {
         final list = (jsonDecode(raw) as List)
             .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
@@ -72,8 +73,7 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> _persist() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-          _kStorageKey,
+      await prefs.setString(_kStorageKey,
           jsonEncode(state.items.map((e) => e.toJson()).toList()));
     } catch (_) {}
   }
@@ -83,13 +83,15 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
   Future<void> fetchFromServer() async {
     _page = 1;
     try {
-      final res     = await _api.get('/customer/notifications', params: {'page': 1});
-      final data    = res.data['data'] as List? ?? [];
+      final res =
+          await _api.get('/customer/notifications', params: {'page': 1});
+      final data = res.data['data'] as List? ?? [];
       final hasMore = res.data['has_more'] as bool? ?? false;
-      final items   = data
+      final items = data
           .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
           .toList();
-      state = state.copyWith(items: items, hasMore: hasMore, isLoadingMore: false);
+      state =
+          state.copyWith(items: items, hasMore: hasMore, isLoadingMore: false);
       await _persist();
     } catch (_) {}
   }
@@ -101,16 +103,21 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
     state = state.copyWith(isLoadingMore: true);
     try {
       _page++;
-      final res     = await _api.get('/customer/notifications', params: {'page': _page});
-      final data    = res.data['data'] as List? ?? [];
+      final res =
+          await _api.get('/customer/notifications', params: {'page': _page});
+      final data = res.data['data'] as List? ?? [];
       final hasMore = res.data['has_more'] as bool? ?? false;
       final newItems = data
           .map((e) => NotificationItem.fromJson(e as Map<String, dynamic>))
           .toList();
 
       final existing = state.items.map((e) => e.id).toSet();
-      final merged   = [...state.items, ...newItems.where((e) => !existing.contains(e.id))];
-      state = state.copyWith(items: merged, hasMore: hasMore, isLoadingMore: false);
+      final merged = [
+        ...state.items,
+        ...newItems.where((e) => !existing.contains(e.id))
+      ];
+      state =
+          state.copyWith(items: merged, hasMore: hasMore, isLoadingMore: false);
       await _persist();
     } catch (_) {
       _page--;
@@ -134,24 +141,33 @@ class NotificationNotifier extends StateNotifier<NotificationState> {
 
   Future<void> markRead(String id) async {
     state = state.copyWith(
-        items: state.items.map((n) => n.id == id ? n.copyWith(isRead: true) : n).toList());
+        items: state.items
+            .map((n) => n.id == id ? n.copyWith(isRead: true) : n)
+            .toList());
     _persist();
-    try { await _api.patch('/customer/notifications/$id/read', data: {}); } catch (_) {}
+    try {
+      await _api.patch('/customer/notifications/$id/read', data: {});
+    } catch (_) {}
   }
 
   Future<void> markAllRead() async {
     state = state.copyWith(
         items: state.items.map((n) => n.copyWith(isRead: true)).toList());
     _persist();
-    try { await _api.post('/customer/notifications/mark-all-read', data: {}); } catch (_) {}
+    try {
+      await _api.post('/customer/notifications/mark-all-read', data: {});
+    } catch (_) {}
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────────
 
   Future<void> delete(String id) async {
-    state = state.copyWith(items: state.items.where((n) => n.id != id).toList());
+    state =
+        state.copyWith(items: state.items.where((n) => n.id != id).toList());
     _persist();
-    try { await _api.delete('/customer/notifications/$id'); } catch (_) {}
+    try {
+      await _api.delete('/customer/notifications/$id');
+    } catch (_) {}
   }
 
   int get unreadCount => state.items.where((n) => !n.isRead).length;

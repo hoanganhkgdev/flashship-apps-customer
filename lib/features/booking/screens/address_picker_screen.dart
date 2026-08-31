@@ -2,39 +2,47 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
+import '../../../core/constants/app_constants.dart';
 import '../../../core/services/address_history_service.dart';
 import '../../../core/services/address_search_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../profile/models/address_model.dart';
+import '../../profile/providers/active_city_provider.dart';
 import '../../profile/providers/addresses_provider.dart';
+import '../../profile/providers/cities_provider.dart';
 import 'map_picker_screen.dart';
 
 class AddressPickerScreen extends ConsumerStatefulWidget {
   const AddressPickerScreen({super.key});
 
   @override
-  ConsumerState<AddressPickerScreen> createState() => _AddressPickerScreenState();
+  ConsumerState<AddressPickerScreen> createState() =>
+      _AddressPickerScreenState();
 }
 
 class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
   final _controller = TextEditingController();
-  final _focusNode  = FocusNode();
+  final _focusNode = FocusNode();
 
-  List<AddressHistoryItem> _history       = [];
-  List<AddressModel>       _savedAddresses = [];
-  List<AddressResult>      _suggestions   = [];
-  bool _searching       = false;
-  bool _searchError     = false;
-  bool _selecting       = false;
-  bool _showAllHistory  = false;
+  List<AddressHistoryItem> _history = [];
+  List<AddressModel> _savedAddresses = [];
+  List<AddressResult> _suggestions = [];
+  bool _searching = false;
+  bool _searchError = false;
+  bool _selecting = false;
+  bool _showAllHistory = false;
   Timer? _debounce;
+  int _searchRequestId = 0;
 
   @override
   void initState() {
     super.initState();
     _loadHistory();
     _loadSavedAddresses();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
+    // Khởi động sớm để có lat/lng khu vực kịp lúc gõ tìm kiếm.
+    ref.read(citiesProvider);
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _focusNode.requestFocus());
   }
 
   Future<void> _loadHistory() async {
@@ -64,19 +72,69 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
 
   void _onChanged(String value) {
     _debounce?.cancel();
+    final requestId = ++_searchRequestId;
     if (value.trim().length < 3) {
-      setState(() { _suggestions = []; _searching = false; _searchError = false; });
+      setState(() {
+        _suggestions = [];
+        _searching = false;
+        _searchError = false;
+      });
       return;
     }
-    setState(() { _searching = true; _searchError = false; });
+    setState(() {
+      _searching = true;
+      _searchError = false;
+    });
     _debounce = Timer(const Duration(milliseconds: 400), () async {
+      final region = ref.read(activeCityProvider);
+      final cityName = region.cityName.trim();
+      // Toạ độ khu vực lấy động từ danh sách city (API /cities, có lat/lng) —
+      // khớp theo cityId đã đăng ký trước, tên khu vực sau. Fallback về map
+      // tĩnh kCityCenters cho city cũ chưa có lat/lng trong DB.
+      // Chờ đúng danh sách city tải xong (thay vì đọc giá trị tạm còn null)
+      // — tránh gõ tìm ngay lúc mới mở màn bị mất bo vùng khu vực.
+      final cities = await ref.read(citiesProvider.future).catchError(
+            (_) => const <CityItem>[],
+          );
+      CityItem? city;
+      for (final c in cities) {
+        if (c.id == region.cityId) {
+          city = c;
+          break;
+        }
+      }
+      city ??= () {
+        for (final c in cities) {
+          if (c.name == cityName) return c;
+        }
+        return null;
+      }();
+      final center = (city?.lat != null && city?.lng != null)
+          ? LatLng(city!.lat!, city.lng!)
+          : kCityCenters[cityName];
       try {
-        final results = await AddressSearchService.search(value);
-        if (!mounted) return;
-        setState(() { _suggestions = results; _searching = false; });
+        // Chỉ bo vùng theo toạ độ (giống trang tổng đài backend) — không
+        // chèn tên khu vực vào câu tìm và không lọc lại theo từ khoá, vì 2
+        // lớp lọc chồng lên strictbounds dễ làm rớt hết kết quả hợp lệ.
+        final results = await AddressSearchService.search(
+          value,
+          lat: center?.latitude,
+          lng: center?.longitude,
+          circleRadius: kAddressSearchRadiusKm,
+          restrictToBounds: center != null,
+        );
+        if (!mounted || requestId != _searchRequestId) return;
+        setState(() {
+          _suggestions = results;
+          _searching = false;
+        });
       } catch (_) {
-        if (!mounted) return;
-        setState(() { _suggestions = []; _searching = false; _searchError = true; });
+        if (!mounted || requestId != _searchRequestId) return;
+        setState(() {
+          _suggestions = [];
+          _searching = false;
+          _searchError = true;
+        });
       }
     });
   }
@@ -87,20 +145,27 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
     if (!mounted) return;
     setState(() => _selecting = false);
     if (detail != null && detail.lat != null && detail.lng != null) {
-      final placeName = r.mainText.isNotEmpty && r.mainText != detail.display ? r.mainText : null;
+      final placeName = r.mainText.isNotEmpty && r.mainText != detail.display
+          ? r.mainText
+          : null;
       final item = AddressHistoryItem(
-        address: detail.display, lat: detail.lat!, lng: detail.lng!, placeName: placeName);
+          address: detail.display,
+          lat: detail.lat!,
+          lng: detail.lng!,
+          placeName: placeName);
       await AddressHistoryService.save(item);
       if (!mounted) return;
       Navigator.of(context).pop(MapPickResult(
-        address:   detail.display,
-        lat:       detail.lat!,
-        lng:       detail.lng!,
+        address: detail.display,
+        lat: detail.lat!,
+        lng: detail.lng!,
         placeName: placeName,
       ));
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Không lấy được tọa độ. Thử lại hoặc chọn từ bản đồ.')),
+        const SnackBar(
+            content:
+                Text('Không lấy được tọa độ. Thử lại hoặc chọn từ bản đồ.')),
       );
     }
   }
@@ -109,7 +174,9 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
     await AddressHistoryService.save(item);
     if (!mounted) return;
     Navigator.of(context).pop(MapPickResult(
-      address: item.address, lat: item.lat, lng: item.lng,
+      address: item.address,
+      lat: item.lat,
+      lng: item.lng,
       placeName: item.placeName,
     ));
   }
@@ -124,9 +191,9 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
       return;
     }
     Navigator.of(context).pop(MapPickResult(
-      address:   addr.address,
-      lat:       addr.latitude!,
-      lng:       addr.longitude!,
+      address: addr.address,
+      lat: addr.latitude!,
+      lng: addr.longitude!,
       placeName: addr.placeName,
     ));
   }
@@ -148,7 +215,8 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
     );
     if (result != null && mounted) {
       await AddressHistoryService.save(
-        AddressHistoryItem(address: result.address, lat: result.lat, lng: result.lng),
+        AddressHistoryItem(
+            address: result.address, lat: result.lat, lng: result.lng),
       );
       if (!mounted) return;
       Navigator.of(context).pop(result);
@@ -160,54 +228,53 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // ── Header: back + search ──────────────────────────────────────
           ColoredBox(
-            color: Colors.white,
+            color: AppColors.surface,
             child: SafeArea(
               bottom: false,
               child: Column(children: [
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 16, 10),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 20, 12),
                   child: Row(children: [
-                    // Back button
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
                       behavior: HitTestBehavior.opaque,
                       child: Container(
-                        width: 36, height: 36,
+                        width: 40,
+                        height: 40,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F5F5),
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(AppRadius.sm),
+                          border: Border.all(color: AppColors.divider),
                         ),
-                        child: const Icon(Icons.arrow_back_rounded,
-                            size: 20, color: AppColors.textPrimary),
+                        child: const Icon(Icons.arrow_back_ios_new_rounded,
+                            size: 18, color: AppColors.textPrimary),
                       ),
                     ),
-                    const SizedBox(width: 10),
-                    // Search field
+                    const SizedBox(width: 12),
                     Expanded(
                       child: SizedBox(
-                        height: 42,
+                        height: 48,
                         child: TextField(
                           controller: _controller,
                           focusNode: _focusNode,
                           onChanged: _onChanged,
-                          style: const TextStyle(
-                              fontSize: 14, color: AppColors.textPrimary),
+                          style: TextStyle(
+                              fontSize: AppFontSize.bodyLarge, color: AppColors.textPrimary),
                           decoration: InputDecoration(
                             hintText: 'Tìm địa chỉ, tên địa điểm...',
-                            hintStyle: const TextStyle(
-                                color: Color(0xFFBBBBBB), fontSize: 14),
+                            hintStyle: TextStyle(
+                                color: AppColors.textTertiary, fontSize: AppFontSize.bodyLarge),
                             prefixIcon: const Icon(Icons.search_rounded,
                                 size: 20, color: AppColors.textSecondary),
                             suffixIcon: _searching
                                 ? const Padding(
                                     padding: EdgeInsets.all(12),
                                     child: SizedBox(
-                                      width: 16, height: 16,
+                                      width: 16,
+                                      height: 16,
                                       child: CircularProgressIndicator(
                                           strokeWidth: 1.5,
                                           color: AppColors.textSecondary),
@@ -216,8 +283,14 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                                 : _controller.text.isNotEmpty
                                     ? GestureDetector(
                                         onTap: () {
+                                          _debounce?.cancel();
+                                          _searchRequestId++;
                                           _controller.clear();
-                                          setState(() => _suggestions = []);
+                                          setState(() {
+                                            _suggestions = [];
+                                            _searching = false;
+                                            _searchError = false;
+                                          });
                                         },
                                         child: const Padding(
                                           padding: EdgeInsets.all(10),
@@ -228,17 +301,20 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                                       )
                                     : null,
                             filled: true,
-                            fillColor: const Color(0xFFF6F6F6),
+                            fillColor: AppColors.surfaceAlt,
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 0, vertical: 0),
                             border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
                                 borderSide: BorderSide.none),
                             enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
                                 borderSide: BorderSide.none),
                             focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(10),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
                                 borderSide: const BorderSide(
                                     color: AppColors.primary, width: 1.5)),
                           ),
@@ -250,7 +326,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                 if (_selecting)
                   const LinearProgressIndicator(
                       minHeight: 2, color: AppColors.primary),
-                const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                const Divider(height: 1, color: AppColors.divider),
               ]),
             ),
           ),
@@ -261,24 +337,22 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                 ? DefaultTabController(
                     length: 2,
                     child: Column(children: [
-                      // Map card
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 18),
                       _mapCard(),
                       _quickSavedRow(),
-                      // Tab bar
                       Container(
-                        color: Colors.white,
+                        color: AppColors.background,
                         child: const TabBar(
                           labelColor: AppColors.primary,
                           unselectedLabelColor: AppColors.textSecondary,
                           labelStyle: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w600),
+                              fontSize: AppFontSize.bodyLarge, fontWeight: FontWeight.w600),
                           unselectedLabelStyle: TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500),
+                              fontSize: AppFontSize.bodyLarge, fontWeight: FontWeight.w600),
                           indicatorColor: AppColors.primary,
                           indicatorWeight: 2,
                           indicatorSize: TabBarIndicatorSize.tab,
-                          dividerColor: Color(0xFFF0F0F0),
+                          dividerColor: AppColors.divider,
                           tabs: [
                             Tab(text: 'Gần đây'),
                             Tab(text: 'Đã lưu'),
@@ -298,6 +372,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                     padding: const EdgeInsets.only(bottom: 32),
                     children: [
                       const SizedBox(height: 12),
+                      _searchRegionLabel(),
                       _mapCard(),
                       if (_suggestions.isEmpty && !_searching && _searchError)
                         Padding(
@@ -307,9 +382,10 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                               const Icon(Icons.wifi_off_rounded,
                                   size: 28, color: AppColors.textSecondary),
                               const SizedBox(height: 8),
-                              const Text('Lỗi kết nối, không tải được gợi ý địa chỉ',
+                              const Text(
+                                  'Lỗi kết nối, không tải được gợi ý địa chỉ',
                                   style: TextStyle(
-                                      fontSize: 14,
+                                      fontSize: AppFontSize.body,
                                       color: AppColors.textSecondary)),
                               const SizedBox(height: 8),
                               TextButton(
@@ -325,7 +401,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                           child: Center(
                             child: Text('Không tìm thấy địa chỉ',
                                 style: TextStyle(
-                                    fontSize: 14,
+                                    fontSize: AppFontSize.body,
                                     color: AppColors.textSecondary)),
                           ),
                         )
@@ -335,8 +411,10 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                           child: _card(children: [
                             for (int i = 0; i < _suggestions.length; i++) ...[
                               if (i > 0)
-                                const Divider(height: 1, indent: 60,
-                                    color: Color(0xFFF0F0F0)),
+                                const Divider(
+                                    height: 1,
+                                    indent: 60,
+                                    color: AppColors.divider),
                               _SuggestionItem(
                                 suggestion: _suggestions[i],
                                 onTap: () => _selectFromSearch(_suggestions[i]),
@@ -352,27 +430,55 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
     );
   }
 
+  Widget _searchRegionLabel() {
+    final cityName = ref.watch(activeCityProvider).cityName.trim();
+    if (cityName.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      child: Row(
+        children: [
+          const Icon(Icons.location_on_outlined,
+              size: 16, color: AppColors.primary),
+          const SizedBox(width: 5),
+          Expanded(
+            child: Text(
+              'Gợi ý trong khu vực $cityName',
+              style: const TextStyle(
+                fontSize: AppFontSize.body,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRecentTab() {
     if (_history.isEmpty) {
       return Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(
-            width: 72, height: 72,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.surfaceAlt,
+              borderRadius: BorderRadius.circular(AppRadius.card),
             ),
             child: const Icon(Icons.history_rounded,
                 size: 34, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 14),
           const Text('Chưa có lịch sử tìm kiếm',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+              style: TextStyle(fontSize: AppFontSize.body, color: AppColors.textSecondary)),
         ]),
       );
     }
-    const kInitial = 10;
-    final visible = _showAllHistory ? _history : _history.take(kInitial).toList();
+    const kInitial = 3;
+    final visible =
+        _showAllHistory ? _history : _history.take(kInitial).toList();
     final hasMore = !_showAllHistory && _history.length > kInitial;
     return ListView(
       padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
@@ -380,7 +486,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
         _card(children: [
           for (int i = 0; i < visible.length; i++) ...[
             if (i > 0)
-              const Divider(height: 1, indent: 60, color: Color(0xFFF0F0F0)),
+              const Divider(height: 1, indent: 60, color: AppColors.divider),
             Dismissible(
               key: ValueKey(visible[i].address),
               direction: DismissDirection.endToStart,
@@ -399,7 +505,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
             ),
           ],
           if (hasMore) ...[
-            const Divider(height: 1, indent: 60, color: Color(0xFFF0F0F0)),
+            const Divider(height: 1, indent: 60, color: AppColors.divider),
             InkWell(
               onTap: () => setState(() => _showAllHistory = true),
               child: Padding(
@@ -408,7 +514,8 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                   child: Text(
                     'Xem thêm ${_history.length - kInitial} địa chỉ',
                     style: const TextStyle(
-                        fontSize: 13, color: AppColors.primary,
+                        fontSize: AppFontSize.body,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -421,8 +528,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
           onTap: _clearAllHistory,
           child: const Center(
             child: Text('Xóa tất cả lịch sử',
-                style: TextStyle(
-                    fontSize: 13, color: AppColors.textSecondary)),
+                style: TextStyle(fontSize: AppFontSize.body, color: AppColors.textSecondary)),
           ),
         ),
       ],
@@ -434,17 +540,18 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
       return Center(
         child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
           Container(
-            width: 72, height: 72,
+            width: 72,
+            height: 72,
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(20),
+              color: AppColors.surfaceAlt,
+              borderRadius: BorderRadius.circular(AppRadius.card),
             ),
             child: const Icon(Icons.bookmark_outline_rounded,
                 size: 34, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 14),
           const Text('Chưa có địa chỉ đã lưu',
-              style: TextStyle(fontSize: 14, color: AppColors.textSecondary)),
+              style: TextStyle(fontSize: AppFontSize.body, color: AppColors.textSecondary)),
         ]),
       );
     }
@@ -454,7 +561,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
         _card(children: [
           for (int i = 0; i < _savedAddresses.length; i++) ...[
             if (i > 0)
-              const Divider(height: 1, indent: 60, color: Color(0xFFF0F0F0)),
+              const Divider(height: 1, indent: 60, color: AppColors.divider),
             _SavedAddressItem(
               addr: _savedAddresses[i],
               onTap: () => _selectFromSaved(_savedAddresses[i]),
@@ -472,14 +579,14 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
     AddressModel? home;
     AddressModel? office;
     for (final a in addresses) {
-      home   ??= a.label == 'Nhà'     ? a : null;
-      office ??= a.label == 'Cơ quan' ? a : null;
+      home ??= a.label == 'Nhà' ? a : null;
+      office ??= (a.label == 'Cơ quan' || a.label == 'Công ty') ? a : null;
     }
     final quick = [if (home != null) home, if (office != null) office];
     if (quick.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
       child: Row(
         children: [
           for (int i = 0; i < quick.length; i++) ...[
@@ -497,64 +604,62 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
   }
 
   Widget _mapCard() => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-    child: GestureDetector(
-      onTap: _openMap,
-      behavior: HitTestBehavior.opaque,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 8, offset: const Offset(0, 2))],
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+        child: GestureDetector(
+          onTap: _openMap,
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(color: AppColors.divider),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+            child: Row(children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: AppColors.primarySoft,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                ),
+                child: const Icon(Icons.map_rounded,
+                    size: 24, color: AppColors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Chọn vị trí trên bản đồ',
+                        style: TextStyle(
+                            fontSize: AppFontSize.bodyLarge,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textPrimary)),
+                    SizedBox(height: 2),
+                    Text('Kéo ghim để xác định chính xác',
+                        style: TextStyle(
+                            fontSize: AppFontSize.body, color: AppColors.textSecondary)),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded,
+                  size: 20, color: AppColors.textSecondary),
+            ]),
+          ),
         ),
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-        child: Row(children: [
-          Container(
-            width: 40, height: 40,
-            decoration: const BoxDecoration(
-              color: Color(0xFFFFF0E6),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.map_rounded,
-                size: 20, color: AppColors.primary),
-          ),
-          const SizedBox(width: 12),
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Chọn vị trí trên bản đồ',
-                    style: TextStyle(
-                        fontSize: 14, fontWeight: FontWeight.w600,
-                        color: AppColors.textPrimary)),
-                SizedBox(height: 2),
-                Text('Kéo ghim để xác định chính xác',
-                    style: TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary)),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded,
-              size: 20, color: AppColors.textSecondary),
-        ]),
-      ),
-    ),
-  );
+      );
 
   Widget _card({required List<Widget> children}) => Container(
-    margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(14),
-      boxShadow: [BoxShadow(
-          color: Colors.black.withValues(alpha: 0.04),
-          blurRadius: 8, offset: const Offset(0, 2))],
-    ),
-    clipBehavior: Clip.antiAlias,
-    child: Column(children: children),
-  );
+        margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: AppColors.divider),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(children: children),
+      );
 }
 
 // ── Quick saved address tile (Nhà/Công ty) ──────────────────────────────────────
@@ -564,32 +669,35 @@ class _QuickSavedTile extends StatelessWidget {
   final VoidCallback onTap;
   const _QuickSavedTile({required this.addr, required this.onTap});
 
-  Color get _color => addr.label == 'Nhà' ? AppColors.primary : const Color(0xFF3B82F6);
-  IconData get _icon => addr.label == 'Nhà' ? Icons.home_rounded : Icons.business_rounded;
+  Color get _color => addr.label == 'Nhà' ? AppColors.primary : AppColors.info;
+  IconData get _icon =>
+      addr.label == 'Nhà' ? Icons.home_rounded : Icons.business_rounded;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    behavior: HitTestBehavior.opaque,
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: _color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(children: [
-        Icon(_icon, size: 16, color: _color),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text(addr.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                  fontSize: 13, fontWeight: FontWeight.w700, color: _color)),
+        onTap: onTap,
+        behavior: HitTestBehavior.opaque,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: _color.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Row(children: [
+            Icon(_icon, size: 20, color: _color),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(addr.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppFontSize.bodyLarge,
+                      fontWeight: FontWeight.w600,
+                      color: _color)),
+            ),
+          ]),
         ),
-      ]),
-    ),
-  );
+      );
 }
 
 // ── Saved address item ────────────────────────────────────────────────────────
@@ -602,7 +710,7 @@ class _SavedAddressItem extends StatelessWidget {
   Color get _iconColor {
     final label = addr.label.toLowerCase();
     if (label == 'nhà') return AppColors.primary;
-    if (label == 'cơ quan') return const Color(0xFF3B82F6);
+    if (label == 'cơ quan') return AppColors.info;
     return const Color(0xFF8B5CF6);
   }
 
@@ -615,44 +723,49 @@ class _SavedAddressItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
-      child: Row(children: [
-        Container(
-          width: 36, height: 36,
-          decoration: BoxDecoration(
-            color: _iconColor.withValues(alpha: 0.10),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(_icon, size: 18, color: _iconColor),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
+          child: Row(children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: _iconColor.withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: Icon(_icon, size: 18, color: _iconColor),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(addr.label.isNotEmpty ? addr.label : addr.displayTitle,
+                      style: const TextStyle(
+                          fontSize: AppFontSize.bodyLarge,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Text(
+                      addr.placeName?.isNotEmpty == true
+                          ? '${addr.placeName} · ${addr.address}'
+                          : addr.address,
+                      style: const TextStyle(
+                          fontSize: AppFontSize.body, color: AppColors.textSecondary),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.chevron_right_rounded,
+                size: 18, color: AppColors.textSecondary),
+          ]),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(addr.label.isNotEmpty ? addr.label : addr.displayTitle,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
-              const SizedBox(height: 2),
-              Text(addr.placeName?.isNotEmpty == true
-                      ? '${addr.placeName} · ${addr.address}'
-                      : addr.address,
-                  style: const TextStyle(
-                      fontSize: 12, color: AppColors.textSecondary),
-                  maxLines: 2, overflow: TextOverflow.ellipsis),
-            ],
-          ),
-        ),
-        const SizedBox(width: 8),
-        const Icon(Icons.chevron_right_rounded,
-            size: 18, color: AppColors.textSecondary),
-      ]),
-    ),
-  );
+      );
 }
 
 // ── History item ──────────────────────────────────────────────────────────────
@@ -664,46 +777,54 @@ class _HistoryItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
-      child: Row(children: [
-        Container(
-          width: 36, height: 36,
-          decoration: const BoxDecoration(
-            color: Color(0xFFF5F5F5),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.history_rounded,
-              size: 18, color: AppColors.textSecondary),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: item.placeName != null
-              ? Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(item.placeName!,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
+          child: Row(children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(AppRadius.sm),
+              ),
+              child: const Icon(Icons.history_rounded,
+                  size: 18, color: AppColors.textSecondary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: item.placeName != null
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                          Text(item.placeName!,
+                              style: const TextStyle(
+                                  fontSize: AppFontSize.bodyLarge,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.textPrimary),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                          const SizedBox(height: 2),
+                          Text(item.address,
+                              style: const TextStyle(
+                                  fontSize: AppFontSize.body, color: AppColors.textSecondary),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis),
+                        ])
+                  : Text(item.address,
                       style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w500,
+                          fontSize: AppFontSize.bodyLarge,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 2),
-                  Text(item.address,
-                      style: const TextStyle(
-                          fontSize: 12, color: AppColors.textSecondary),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                ])
-              : Text(item.address,
-                  style: const TextStyle(
-                      fontSize: 14, fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary),
-                  maxLines: 2, overflow: TextOverflow.ellipsis),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.north_west_rounded,
+                size: 14, color: AppColors.textSecondary),
+          ]),
         ),
-        const SizedBox(width: 8),
-        const Icon(Icons.north_west_rounded,
-            size: 14, color: AppColors.textSecondary),
-      ]),
-    ),
-  );
+      );
 }
 
 // ── Suggestion item ───────────────────────────────────────────────────────────
@@ -715,45 +836,48 @@ class _SuggestionItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InkWell(
-    onTap: onTap,
-    child: Padding(
-      padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
-      child: Row(children: [
-        Container(
-          width: 36, height: 36,
-          decoration: const BoxDecoration(
-            color: Color(0xFFFFF0E6),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(Icons.location_on_rounded,
-              size: 18, color: AppColors.primary),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                suggestion.mainText.isNotEmpty
-                    ? suggestion.mainText
-                    : suggestion.display,
-                style: const TextStyle(
-                    fontSize: 14, fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary),
-                maxLines: 1, overflow: TextOverflow.ellipsis,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+          child: Row(children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: const BoxDecoration(
+                color: AppColors.primarySoft,
+                shape: BoxShape.circle,
               ),
-              if (suggestion.secondaryText.isNotEmpty) ...[
-                const SizedBox(height: 2),
-                Text(suggestion.secondaryText,
+              child: const Icon(Icons.location_on_rounded,
+                  size: 18, color: AppColors.primary),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    suggestion.mainText.isNotEmpty
+                        ? suggestion.mainText
+                        : suggestion.display,
                     style: const TextStyle(
-                        fontSize: 12, color: AppColors.textSecondary),
-                    maxLines: 1, overflow: TextOverflow.ellipsis),
-              ],
-            ],
-          ),
+                        fontSize: AppFontSize.body,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  if (suggestion.secondaryText.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(suggestion.secondaryText,
+                        style: const TextStyle(
+                            fontSize: AppFontSize.caption, color: AppColors.textSecondary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                ],
+              ),
+            ),
+          ]),
         ),
-      ]),
-    ),
-  );
+      );
 }
-

@@ -7,9 +7,12 @@ class AddressesNotifier extends AsyncNotifier<List<AddressModel>> {
   Future<List<AddressModel>> build() => _fetch();
 
   Future<List<AddressModel>> _fetch() async {
-    final res  = await ref.read(apiClientProvider).get('/customer/addresses');
+    final res = await ref.read(apiClientProvider).get('/customer/addresses');
     final list = (res.data['data'] ?? res.data) as List;
-    return list.cast<Map<String, dynamic>>().map(AddressModel.fromJson).toList();
+    return list
+        .cast<Map<String, dynamic>>()
+        .map(AddressModel.fromJson)
+        .toList();
   }
 
   Future<void> refresh() async {
@@ -25,8 +28,8 @@ class AddressesNotifier extends AsyncNotifier<List<AddressModel>> {
     bool isDefault = false,
   }) async {
     await ref.read(apiClientProvider).post('/customer/addresses', data: {
-      'label':      label,
-      'address':    address,
+      'label': label,
+      'address': address,
       if (lat != null) 'latitude': lat,
       if (lng != null) 'longitude': lng,
       'is_default': isDefault,
@@ -43,8 +46,8 @@ class AddressesNotifier extends AsyncNotifier<List<AddressModel>> {
     bool isDefault = false,
   }) async {
     await ref.read(apiClientProvider).put('/customer/addresses/$id', data: {
-      'label':      label,
-      'address':    address,
+      'label': label,
+      'address': address,
       if (lat != null) 'latitude': lat,
       if (lng != null) 'longitude': lng,
       'is_default': isDefault,

@@ -25,10 +25,10 @@ class BannerModel {
       }
     }
     return BannerModel(
-      id:       j['id'] as int,
-      title:    j['title'] as String?,
+      id: j['id'] as int,
+      title: j['title'] as String?,
       imageUrl: imageUrl,
-      linkUrl:  j['link_url'] as String?,
+      linkUrl: j['link_url'] as String?,
     );
   }
 }

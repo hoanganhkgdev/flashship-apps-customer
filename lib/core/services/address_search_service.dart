@@ -33,18 +33,21 @@ class AddressSearchService {
     double? lng,
     double? circleRadius,
     String? filterKeyword,
+    bool restrictToBounds = false,
+    bool restrictToFilter = false,
   }) async {
     if (query.trim().length < 3) return [];
 
     final params = <String, dynamic>{
-      'input':      query,
-      'key':        AppConstants.googleMapsApiKey,
-      'language':   'vi',
+      'input': query,
+      'key': AppConstants.googleMapsApiKey,
+      'language': 'vi',
       'components': 'country:vn',
     };
     if (lat != null && lng != null) {
       params['location'] = '$lat,$lng';
-      params['radius']   = ((circleRadius ?? 25.0) * 1000).toInt();
+      params['radius'] = ((circleRadius ?? 25.0) * 1000).toInt();
+      if (restrictToBounds) params['strictbounds'] = true;
     }
 
     final res = await _dio.get(
@@ -62,10 +65,11 @@ class AddressSearchService {
     final all = predictions.map((e) {
       final sf = e['structured_formatting'] as Map? ?? {};
       return AddressResult(
-        display:       e['description'] as String? ?? '',
-        mainText:      sf['main_text'] as String? ?? e['description'] as String? ?? '',
+        display: e['description'] as String? ?? '',
+        mainText:
+            sf['main_text'] as String? ?? e['description'] as String? ?? '',
         secondaryText: sf['secondary_text'] as String? ?? '',
-        placeId:       e['place_id'] as String? ?? '',
+        placeId: e['place_id'] as String? ?? '',
       );
     }).toList();
 
@@ -75,8 +79,9 @@ class AddressSearchService {
         final text = '${r.display} ${r.secondaryText}'.toLowerCase();
         return keywords.any((kw) => text.contains(kw.trim()));
       }
-      final filtered = all.where(matches).toList();
-      if (filtered.isNotEmpty) return filtered;
+
+      final filtered = all.where(matches).take(5).toList();
+      if (restrictToFilter || filtered.isNotEmpty) return filtered;
     }
 
     return all.take(5).toList();
@@ -92,24 +97,24 @@ class AddressSearchService {
           'https://maps.googleapis.com/maps/api/place/details/json',
           queryParameters: {
             'place_id': result.placeId,
-            'key':      AppConstants.googleMapsApiKey,
-            'fields':   'formatted_address,geometry',
+            'key': AppConstants.googleMapsApiKey,
+            'fields': 'formatted_address,geometry',
             'language': 'vi',
           },
         );
         if (res.data['status'] == 'OK') {
-          final r   = res.data['result'] as Map?;
+          final r = res.data['result'] as Map?;
           final loc = r?['geometry']?['location'] as Map?;
           final lat = (loc?['lat'] as num?)?.toDouble();
           final lng = (loc?['lng'] as num?)?.toDouble();
           if (lat != null && lng != null) {
             return AddressResult(
-              display:       r?['formatted_address'] as String? ?? result.display,
-              mainText:      result.mainText,
+              display: r?['formatted_address'] as String? ?? result.display,
+              mainText: result.mainText,
               secondaryText: result.secondaryText,
-              placeId:       result.placeId,
-              lat:           lat,
-              lng:           lng,
+              placeId: result.placeId,
+              lat: lat,
+              lng: lng,
             );
           }
         }
@@ -121,9 +126,9 @@ class AddressSearchService {
       final res = await _dio.get(
         'https://maps.googleapis.com/maps/api/geocode/json',
         queryParameters: {
-          'address':    result.display,
-          'key':        AppConstants.googleMapsApiKey,
-          'language':   'vi',
+          'address': result.display,
+          'key': AppConstants.googleMapsApiKey,
+          'language': 'vi',
           'components': 'country:VN',
         },
       );
@@ -133,15 +138,16 @@ class AddressSearchService {
           final loc = results.first['geometry']?['location'] as Map?;
           final lat = (loc?['lat'] as num?)?.toDouble();
           final lng = (loc?['lng'] as num?)?.toDouble();
-          final addr = results.first['formatted_address'] as String? ?? result.display;
+          final addr =
+              results.first['formatted_address'] as String? ?? result.display;
           if (lat != null && lng != null) {
             return AddressResult(
-              display:       addr,
-              mainText:      result.mainText,
+              display: addr,
+              mainText: result.mainText,
               secondaryText: result.secondaryText,
-              placeId:       result.placeId,
-              lat:           lat,
-              lng:           lng,
+              placeId: result.placeId,
+              lat: lat,
+              lng: lng,
             );
           }
         }

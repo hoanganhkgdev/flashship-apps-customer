@@ -3,6 +3,7 @@ class UserModel {
   final String name;
   final String phone;
   final String? email;
+  final DateTime? birthDate;
   final String? profilePhotoPath;
   final String? avatarUrl;
   final String userType;
@@ -14,6 +15,7 @@ class UserModel {
     required this.name,
     required this.phone,
     this.email,
+    this.birthDate,
     this.profilePhotoPath,
     this.avatarUrl,
     this.userType = 'customer',
@@ -22,23 +24,36 @@ class UserModel {
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) => UserModel(
-    id: json['id'] as int,
-    name: json['name'] as String? ?? '',
-    phone: json['phone'] as String? ?? '',
-    email: json['email'] as String?,
-    profilePhotoPath: json['profile_photo_path'] as String?,
-    avatarUrl: json['avatar_url'] as String?,
-    userType: json['user_type'] as String? ?? 'customer',
-    cityId: json['city_id'] as int? ?? 1,
-    cityName: json['city_name'] as String?,
-  );
+        id: json['id'] as int,
+        name: json['name'] as String? ?? '',
+        phone: json['phone'] as String? ?? '',
+        email: json['email'] as String?,
+        birthDate: json['birth_date'] != null
+            ? DateTime.tryParse(json['birth_date'].toString())
+            : null,
+        profilePhotoPath: json['profile_photo_path'] as String?,
+        avatarUrl: json['avatar_url'] as String?,
+        userType: json['user_type'] as String? ?? 'customer',
+        cityId: json['city_id'] as int? ?? 1,
+        cityName: json['city_name'] as String?,
+      );
 
   Map<String, dynamic> toJson() => {
-    'id': id, 'name': name, 'phone': phone, 'email': email,
-    'profile_photo_path': profilePhotoPath,
-    'avatar_url': avatarUrl,
-    'user_type': userType, 'city_id': cityId, 'city_name': cityName,
-  };
+        'id': id,
+        'name': name,
+        'phone': phone,
+        'email': email,
+        'birth_date': birthDate == null
+            ? null
+            : '${birthDate!.year.toString().padLeft(4, '0')}-'
+                '${birthDate!.month.toString().padLeft(2, '0')}-'
+                '${birthDate!.day.toString().padLeft(2, '0')}',
+        'profile_photo_path': profilePhotoPath,
+        'avatar_url': avatarUrl,
+        'user_type': userType,
+        'city_id': cityId,
+        'city_name': cityName,
+      };
 
   String get initials {
     final parts = name.trim().split(' ');

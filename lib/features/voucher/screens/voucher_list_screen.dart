@@ -1,309 +1,398 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../models/voucher_model.dart';
 import '../providers/voucher_provider.dart';
 
-class VoucherListScreen extends ConsumerWidget {
+class VoucherListScreen extends ConsumerStatefulWidget {
   const VoucherListScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final async = ref.watch(voucherProvider);
+  ConsumerState<VoucherListScreen> createState() => _VoucherListScreenState();
+}
 
+class _VoucherListScreenState extends ConsumerState<VoucherListScreen> {
+  int _tab = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final async = ref.watch(voucherProvider);
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        toolbarHeight: 70,
+        backgroundColor: AppColors.surface,
+        centerTitle: true,
         elevation: 0,
         scrolledUnderElevation: 0,
-        centerTitle: true,
-        leading: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              behavior: HitTestBehavior.opaque,
+        leadingWidth: 72,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Center(
+            child: InkWell(
+              onTap: () => context.pop(),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               child: Container(
-                width: 36, height: 36,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF5F5F5),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.divider),
                 ),
-                child: const Icon(Icons.arrow_back_rounded,
-                    size: 20, color: AppColors.textPrimary),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18, color: AppColors.textPrimary),
               ),
             ),
           ),
         ),
-        leadingWidth: 60,
-        title: const Text('Ưu đãi của bạn',
+        title: Text('Ưu đãi của tôi',
             style: TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w700,
+                fontSize: AppFontSize.display,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary)),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF0F0F0)),
+          child: Divider(height: 1, color: AppColors.divider),
         ),
       ),
-      body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator(
-            color: AppColors.primary, strokeWidth: 2)),
-        error: (_, __) => _ErrorState(onRetry: () => ref.refresh(voucherProvider)),
-        data: (vouchers) {
-          if (vouchers.isEmpty) return const _EmptyState();
-          return RefreshIndicator(
-            color: AppColors.primary,
-            onRefresh: () async => ref.refresh(voucherProvider),
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              itemCount: vouchers.length,
-              itemBuilder: (ctx, i) => _VoucherCard(voucher: vouchers[i]),
-            ),
-          );
-        },
-      ),
+      body: Column(children: [
+        _VoucherTabs(
+          selected: _tab,
+          onSelected: (value) => setState(() => _tab = value),
+        ),
+        Expanded(
+          child: async.when(
+            loading: () => const Center(
+                child: CircularProgressIndicator(color: AppColors.primary)),
+            error: (_, __) =>
+                _ErrorState(onRetry: () => ref.invalidate(voucherProvider)),
+            data: (all) {
+              final vouchers = switch (_tab) {
+                0 => all.where((v) => v.isAvailable).toList(),
+                1 => all.where((v) => v.hasBeenUsed).toList(),
+                _ => all.where((v) => v.isExpired).toList(),
+              };
+              if (vouchers.isEmpty) return _EmptyState(tab: _tab);
+              return RefreshIndicator(
+                color: AppColors.primary,
+                onRefresh: () async => ref.invalidate(voucherProvider),
+                child: ListView.separated(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
+                  itemCount: vouchers.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 14),
+                  itemBuilder: (_, index) => _VoucherCard(
+                    voucher: vouchers[index],
+                    disabled: _tab != 0,
+                    disabledLabel:
+                        _tab == 1 ? vouchers[index].usageLabel : 'Hết hạn',
+                    onUse: () => _useVoucher(context, vouchers[index]),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+      ]),
     );
+  }
+
+  void _useVoucher(BuildContext context, VoucherModel voucher) {
+    final types = voucher.serviceTypes ?? const <String>[];
+    if (types.length == 1) {
+      final type = types.first;
+      if (type == 'delivery') {
+        context.push('/booking/delivery');
+      } else if (type == 'shopping') {
+        context.push('/booking/shopping');
+      } else if (type == 'topup') {
+        context.push('/booking/topup');
+      } else {
+        context.push('/booking/$type');
+      }
+      return;
+    }
+    context.go('/home');
   }
 }
 
-// ── Voucher card ──────────────────────────────────────────────────────────────
+class _VoucherTabs extends StatelessWidget {
+  const _VoucherTabs({required this.selected, required this.onSelected});
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        color: AppColors.surface,
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
+        child: Container(
+          height: 44,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceAlt,
+            borderRadius: BorderRadius.circular(AppRadius.full),
+          ),
+          child: Row(
+            children:
+                ['Khả dụng', 'Đã dùng', 'Hết hạn'].asMap().entries.map((entry) {
+              final active = entry.key == selected;
+              return Expanded(
+                child: InkWell(
+                  onTap: () => onSelected(entry.key),
+                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: active ? AppColors.surface : Colors.transparent,
+                      borderRadius: BorderRadius.circular(AppRadius.full),
+                      border:
+                          active ? Border.all(color: AppColors.divider) : null,
+                    ),
+                    child: Text(entry.value,
+                        style: TextStyle(
+                            fontSize: AppFontSize.body,
+                            fontWeight: FontWeight.w600,
+                            color: active
+                                ? AppColors.primary
+                                : AppColors.textSecondary)),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      );
+}
 
 class _VoucherCard extends StatelessWidget {
+  const _VoucherCard({
+    required this.voucher,
+    required this.disabled,
+    required this.disabledLabel,
+    required this.onUse,
+  });
   final VoucherModel voucher;
-  const _VoucherCard({required this.voucher});
+  final bool disabled;
+  final String disabledLabel;
+  final VoidCallback onUse;
 
-  Color get _color => switch (voucher.type) {
-    'freeship' => AppColors.info,
-    'percent'  => AppColors.success,
-    _          => AppColors.primary,
-  };
-
-  IconData get _icon => switch (voucher.type) {
-    'freeship' => Icons.local_shipping_rounded,
-    'percent'  => Icons.percent_rounded,
-    _          => Icons.discount_rounded,
-  };
-
-  bool get _expiringSoon =>
+  Color get color => switch (voucher.type) {
+        'freeship' => AppColors.accent2,
+        'percent' => AppColors.primary,
+        _ => AppColors.success,
+      };
+  IconData get icon => switch (voucher.type) {
+        'freeship' => Icons.local_shipping_outlined,
+        'percent' => Icons.percent_rounded,
+        _ => Icons.card_giftcard_rounded,
+      };
+  bool get expiringSoon =>
       voucher.expiresAt != null &&
+      voucher.expiresAt!.isAfter(DateTime.now()) &&
       voucher.expiresAt!.difference(DateTime.now()).inDays <= 3;
 
   @override
   Widget build(BuildContext context) {
+    final accent = disabled ? AppColors.textSecondary : color;
     return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+      constraints: const BoxConstraints(minHeight: 132),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.divider),
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(14),
-        clipBehavior: Clip.antiAlias,
-        child: InkWell(
-          onTap: () => _copyCode(context),
-          child: Column(children: [
-            // ── Top: icon + info ─────────────────────────────────
-            Padding(
+      clipBehavior: Clip.antiAlias,
+      child: IntrinsicHeight(
+        child: Row(children: [
+          Container(
+            width: 88,
+            color: accent.withValues(alpha: disabled ? .06 : .09),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child:
+                Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: .13),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                ),
+                child: Icon(icon, size: 22, color: accent),
+              ),
+              const SizedBox(height: 8),
+              Text(voucher.discountLabel,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppFontSize.caption,
+                      fontWeight: FontWeight.w600,
+                      color: accent)),
+            ]),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: List.generate(
+                  8,
+                  (_) =>
+                      Container(width: 1, height: 4, color: AppColors.divider)),
+            ),
+          ),
+          Expanded(
+            child: Padding(
               padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
-              child: Row(
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Icon circle
-                  Container(
-                    width: 48, height: 48,
-                    decoration: BoxDecoration(
-                      color: _color.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(12),
+                  Row(children: [
+                    Expanded(
+                      child: Text(voucher.code,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                              fontSize: AppFontSize.bodyLarge,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: .5,
+                              color: AppColors.textPrimary)),
                     ),
-                    child: Icon(_icon, color: _color, size: 24),
+                    if (expiringSoon)
+                      const _StatusChip(
+                          label: 'Sắp hết', color: AppColors.danger)
+                    else if (voucher.appOnly)
+                      const _StatusChip(
+                          label: 'Chỉ trên app', color: AppColors.primary),
+                  ]),
+                  const SizedBox(height: 5),
+                  Text(
+                    voucher.description?.isNotEmpty == true
+                        ? voucher.description!
+                        : voucher.minOrderValue != null
+                            ? 'Áp dụng cho đơn từ ${Fmt.currency(voucher.minOrderValue!)}'
+                            : 'Áp dụng cho dịch vụ Flash Ship',
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                        fontSize: AppFontSize.body,
+                        height: 1.35,
+                        color: AppColors.textSecondary),
                   ),
-                  const SizedBox(width: 12),
-
-                  // Info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Badges row
-                        Row(children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: _color,
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(voucher.discountLabel,
-                                style: const TextStyle(
-                                    color: Colors.white, fontSize: 11,
-                                    fontWeight: FontWeight.w800)),
+                  const Spacer(),
+                  const SizedBox(height: 10),
+                  Row(children: [
+                    Expanded(
+                      child: Text(
+                        voucher.expiresAt == null
+                            ? 'Không giới hạn thời gian'
+                            : 'HSD: ${Fmt.date(voucher.expiresAt!)}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: AppFontSize.caption,
+                            color: AppColors.textTertiary),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (disabled)
+                      _StatusChip(
+                        label: disabledLabel,
+                        color: voucher.hasBeenUsed
+                            ? AppColors.textSecondary
+                            : AppColors.danger,
+                      )
+                    else
+                      SizedBox(
+                        height: 34,
+                        child: FilledButton(
+                          onPressed: onUse,
+                          style: FilledButton.styleFrom(
+                            minimumSize: const Size(84, 34),
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            textStyle: TextStyle(
+                                fontSize: AppFontSize.body,
+                                fontWeight: FontWeight.w600),
                           ),
-                          if (_expiringSoon) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 6, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.danger.withValues(alpha: 0.10),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: const Text('Sắp hết hạn',
-                                  style: TextStyle(
-                                      fontSize: 10, color: AppColors.danger,
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                          ],
-                        ]),
-
-                        if (voucher.description != null) ...[
-                          const SizedBox(height: 5),
-                          Text(voucher.description!,
-                              style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AppColors.textPrimary),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
-                        ],
-
-                        const SizedBox(height: 4),
-                        Wrap(spacing: 10, runSpacing: 0, children: [
-                          if (voucher.minOrderValue != null)
-                            _CondText(
-                                'Tối thiểu ${Fmt.currency(voucher.minOrderValue!)}'),
-                          if (voucher.expiresAt != null)
-                            _CondText('HSD ${Fmt.date(voucher.expiresAt!)}'),
-                        ]),
-                      ],
-                    ),
-                  ),
+                          child: const Text('Dùng ngay'),
+                        ),
+                      ),
+                  ]),
                 ],
               ),
             ),
-
-            // ── Divider ───────────────────────────────────────────
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 14),
-              child: Divider(height: 1, color: Color(0xFFF0F0F0)),
-            ),
-
-            // ── Bottom: code + copy ───────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 12),
-              child: Row(children: [
-                Icon(Icons.confirmation_number_outlined,
-                    size: 14, color: _color),
-                const SizedBox(width: 6),
-                Text(voucher.code,
-                    style: TextStyle(
-                        fontSize: 13, fontWeight: FontWeight.w800,
-                        letterSpacing: 0.8, color: _color)),
-                const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: _color.withValues(alpha: 0.08),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Text('Sao chép',
-                      style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.w600,
-                          color: _color)),
-                ),
-              ]),
-            ),
-          ]),
-        ),
+          ),
+        ]),
       ),
     );
   }
-
-  void _copyCode(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: voucher.code));
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Đã sao chép mã ${voucher.code}'),
-      behavior: SnackBarBehavior.floating,
-      duration: const Duration(seconds: 2),
-      backgroundColor: AppColors.success,
-    ));
-  }
 }
 
-class _CondText extends StatelessWidget {
-  final String text;
-  const _CondText(this.text);
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({required this.label, required this.color});
+
+  final String label;
+  final Color color;
 
   @override
-  Widget build(BuildContext context) => Text(text,
-      style: const TextStyle(fontSize: 11, color: AppColors.textSecondary));
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .1),
+          borderRadius: BorderRadius.circular(AppRadius.full),
+        ),
+        child: Text(label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+                fontSize: AppFontSize.caption,
+                fontWeight: FontWeight.w600,
+                color: color)),
+      );
 }
 
-// ── Empty / Error ─────────────────────────────────────────────────────────────
-
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  const _EmptyState({required this.tab});
+  final int tab;
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(
-        width: 88, height: 88,
-        decoration: BoxDecoration(
-          color: AppColors.primary.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: const Icon(Icons.discount_rounded, size: 40,
-            color: AppColors.primary),
-      ),
-      const SizedBox(height: 16),
-      const Text('Chưa có ưu đãi nào',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary)),
-      const SizedBox(height: 6),
-      const Text('Ưu đãi mới sẽ xuất hiện tại đây',
-          style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
-    ]),
-  );
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.confirmation_number_outlined,
+              size: 52, color: Color(0xFFBEB5B0)),
+          const SizedBox(height: 14),
+          Text(
+            switch (tab) {
+              0 => 'Chưa có ưu đãi khả dụng',
+              1 => 'Chưa có ưu đãi đã dùng',
+              _ => 'Chưa có ưu đãi hết hạn',
+            },
+            style: TextStyle(
+                fontSize: AppFontSize.bodyLarge,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary),
+          ),
+        ]),
+      );
 }
 
 class _ErrorState extends StatelessWidget {
-  final VoidCallback onRetry;
   const _ErrorState({required this.onRetry});
+  final VoidCallback onRetry;
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-      Container(
-        width: 88, height: 88,
-        decoration: BoxDecoration(
-          color: const Color(0xFFF5F5F5),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: const Icon(Icons.wifi_off_rounded, size: 40,
-            color: AppColors.textSecondary),
-      ),
-      const SizedBox(height: 16),
-      const Text('Không tải được ưu đãi',
-          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary)),
-      const SizedBox(height: 8),
-      TextButton(
-        onPressed: onRetry,
-        child: const Text('Thử lại',
-            style: TextStyle(color: AppColors.primary,
-                fontWeight: FontWeight.w600)),
-      ),
-    ]),
-  );
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          const Icon(Icons.wifi_off_rounded,
+              size: 48, color: AppColors.textTertiary),
+          const SizedBox(height: 12),
+          Text('Không tải được ưu đãi',
+              style: TextStyle(
+                  fontSize: AppFontSize.bodyLarge,
+                  fontWeight: FontWeight.w600)),
+          TextButton(onPressed: onRetry, child: const Text('Thử lại')),
+        ]),
+      );
 }

@@ -19,7 +19,8 @@ import '../../features/profile/screens/edit_profile_screen.dart';
 import '../../features/profile/screens/change_password_screen.dart';
 import '../../features/profile/screens/legal_page_screen.dart';
 import '../../features/profile/screens/saved_addresses_screen.dart';
-import '../../features/splash/splash_screen.dart' show SplashScreen, splashReadyProvider;
+import '../../features/splash/screens/splash_screen.dart'
+    show SplashScreen, splashReadyProvider;
 import '../../features/version/providers/app_version_provider.dart';
 import '../../features/voucher/screens/voucher_list_screen.dart';
 import '../../features/order/screens/order_stats_screen.dart';
@@ -29,7 +30,8 @@ final appNavigatorKey = GlobalKey<NavigatorState>();
 class _AuthListenable extends ChangeNotifier {
   _AuthListenable(Ref ref) {
     ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
-    ref.listen<AppVersionState>(appVersionProvider, (_, __) => notifyListeners());
+    ref.listen<AppVersionState>(
+        appVersionProvider, (_, __) => notifyListeners());
     ref.listen<bool>(splashReadyProvider, (_, __) => notifyListeners());
   }
 }
@@ -43,33 +45,42 @@ final routerProvider = Provider<GoRouter>((ref) {
     initialLocation: '/splash',
     refreshListenable: listenable,
     redirect: (context, state) {
-      final auth        = ref.read(authProvider);
-      final version     = ref.read(appVersionProvider);
+      final auth = ref.read(authProvider);
+      final version = ref.read(appVersionProvider);
       final splashReady = ref.read(splashReadyProvider);
-      final location    = state.matchedLocation;
+      final location = state.matchedLocation;
 
-      if (!auth.isInitialized || !splashReady) return location == '/splash' ? null : '/splash';
+      if (!auth.isInitialized || !splashReady) {
+        return location == '/splash' ? null : '/splash';
+      }
 
       // Keep on splash while force update dialog is shown
       if (version.needsForceUpdate) return '/splash';
 
-      final isAuth   = auth.isAuthenticated;
+      final isAuth = auth.isAuthenticated;
       final onSplash = location == '/splash';
-      final onAuth   = location == '/login' ||
-                       location == '/register';
+      final onAuth = location == '/login' || location == '/register';
 
       if (onSplash) return isAuth ? '/home' : '/login';
       if (isAuth && onAuth) return '/home';
       return null;
     },
     routes: [
-      GoRoute(path: '/splash',   builder: (_, __) => const SplashScreen()),
-      GoRoute(path: '/login',    builder: (_, __) => const LoginScreen()),
+      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
+      GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
-      GoRoute(path: '/forgot-password', builder: (_, __) => const ForgotPasswordScreen()),
+      GoRoute(
+          path: '/forgot-password',
+          builder: (_, __) => const ForgotPasswordScreen()),
       GoRoute(
         path: '/reset-password',
-        builder: (_, state) => ResetPasswordScreen(phone: state.extra as String),
+        builder: (_, state) {
+          final data = state.extra as Map<String, dynamic>;
+          return ResetPasswordScreen(
+            phone: data['phone'] as String,
+            otp: data['otp'] as String,
+          );
+        },
       ),
       GoRoute(
         path: '/otp',
@@ -77,7 +88,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           regData: state.extra as Map<String, dynamic>,
         ),
       ),
-      GoRoute(path: '/home',     builder: (_, __) => const HomeScreen()),
+      GoRoute(path: '/home', builder: (_, __) => const HomeScreen()),
       GoRoute(
         path: '/booking/delivery',
         builder: (_, state) => DeliveryBookingScreen(
@@ -127,7 +138,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/legal/:slug',
         builder: (_, state) => LegalPageScreen(
-          slug:  state.pathParameters['slug']!,
+          slug: state.pathParameters['slug']!,
           title: state.uri.queryParameters['title'] ?? 'Thông tin pháp lý',
         ),
       ),

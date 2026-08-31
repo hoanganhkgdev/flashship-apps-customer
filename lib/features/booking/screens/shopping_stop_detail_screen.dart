@@ -48,27 +48,46 @@ class _State extends State<ShoppingStopDetailScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-          onPressed: () => Navigator.of(context).pop(),
+        leadingWidth: 60,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ),
         title: Text(
           'Điểm mua ${widget.stopIndex + 1}',
           style: const TextStyle(
-              fontSize: 17, fontWeight: FontWeight.w700,
+              fontSize: AppFontSize.display,
+              fontWeight: FontWeight.w600,
               color: AppColors.textPrimary),
         ),
         actions: [
           TextButton(
             onPressed: _confirm,
             child: const Text('Xong',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600,
+                style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    fontWeight: FontWeight.w600,
                     color: AppColors.primary)),
           ),
         ],
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF0F0F0)),
+          child: Divider(height: 1, color: AppColors.divider),
         ),
       ),
       body: ListView(
@@ -81,7 +100,8 @@ class _State extends State<ShoppingStopDetailScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Row(children: [
               Container(
-                width: 4, height: 18,
+                width: 4,
+                height: 18,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
                   borderRadius: BorderRadius.circular(2),
@@ -90,7 +110,8 @@ class _State extends State<ShoppingStopDetailScreen> {
               const SizedBox(width: 8),
               const Text('Mô tả hàng cần mua',
                   style: TextStyle(
-                      fontSize: 15, fontWeight: FontWeight.w700,
+                      fontSize: AppFontSize.bodyLarge,
+                      fontWeight: FontWeight.w600,
                       color: AppColors.textPrimary)),
             ]),
           ),
@@ -106,7 +127,8 @@ class _State extends State<ShoppingStopDetailScreen> {
                   maxLines: 6,
                   autofocus: true,
                   style: const TextStyle(
-                      fontSize: 14, color: AppColors.textPrimary,
+                      fontSize: AppFontSize.bodyLarge,
+                      color: AppColors.textPrimary,
                       fontWeight: FontWeight.w500),
                   onChanged: (_) {
                     if (_error != null) setState(() => _error = null);
@@ -114,37 +136,39 @@ class _State extends State<ShoppingStopDetailScreen> {
                   decoration: InputDecoration(
                     labelText: 'Mô tả hàng cần mua *',
                     labelStyle: const TextStyle(
-                        fontSize: 14, color: AppColors.textSecondary),
+                        fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
                     floatingLabelStyle: const TextStyle(
-                        fontSize: 13, color: AppColors.primary,
+                        fontSize: AppFontSize.body,
+                        color: AppColors.primary,
                         fontWeight: FontWeight.w500),
                     hintText: 'Tên món, số lượng, yêu cầu...',
                     hintStyle: const TextStyle(
-                        fontSize: 13, color: AppColors.textSecondary,
+                        fontSize: AppFontSize.bodyLarge,
+                        color: AppColors.textSecondary,
                         fontWeight: FontWeight.w400),
                     alignLabelWithHint: true,
                     filled: true,
                     fillColor: _error != null
                         ? AppColors.danger.withValues(alpha: 0.04)
-                        : const Color(0xFFF7F8FA),
+                        : AppColors.surfaceAlt,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
                     border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                         borderSide: BorderSide.none),
                     enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                         borderSide: _error != null
                             ? BorderSide(
                                 color: AppColors.danger.withValues(alpha: 0.5))
                             : BorderSide.none),
                     focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                         borderSide: const BorderSide(
                             color: AppColors.primary, width: 1.5)),
                     errorText: _error,
-                    errorStyle: const TextStyle(
-                        fontSize: 12, color: AppColors.danger),
+                    errorStyle:
+                        const TextStyle(fontSize: AppFontSize.caption, color: AppColors.danger),
                   ),
                 ),
               ],

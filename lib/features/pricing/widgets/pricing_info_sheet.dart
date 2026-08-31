@@ -21,13 +21,13 @@ class PricingInfoSheet extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(pricingForProvider(serviceType));
-    final color  = AppColors.serviceColor(serviceType);
-    final maxH   = MediaQuery.of(context).size.height * 0.82;
+    final color = AppColors.serviceColor(serviceType);
+    final maxH = MediaQuery.of(context).size.height * 0.82;
 
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
       child: Container(
-        color: Colors.white,
+        color: AppColors.surface,
         constraints: BoxConstraints(maxHeight: maxH),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -64,10 +64,11 @@ class _Handle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Center(
         child: Container(
-          margin: const EdgeInsets.only(top: 12, bottom: 4),
-          width: 40, height: 4,
+          margin: const EdgeInsets.only(top: 14, bottom: 8),
+          width: 42,
+          height: 4,
           decoration: BoxDecoration(
-            color: Colors.grey[300],
+            color: AppColors.divider,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
@@ -81,26 +82,35 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
         decoration: BoxDecoration(
-          color: color.withValues(alpha: 0.06),
-          border: Border(bottom: BorderSide(color: color.withValues(alpha: 0.15))),
+          color: color.withValues(alpha: 0.055),
+          border:
+              Border(bottom: BorderSide(color: color.withValues(alpha: 0.15))),
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: color.withValues(alpha: 0.12), shape: BoxShape.circle),
-              child: Icon(Fmt.serviceIcon(serviceType), color: color, size: 22),
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(Fmt.serviceIcon(serviceType), color: color, size: 24),
             ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(Fmt.serviceLabel(serviceType),
-                    style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 16)),
+                    style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: AppFontSize.display,
+                        color: AppColors.textPrimary)),
                 Text('Bảng giá dịch vụ',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 12)),
+                    style: TextStyle(
+                        color: AppColors.textSecondary, fontSize: AppFontSize.bodyLarge)),
               ],
             ),
           ],
@@ -118,13 +128,13 @@ class _PricingBody extends StatelessWidget {
     final type = cfg.configJson?['type'] as String?;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+      padding: const EdgeInsets.fromLTRB(24, 18, 24, 32),
       shrinkWrap: true,
       children: [
-        if (type == 'slab')          _SlabTable(cfg: cfg, color: color),
-        if (type == 'linear')        _LinearTable(cfg: cfg, color: color),
+        if (type == 'slab') _SlabTable(cfg: cfg, color: color),
+        if (type == 'linear') _LinearTable(cfg: cfg, color: color),
         if (type == 'tiered_linear') _TieredLinearTable(cfg: cfg, color: color),
-        if (type == 'topup')         _TopupTable(cfg: cfg, color: color),
+        if (type == 'topup') _TopupTable(cfg: cfg, color: color),
         const SizedBox(height: 16),
         _NoteBox(color: color),
       ],
@@ -140,8 +150,9 @@ class _SlabTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final slabs   = (cfg.configJson!['slabs'] as List).cast<Map<String, dynamic>>();
-    final overKm  = (cfg.configJson!['over_max_per_km'] as num).toInt();
+    final slabs =
+        (cfg.configJson!['slabs'] as List).cast<Map<String, dynamic>>();
+    final overKm = (cfg.configJson!['over_max_per_km'] as num).toInt();
     final lastMax = (slabs.last['max_km'] as num).toDouble();
 
     return Column(
@@ -151,11 +162,12 @@ class _SlabTable extends StatelessWidget {
         const SizedBox(height: 10),
         _TableHeader(left: 'Quãng đường', right: 'Phí'),
         ...slabs.asMap().entries.map((e) {
-          final i       = e.key;
-          final slab    = e.value;
-          final maxKm   = (slab['max_km'] as num).toDouble();
-          final fee     = (slab['fee'] as num).toInt();
-          final prevMax = i == 0 ? 0.0 : (slabs[i - 1]['max_km'] as num).toDouble();
+          final i = e.key;
+          final slab = e.value;
+          final maxKm = (slab['max_km'] as num).toDouble();
+          final fee = (slab['fee'] as num).toInt();
+          final prevMax =
+              i == 0 ? 0.0 : (slabs[i - 1]['max_km'] as num).toDouble();
           return _TableRow(
             left: i == 0 ? '0 – ${maxKm}km' : '$prevMax – ${maxKm}km',
             right: Fmt.currency(fee),
@@ -182,9 +194,9 @@ class _LinearTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseKm  = (cfg.configJson!['base_km']    as num).toInt();
-    final baseFee = (cfg.configJson!['base_fee']   as num).toInt();
-    final perKm   = (cfg.configJson!['per_km_fee'] as num).toInt();
+    final baseKm = (cfg.configJson!['base_km'] as num).toInt();
+    final baseFee = (cfg.configJson!['base_fee'] as num).toInt();
+    final perKm = (cfg.configJson!['per_km_fee'] as num).toInt();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -192,8 +204,16 @@ class _LinearTable extends StatelessWidget {
         _SectionTitle('Phí theo quãng đường', color),
         const SizedBox(height: 10),
         _TableHeader(left: 'Quãng đường', right: 'Phí'),
-        _TableRow(left: '0 – ${baseKm}km', right: Fmt.currency(baseFee), highlight: false, color: color),
-        _TableRow(left: 'Mỗi km tiếp theo', right: '+ ${Fmt.currency(perKm)}/km', highlight: true, color: color),
+        _TableRow(
+            left: '0 – ${baseKm}km',
+            right: Fmt.currency(baseFee),
+            highlight: false,
+            color: color),
+        _TableRow(
+            left: 'Mỗi km tiếp theo',
+            right: '+ ${Fmt.currency(perKm)}/km',
+            highlight: true,
+            color: color),
         const SizedBox(height: 16),
         _ExampleCard(color: color, rows: [
           ('3km', Fmt.currency(baseFee)),
@@ -213,10 +233,10 @@ class _TieredLinearTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseKm      = (cfg.configJson!['base_km']           as num).toDouble();
-    final baseFee     = (cfg.configJson!['base_fee']          as num).toInt();
-    final perKm       = (cfg.configJson!['per_km_fee']        as num).toInt();
-    final higherFrom  = (cfg.configJson!['higher_from_km']    as num).toDouble();
+    final baseKm = (cfg.configJson!['base_km'] as num).toDouble();
+    final baseFee = (cfg.configJson!['base_fee'] as num).toInt();
+    final perKm = (cfg.configJson!['per_km_fee'] as num).toInt();
+    final higherFrom = (cfg.configJson!['higher_from_km'] as num).toDouble();
     final higherPerKm = (cfg.configJson!['higher_per_km_fee'] as num).toInt();
 
     return Column(
@@ -225,9 +245,21 @@ class _TieredLinearTable extends StatelessWidget {
         _SectionTitle('Phí theo quãng đường', color),
         const SizedBox(height: 10),
         _TableHeader(left: 'Quãng đường', right: 'Phí'),
-        _TableRow(left: '0 – ${baseKm.toInt()}km', right: Fmt.currency(baseFee), highlight: false, color: color),
-        _TableRow(left: '${baseKm.toInt()} – ${higherFrom.toInt()}km', right: '+ ${Fmt.currency(perKm)}/km', highlight: false, color: color),
-        _TableRow(left: 'Trên ${higherFrom.toInt()}km', right: '+ ${Fmt.currency(higherPerKm)}/km', highlight: true, color: color), // ignore: unnecessary_brace_in_string_interps
+        _TableRow(
+            left: '0 – ${baseKm.toInt()}km',
+            right: Fmt.currency(baseFee),
+            highlight: false,
+            color: color),
+        _TableRow(
+            left: '${baseKm.toInt()} – ${higherFrom.toInt()}km',
+            right: '+ ${Fmt.currency(perKm)}/km',
+            highlight: false,
+            color: color),
+        _TableRow(
+            left: 'Trên ${higherFrom.toInt()}km',
+            right: '+ ${Fmt.currency(higherPerKm)}/km',
+            highlight: true,
+            color: color), // ignore: unnecessary_brace_in_string_interps
       ],
     );
   }
@@ -241,9 +273,10 @@ class _TopupTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tiers      = (cfg.configJson!['tiers'] as List).cast<Map<String, dynamic>>();
-    final perUnit    = (cfg.configJson!['over_max_per_unit'] as num).toInt();
-    final step       = (cfg.configJson!['over_max_fee_step'] as num).toInt();
+    final tiers =
+        (cfg.configJson!['tiers'] as List).cast<Map<String, dynamic>>();
+    final perUnit = (cfg.configJson!['over_max_per_unit'] as num).toInt();
+    final step = (cfg.configJson!['over_max_fee_step'] as num).toInt();
     final lastAmount = (tiers.last['max_amount'] as num).toInt();
 
     return Column(
@@ -253,11 +286,12 @@ class _TopupTable extends StatelessWidget {
         const SizedBox(height: 10),
         _TableHeader(left: 'Số tiền nạp', right: 'Phí'),
         ...tiers.asMap().entries.map((e) {
-          final i          = e.key;
-          final tier       = e.value;
-          final maxAmount  = (tier['max_amount'] as num).toInt();
-          final fee        = (tier['fee'] as num).toInt();
-          final prevAmount = i == 0 ? 0 : (tiers[i - 1]['max_amount'] as num).toInt();
+          final i = e.key;
+          final tier = e.value;
+          final maxAmount = (tier['max_amount'] as num).toInt();
+          final fee = (tier['fee'] as num).toInt();
+          final prevAmount =
+              i == 0 ? 0 : (tiers[i - 1]['max_amount'] as num).toInt();
           return _TableRow(
             left: i == 0
                 ? 'Dưới ${Fmt.shortAmount(maxAmount)}'
@@ -268,7 +302,8 @@ class _TopupTable extends StatelessWidget {
           );
         }),
         _TableRow(
-          left: 'Trên ${Fmt.shortAmount(lastAmount)}\n(mỗi ${Fmt.shortAmount(perUnit)})',
+          left:
+              'Trên ${Fmt.shortAmount(lastAmount)}\n(mỗi ${Fmt.shortAmount(perUnit)})',
           right: '+ ${Fmt.currency(step)}',
           highlight: true,
           color: color,
@@ -287,7 +322,8 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14, color: color),
+        style:
+            TextStyle(fontWeight: FontWeight.w600, fontSize: AppFontSize.bodyLarge, color: color),
       );
 }
 
@@ -296,11 +332,20 @@ class _TableHeader extends StatelessWidget {
   const _TableHeader({required this.left, required this.right});
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 4),
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 7),
         child: Row(
           children: [
-            Expanded(child: Text(left, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600))),
-            Text(right, style: const TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.w600)),
+            Expanded(
+                child: Text(left.toUpperCase(),
+                    style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        color: AppColors.textTertiary,
+                        fontWeight: FontWeight.w600))),
+            Text(right.toUpperCase(),
+                style: TextStyle(
+                    fontSize: AppFontSize.caption,
+                    color: AppColors.textTertiary,
+                    fontWeight: FontWeight.w600)),
           ],
         ),
       );
@@ -310,21 +355,38 @@ class _TableRow extends StatelessWidget {
   final String left, right;
   final bool highlight;
   final Color color;
-  const _TableRow({required this.left, required this.right, required this.highlight, required this.color});
+  const _TableRow(
+      {required this.left,
+      required this.right,
+      required this.highlight,
+      required this.color});
 
   @override
   Widget build(BuildContext context) => Container(
-        margin: const EdgeInsets.only(bottom: 6),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: highlight ? color.withValues(alpha: 0.07) : Colors.grey[50],
-          borderRadius: BorderRadius.circular(8),
-          border: highlight ? Border.all(color: color.withValues(alpha: 0.25)) : null,
+          color:
+              highlight ? color.withValues(alpha: 0.055) : AppColors.surfaceAlt,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          border: highlight
+              ? Border.all(color: color.withValues(alpha: 0.4))
+              : null,
         ),
         child: Row(
           children: [
-            Expanded(child: Text(left, style: TextStyle(fontSize: 13, fontWeight: highlight ? FontWeight.w600 : FontWeight.w400))),
-            Text(right, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: highlight ? color : AppColors.textPrimary)),
+            Expanded(
+                child: Text(left,
+                    style: TextStyle(
+                        fontSize: AppFontSize.bodyLarge,
+                        fontWeight:
+                            highlight ? FontWeight.w600 : FontWeight.w600,
+                        color: AppColors.textPrimary))),
+            Text(right,
+                style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    fontWeight: FontWeight.w600,
+                    color: highlight ? color : AppColors.textPrimary)),
           ],
         ),
       );
@@ -337,24 +399,34 @@ class _ExampleCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           border: Border.all(color: Colors.grey[200]!),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Ví dụ tính phí', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.grey)),
+            const Text('Ví dụ tính phí',
+                style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: AppFontSize.caption,
+                    color: Colors.grey)),
             const SizedBox(height: 8),
             ...rows.map((r) => Padding(
                   padding: const EdgeInsets.only(bottom: 4),
                   child: Row(
                     children: [
-                      Text(r.$1, style: const TextStyle(fontSize: 13, color: Colors.grey)),
+                      Text(r.$1,
+                          style: const TextStyle(
+                              fontSize: AppFontSize.body, color: Colors.grey)),
                       const Spacer(),
-                      Text(r.$2, style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: color)),
+                      Text(r.$2,
+                          style: TextStyle(
+                              fontSize: AppFontSize.body,
+                              fontWeight: FontWeight.w600,
+                              color: color)),
                     ],
                   ),
                 )),
@@ -371,18 +443,19 @@ class _NoteBox extends StatelessWidget {
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.05),
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(AppRadius.card),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(Icons.info_outline_rounded, size: 16, color: color),
-            const SizedBox(width: 8),
-            const Expanded(
+            Icon(Icons.info_outline_rounded, size: 18, color: color),
+            const SizedBox(width: 12),
+            Expanded(
               child: Text(
                 'Phí được tính theo khoảng cách đường thực tế. '
                 'Giá cuối cùng hiển thị khi bạn chọn điểm đến.',
-                style: TextStyle(fontSize: 12, color: Colors.grey),
+                style: TextStyle(
+                    fontSize: AppFontSize.body, height: 1.5, color: AppColors.textSecondary),
               ),
             ),
           ],

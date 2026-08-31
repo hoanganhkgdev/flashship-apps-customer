@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/api/api_client.dart';
+import '../../../../core/api/api_error.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../voucher/providers/voucher_validation_provider.dart';
 
 class VoucherInputRow extends ConsumerStatefulWidget {
   final String serviceType;
@@ -37,44 +38,45 @@ class _VoucherInputRowState extends ConsumerState<VoucherInputRow> {
 
   Future<void> _apply() async {
     final code = _ctrl.text.trim().toUpperCase();
-    if (code.isEmpty) return;
+    if (code.isEmpty || _loading) return;
+    FocusScope.of(context).unfocus();
 
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      final res = await ref.read(apiClientProvider).post(
-        '/customer/vouchers/validate',
-        data: {
-          'code':         code,
-          'service_type': widget.serviceType,
-          'order_total':  widget.orderFee ?? 0,
-          'shipping_fee': widget.orderFee ?? 0,
-        },
-      );
-      final data = res.data as Map<String, dynamic>;
-      final discount = (data['discount'] as num?)?.toInt() ?? 0;
+      final result = await ref.read(voucherValidationServiceProvider).validate(
+            code: code,
+            serviceType: widget.serviceType,
+            orderFee: widget.orderFee ?? 0,
+          );
+      if (!mounted) return;
       setState(() {
-        _applied  = true;
-        _discount = discount;
-        _label    = data['discount_label'] as String?;
-        _desc     = data['description'] as String?;
-        _loading  = false;
+        _applied = true;
+        _discount = result.discount;
+        _label = result.discountLabel;
+        _desc = result.description;
+        _loading = false;
       });
-      widget.onChanged(code, discount);
+      widget.onChanged(result.code, result.discount);
     } catch (e) {
-      String msg = 'Mã không hợp lệ';
-      try { msg = (e as dynamic).response?.data['message'] ?? msg; } catch (_) {}
-      setState(() { _error = msg; _loading = false; });
+      if (!mounted) return;
+      setState(() {
+        _error = apiErrorMessage(e, 'Mã không hợp lệ');
+        _loading = false;
+      });
     }
   }
 
   void _clear() {
     _ctrl.clear();
     setState(() {
-      _applied  = false;
+      _applied = false;
       _discount = null;
-      _label    = null;
-      _desc     = null;
-      _error    = null;
+      _label = null;
+      _desc = null;
+      _error = null;
     });
     widget.onChanged(null, null);
   }
@@ -83,9 +85,9 @@ class _VoucherInputRowState extends ConsumerState<VoucherInputRow> {
   Widget build(BuildContext context) {
     if (_applied) {
       return _AppliedBanner(
-        code:     _ctrl.text.trim().toUpperCase(),
-        label:    _label ?? '',
-        desc:     _desc,
+        code: _ctrl.text.trim().toUpperCase(),
+        label: _label ?? '',
+        desc: _desc,
         discount: _discount ?? 0,
         onRemove: _clear,
       );
@@ -105,11 +107,17 @@ class _VoucherInputRowState extends ConsumerState<VoucherInputRow> {
                 suffixIcon: _ctrl.text.isNotEmpty
                     ? IconButton(
                         icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () { _ctrl.clear(); setState(() {}); },
+                        onPressed: () {
+                          _ctrl.clear();
+                          setState(() {});
+                        },
                       )
                     : null,
               ),
-              onChanged: (_) => setState(() { _error = null; }),
+              onChanged: (_) => setState(() {
+                _error = null;
+              }),
+              onSubmitted: (_) => _apply(),
             ),
           ),
           const SizedBox(width: 10),
@@ -119,20 +127,20 @@ class _VoucherInputRowState extends ConsumerState<VoucherInputRow> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 minimumSize: Size.zero,
               ),
-              onPressed: _loading ? null : _apply,
+              onPressed: _loading || _ctrl.text.trim().isEmpty ? null : _apply,
               child: _loading
                   ? const SizedBox(
-                      width: 18, height: 18,
+                      width: 18,
+                      height: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
                   : const Text('Áp dụng',
                       style: TextStyle(
-                          fontSize: 13, fontWeight: FontWeight.w700)),
+                          fontSize: AppFontSize.body,
+                          fontWeight: FontWeight.w600)),
             ),
           ),
         ]),
@@ -144,7 +152,7 @@ class _VoucherInputRowState extends ConsumerState<VoucherInputRow> {
             const SizedBox(width: 4),
             Text(_error!,
                 style: const TextStyle(
-                    fontSize: 12, color: AppColors.danger)),
+                    fontSize: AppFontSize.caption, color: AppColors.danger)),
           ]),
         ],
       ],
@@ -173,12 +181,13 @@ class _AppliedBanner extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: AppColors.success.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
         border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
       ),
       child: Row(children: [
         Container(
-          width: 34, height: 34,
+          width: 34,
+          height: 34,
           decoration: BoxDecoration(
             color: AppColors.success.withValues(alpha: 0.15),
             shape: BoxShape.circle,
@@ -188,12 +197,13 @@ class _AppliedBanner extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Text(code,
                   style: const TextStyle(
-                      fontWeight: FontWeight.w800,
-                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      fontSize: AppFontSize.body,
                       color: AppColors.success,
                       letterSpacing: 0.5)),
               const SizedBox(width: 6),
@@ -206,14 +216,14 @@ class _AppliedBanner extends StatelessWidget {
                 child: Text(label,
                     style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700)),
+                        fontSize: AppFontSize.caption,
+                        fontWeight: FontWeight.w600)),
               ),
             ]),
             if (discount > 0)
               Text('Tiết kiệm ${Fmt.currency(discount)}',
                   style: const TextStyle(
-                      fontSize: 11, color: AppColors.success)),
+                      fontSize: AppFontSize.caption, color: AppColors.success)),
           ]),
         ),
         IconButton(

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/api/api_client.dart';
-import '../../../features/order/providers/order_provider.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
 import '../../../features/auth/providers/auth_provider.dart';
+import '../utils/booking_submit.dart';
+import '../utils/pricing_estimate.dart';
 import 'address_picker_screen.dart';
 import 'map_picker_screen.dart';
 
@@ -22,19 +21,19 @@ class TopupBookingScreen extends ConsumerStatefulWidget {
 }
 
 class _State extends ConsumerState<TopupBookingScreen> {
-  final _formKey      = GlobalKey<FormState>();
-  final _amountCtrl   = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
+  final _amountCtrl = TextEditingController();
   final _locationCtrl = TextEditingController();
-  final _phoneCtrl    = TextEditingController();
-  final _noteCtrl     = TextEditingController();
+  final _phoneCtrl = TextEditingController();
+  final _noteCtrl = TextEditingController();
 
   bool _loadingGps = false;
   double? _lat, _lng;
   String? _placeName;
-  int?  _fee;
-  int   _nightSurcharge = 0;
+  int? _fee;
+  int _nightSurcharge = 0;
   bool _loadingFee = false;
-  bool _submitting  = false;
+  bool _submitting = false;
   String? _error;
 
   @override
@@ -47,19 +46,13 @@ class _State extends ConsumerState<TopupBookingScreen> {
 
   Future<void> _loadGps() async {
     setState(() => _loadingGps = true);
-    final Position pos;
-    try {
-      pos = await LocationService.getCurrentPosition();
-    } on LocationException catch (e) {
-      if (!mounted) return;
+    final result = await LocationService.resolveCurrentLocation(context);
+    if (!mounted) return;
+    if (result == null) {
       setState(() => _loadingGps = false);
-      LocationService.showFailureDialog(context, e);
       return;
     }
-    if (!mounted) return;
-    final addr = await LocationService.addressFromCoords(
-        pos.latitude, pos.longitude);
-    if (!mounted) return;
+    final (pos, addr) = result;
     setState(() {
       _loadingGps = false;
       _lat = pos.latitude;
@@ -102,86 +95,108 @@ class _State extends ConsumerState<TopupBookingScreen> {
 
   void _pickAmount(int amount) {
     _amountCtrl.text = _formatNumber(amount.toString());
-    _amountCtrl.selection = TextSelection.collapsed(
-        offset: _amountCtrl.text.length);
+    _amountCtrl.selection =
+        TextSelection.collapsed(offset: _amountCtrl.text.length);
     setState(() {});
     _estimate(amount);
   }
 
   Future<void> _estimate(int amount) async {
     if (amount <= 0) return;
-    setState(() { _loadingFee = true; _fee = null; });
-    try {
-      final res = await ref.read(apiClientProvider).get(
-        '/customer/pricing/estimate',
-        params: {'service_type': 'topup', 'topup_amount': amount},
-      );
-      final data = (res.data['data'] ?? res.data) as Map<String, dynamic>;
+    setState(() {
+      _loadingFee = true;
+      _fee = null;
+    });
+    final estimate = await fetchPricingEstimate(
+      ref,
+      {'service_type': 'topup', 'topup_amount': amount},
+    );
+    if (!mounted) return;
+    if (estimate != null) {
       setState(() {
-        _fee            = (data['fee'] as num).toInt();
-        _nightSurcharge = (data['night_surcharge'] as num?)?.toInt() ?? 0;
+        _fee = estimate.fee;
+        _nightSurcharge = estimate.nightSurcharge;
       });
-    } catch (_) {} finally {
-      if (mounted) setState(() => _loadingFee = false);
     }
+    setState(() => _loadingFee = false);
   }
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    setState(() { _submitting = true; _error = null; });
-    try {
-      final amount = int.tryParse(
-          _amountCtrl.text.replaceAll(',', '')) ?? 0;
-      final res = await ref.read(apiClientProvider).post(
-          '/customer/orders', data: {
-        'service_type':     'topup',
-        'topup_amount':     amount,
-        'pickup_address':   _locationCtrl.text.trim(),
+    setState(() {
+      _submitting = true;
+      _error = null;
+    });
+    final amount = int.tryParse(_amountCtrl.text.replaceAll(',', '')) ?? 0;
+    await submitBookingOrder(
+      ref: ref,
+      context: context,
+      data: {
+        'service_type': 'topup',
+        'topup_amount': amount,
+        'pickup_address': _locationCtrl.text.trim(),
         'delivery_address': _locationCtrl.text.trim(),
-        'delivery_phone':   _phoneCtrl.text.trim(),
-        'receiver_name':    ref.read(authProvider).user?.name ?? '',
-        if (_placeName?.isNotEmpty == true)
-          'pickup_place_name': _placeName,
-        'order_note':       _noteCtrl.text.trim(),
-        if (_lat != null) 'pickup_lat':   _lat,
-        if (_lng != null) 'pickup_lng':   _lng,
+        'delivery_phone': _phoneCtrl.text.trim(),
+        'receiver_name': ref.read(authProvider).user?.name ?? '',
+        if (_placeName?.isNotEmpty == true) 'pickup_place_name': _placeName,
+        'order_note': _noteCtrl.text.trim(),
+        if (_lat != null) 'pickup_lat': _lat,
+        if (_lng != null) 'pickup_lng': _lng,
         if (_lat != null) 'delivery_lat': _lat,
         if (_lng != null) 'delivery_lng': _lng,
-      });
-      final code = (res.data['data'] ?? res.data)['code'] as String;
-      ref.read(orderListProvider.notifier).fetch();
-      if (mounted) context.pushReplacement('/order/$code', extra: 'fromBooking');
-    } catch (e) {
-      String msg = 'Không thể đặt đơn.';
-      try { msg = (e as dynamic).response?.data['message'] ?? msg; } catch (_) {}
-      setState(() { _error = msg; _submitting = false; });
-    }
+      },
+      onError: (message) {
+        if (mounted) {
+          setState(() {
+            _error = message;
+            _submitting = false;
+          });
+        }
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final parsedAmount = int.tryParse(
-        _amountCtrl.text.replaceAll(',', ''));
+    final parsedAmount = int.tryParse(_amountCtrl.text.replaceAll(',', ''));
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.surface,
         elevation: 0,
         scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded,
-              color: AppColors.textPrimary),
-          onPressed: () => context.pop(),
+        toolbarHeight: 70,
+        leadingWidth: 60,
+        leading: Center(
+          child: Padding(
+            padding: const EdgeInsets.only(left: 16),
+            child: GestureDetector(
+              onTap: () => context.pop(),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  border: Border.all(color: AppColors.divider),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new_rounded,
+                    size: 18, color: AppColors.textPrimary),
+              ),
+            ),
+          ),
         ),
-        title: Text(Fmt.serviceLabel('topup'),
-            style: const TextStyle(
-                fontSize: 17, fontWeight: FontWeight.w700,
+        title: Text('Nạp thẻ / Ví điện tử',
+            style: TextStyle(
+                fontSize: AppFontSize.display,
+                fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary)),
         bottom: const PreferredSize(
           preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: Color(0xFFF0F0F0)),
+          child: Divider(height: 1, color: AppColors.divider),
         ),
       ),
       body: Column(
@@ -190,25 +205,25 @@ class _State extends ConsumerState<TopupBookingScreen> {
             child: Form(
               key: _formKey,
               child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+                padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
                 children: [
-
                   // ── Số tiền ─────────────────────────────────────────────
                   Row(children: [
                     Container(
-                      width: 28, height: 28,
+                      width: 28,
+                      height: 28,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.primarySoft,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
-                      child: const Icon(
-                          Icons.account_balance_wallet_rounded,
+                      child: const Icon(Icons.credit_card_rounded,
                           size: 15, color: AppColors.primary),
                     ),
                     const SizedBox(width: 8),
-                    const Text('Số tiền cần nạp',
+                    Text('Số tiền cần nạp',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w800,
+                            fontSize: AppFontSize.bodyLarge,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary)),
                   ]),
                   const SizedBox(height: 10),
@@ -216,13 +231,9 @@ class _State extends ConsumerState<TopupBookingScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      )],
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      border: Border.all(color: AppColors.divider),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -231,8 +242,8 @@ class _State extends ConsumerState<TopupBookingScreen> {
                           controller: _amountCtrl,
                           keyboardType: TextInputType.number,
                           style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
+                              fontSize: AppFontSize.xlarge,
+                              fontWeight: FontWeight.w600,
                               color: AppColors.primary),
                           textAlign: TextAlign.center,
                           inputFormatters: [
@@ -254,33 +265,39 @@ class _State extends ConsumerState<TopupBookingScreen> {
                           decoration: InputDecoration(
                             hintText: '0',
                             hintStyle: const TextStyle(
-                                fontSize: 22, fontWeight: FontWeight.w800,
+                                fontSize: AppFontSize.display,
+                                fontWeight: FontWeight.w600,
                                 color: AppColors.textSecondary),
                             suffixText: 'đ',
                             suffixStyle: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w600,
+                                fontSize: AppFontSize.bodyLarge,
+                                fontWeight: FontWeight.w600,
                                 color: AppColors.textSecondary),
                             filled: true,
-                            fillColor: AppColors.primary
-                                .withValues(alpha: 0.05),
+                            fillColor: AppColors.primarySoft,
                             contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 14),
                             border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
                                 borderSide: BorderSide.none),
                             enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
                                 borderSide: BorderSide.none),
                             focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.md),
                                 borderSide: const BorderSide(
                                     color: AppColors.primary, width: 1.5)),
                             errorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(
-                                    color: AppColors.danger)),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
+                                borderSide:
+                                    const BorderSide(color: AppColors.danger)),
                             focusedErrorBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.sm),
                                 borderSide: const BorderSide(
                                     color: AppColors.danger, width: 1.5)),
                           ),
@@ -304,7 +321,8 @@ class _State extends ConsumerState<TopupBookingScreen> {
                                 padding: EdgeInsets.only(
                                     left: e.key == 0 ? 0 : 4,
                                     right: e.key == _quickAmounts.length - 1
-                                        ? 0 : 4),
+                                        ? 0
+                                        : 4),
                                 child: GestureDetector(
                                   onTap: () => _pickAmount(e.value),
                                   child: Container(
@@ -312,26 +330,24 @@ class _State extends ConsumerState<TopupBookingScreen> {
                                         vertical: 10),
                                     decoration: BoxDecoration(
                                       color: selected
-                                          ? AppColors.primary
-                                              .withValues(alpha: 0.1)
-                                          : const Color(0xFFF5F5F5),
+                                          ? AppColors.primarySoft
+                                          : AppColors.surfaceAlt,
                                       borderRadius:
-                                          BorderRadius.circular(10),
+                                          BorderRadius.circular(AppRadius.sm),
                                       border: Border.all(
                                         color: selected
                                             ? AppColors.primary
-                                            : const Color(0xFFE0E0E0),
+                                            : AppColors.divider,
                                       ),
                                     ),
                                     child: Center(
                                       child: Text(Fmt.shortAmount(e.value),
                                           style: TextStyle(
-                                              fontSize: 13,
+                                              fontSize: AppFontSize.body,
                                               fontWeight: FontWeight.w600,
                                               color: selected
                                                   ? AppColors.primary
-                                                  : AppColors
-                                                      .textSecondary)),
+                                                  : AppColors.textSecondary)),
                                     ),
                                   ),
                                 ),
@@ -348,18 +364,20 @@ class _State extends ConsumerState<TopupBookingScreen> {
                   // ── Thông tin nạp ───────────────────────────────────────
                   Row(children: [
                     Container(
-                      width: 28, height: 28,
+                      width: 28,
+                      height: 28,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.infoSoft,
+                        borderRadius: BorderRadius.circular(AppRadius.sm),
                       ),
                       child: const Icon(Icons.info_outline_rounded,
-                          size: 15, color: AppColors.primary),
+                          size: 15, color: AppColors.info),
                     ),
                     const SizedBox(width: 8),
-                    const Text('Thông tin nạp',
+                    Text('Thông tin nạp',
                         style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.w800,
+                            fontSize: AppFontSize.bodyLarge,
+                            fontWeight: FontWeight.w600,
                             color: AppColors.textPrimary)),
                   ]),
                   const SizedBox(height: 10),
@@ -367,13 +385,9 @@ class _State extends ConsumerState<TopupBookingScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
-                      boxShadow: [BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      )],
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      border: Border.all(color: AppColors.divider),
                     ),
                     child: Column(children: [
                       GestureDetector(
@@ -382,8 +396,8 @@ class _State extends ConsumerState<TopupBookingScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 12),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F8FA),
-                            borderRadius: BorderRadius.circular(12),
+                            color: AppColors.surfaceAlt,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
                           ),
                           child: Row(children: [
                             Icon(Icons.location_on_outlined,
@@ -396,7 +410,7 @@ class _State extends ConsumerState<TopupBookingScreen> {
                               child: _loadingGps
                                   ? const Text('Đang lấy vị trí...',
                                       style: TextStyle(
-                                          fontSize: 14,
+                                          fontSize: AppFontSize.bodyLarge,
                                           color: AppColors.textSecondary))
                                   : _locationCtrl.text.isNotEmpty
                                       ? Column(
@@ -405,42 +419,37 @@ class _State extends ConsumerState<TopupBookingScreen> {
                                           children: [
                                             Text(
                                               _placeName ??
-                                                  ref.read(authProvider)
-                                                      .user?.name ??
+                                                  ref
+                                                      .read(authProvider)
+                                                      .user
+                                                      ?.name ??
                                                   'Vị trí của bạn',
                                               maxLines: 1,
-                                              overflow:
-                                                  TextOverflow.ellipsis,
+                                              overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
-                                                  fontSize: 13,
-                                                  fontWeight:
-                                                      FontWeight.w600,
-                                                  color: AppColors
-                                                      .textPrimary),
+                                                  fontSize: AppFontSize.bodyLarge,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: AppColors.textPrimary),
                                             ),
                                             const SizedBox(height: 2),
                                             Text(
                                               _locationCtrl.text,
                                               maxLines: 1,
-                                              overflow:
-                                                  TextOverflow.ellipsis,
+                                              overflow: TextOverflow.ellipsis,
                                               style: const TextStyle(
-                                                  fontSize: 11,
-                                                  color: AppColors
-                                                      .textSecondary),
+                                                  fontSize: AppFontSize.body,
+                                                  color:
+                                                      AppColors.textSecondary),
                                             ),
                                           ],
                                         )
-                                      : const Text(
-                                          'Chọn địa điểm nạp tiền *',
+                                      : const Text('Chọn địa điểm nạp tiền *',
                                           style: TextStyle(
-                                              fontSize: 14,
-                                              color: AppColors
-                                                  .textSecondary)),
+                                              fontSize: AppFontSize.bodyLarge,
+                                              color: AppColors.textSecondary)),
                             ),
                             const Icon(Icons.chevron_right_rounded,
-                                size: 18,
-                                color: AppColors.textSecondary),
+                                size: 18, color: AppColors.textSecondary),
                           ]),
                         ),
                       ),
@@ -451,7 +460,8 @@ class _State extends ConsumerState<TopupBookingScreen> {
                         icon: Icons.phone_outlined,
                         keyboardType: TextInputType.phone,
                         validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Nhập SĐT liên hệ' : null,
+                            ? 'Nhập SĐT liên hệ'
+                            : null,
                       ),
                       const SizedBox(height: 12),
                       _FlatField(
@@ -468,9 +478,10 @@ class _State extends ConsumerState<TopupBookingScreen> {
                       const Icon(Icons.error_outline_rounded,
                           color: AppColors.danger, size: 14),
                       const SizedBox(width: 6),
-                      Expanded(child: Text(_error!,
-                          style: const TextStyle(
-                              color: AppColors.danger, fontSize: 12))),
+                      Expanded(
+                          child: Text(_error!,
+                              style: const TextStyle(
+                                  color: AppColors.danger, fontSize: AppFontSize.caption))),
                     ]),
                   ],
                 ],
@@ -481,17 +492,10 @@ class _State extends ConsumerState<TopupBookingScreen> {
           // ── Bottom bar ────────────────────────────────────────────────
           Container(
             padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad + 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.vertical(
-                  top: Radius.circular(20)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, -4),
-                ),
-              ],
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
+              border: Border(top: BorderSide(color: AppColors.divider)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -499,58 +503,62 @@ class _State extends ConsumerState<TopupBookingScreen> {
                 // Summary row
                 Row(children: [
                   Container(
-                    width: 36, height: 36,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: AppColors.primary.withValues(alpha: 0.10),
-                      borderRadius: BorderRadius.circular(10),
+                      color: AppColors.primarySoft,
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
-                    child: const Icon(
-                        Icons.account_balance_wallet_rounded,
-                        color: AppColors.primary, size: 18),
+                    child: const Icon(Icons.credit_card_rounded,
+                        color: AppColors.primary, size: 19),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(Fmt.serviceLabel('topup'),
-                            style: const TextStyle(
-                                fontSize: 15, fontWeight: FontWeight.w700,
+                        Text('Nạp thẻ / Ví điện tử',
+                            style: TextStyle(
+                                fontSize: AppFontSize.bodyLarge,
+                                fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary)),
                         if (parsedAmount != null && parsedAmount > 0)
                           Text('Nạp ${Fmt.currency(parsedAmount)}',
                               style: const TextStyle(
-                                  fontSize: 12,
+                                  fontSize: AppFontSize.caption,
                                   color: AppColors.textSecondary)),
                       ],
                     ),
                   ),
                   if (_loadingFee)
-                    const SizedBox(width: 16, height: 16,
+                    const SizedBox(
+                        width: 16,
+                        height: 16,
                         child: CircularProgressIndicator(
                             strokeWidth: 2, color: AppColors.primary))
                   else
                     Column(
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
-                      Text(
-                        _fee != null ? Fmt.currency(_fee!) : '—',
-                        style: TextStyle(
-                            fontSize: 20, fontWeight: FontWeight.w800,
-                            color: _fee != null
-                                ? AppColors.primary
-                                : AppColors.textSecondary),
-                      ),
-                      if (_fee != null)
-                        const Text('Phí dịch vụ',
+                          Text(
+                            _fee != null ? Fmt.currency(_fee!) : '—',
                             style: TextStyle(
-                                fontSize: 11,
-                                color: AppColors.textSecondary)),
-                      if (!_loadingFee && _nightSurcharge > 0)
-                        Text('+${Fmt.currency(_nightSurcharge)} đêm',
-                            style: const TextStyle(
-                                fontSize: 10, color: AppColors.warning)),
-                    ]),
+                                fontSize: AppFontSize.display,
+                                fontWeight: FontWeight.w600,
+                                color: _fee != null
+                                    ? AppColors.primary
+                                    : AppColors.textSecondary),
+                          ),
+                          if (_fee != null)
+                            const Text('Phí dịch vụ',
+                                style: TextStyle(
+                                    fontSize: AppFontSize.caption,
+                                    color: AppColors.textSecondary)),
+                          if (!_loadingFee && _nightSurcharge > 0)
+                            Text('+${Fmt.currency(_nightSurcharge)} đêm',
+                                style: const TextStyle(
+                                    fontSize: AppFontSize.caption, color: AppColors.warning)),
+                        ]),
                 ]),
 
                 const SizedBox(height: 14),
@@ -565,17 +573,18 @@ class _State extends ConsumerState<TopupBookingScreen> {
                           AppColors.primary.withValues(alpha: 0.5),
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                      shape: const StadiumBorder(),
                     ),
                     child: _submitting
-                        ? const SizedBox(width: 20, height: 20,
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
                             child: CircularProgressIndicator(
                                 strokeWidth: 2, color: Colors.white))
-                        : Text(
-                            'Đặt ${Fmt.serviceLabel('topup').toLowerCase()} ngay',
-                            style: const TextStyle(
-                                fontSize: 16, fontWeight: FontWeight.w700,
+                        : Text('Đặt nạp thẻ ngay',
+                            style: TextStyle(
+                                fontSize: AppFontSize.bodyLarge,
+                                fontWeight: FontWeight.w600,
                                 color: Colors.white)),
                   ),
                 ),
@@ -607,45 +616,47 @@ class _FlatField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => TextFormField(
-    controller: controller,
-    keyboardType: keyboardType,
-    maxLines: 1,
-    style: const TextStyle(fontSize: 14, color: AppColors.textPrimary),
-    decoration: InputDecoration(
-      labelText: hint,
-      labelStyle: const TextStyle(
-          fontSize: 14, color: AppColors.textSecondary),
-      floatingLabelStyle: const TextStyle(
-          fontSize: 13, color: AppColors.primary, fontWeight: FontWeight.w500),
-      prefixIcon: icon != null
-          ? Icon(icon, size: 16, color: AppColors.textSecondary)
-          : null,
-      prefixIconConstraints: icon != null
-          ? const BoxConstraints(minWidth: 40, minHeight: 40)
-          : null,
-      alignLabelWithHint: true,
-      filled: true,
-      fillColor: const Color(0xFFF7F8FA),
-      contentPadding:
-          const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-      border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none),
-      enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none),
-      focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-              color: AppColors.primary, width: 1.5)),
-      errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.danger)),
-      focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(
-              color: AppColors.danger, width: 1.5)),
-    ),
-    validator: validator,
-  );
+        controller: controller,
+        keyboardType: keyboardType,
+        maxLines: 1,
+        style: const TextStyle(fontSize: AppFontSize.bodyLarge, color: AppColors.textPrimary),
+        decoration: InputDecoration(
+          labelText: hint,
+          labelStyle:
+              const TextStyle(fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
+          floatingLabelStyle: const TextStyle(
+              fontSize: AppFontSize.body,
+              color: AppColors.primary,
+              fontWeight: FontWeight.w500),
+          prefixIcon: icon != null
+              ? Icon(icon, size: 16, color: AppColors.textSecondary)
+              : null,
+          prefixIconConstraints: icon != null
+              ? const BoxConstraints(minWidth: 40, minHeight: 40)
+              : null,
+          alignLabelWithHint: true,
+          filled: true,
+          fillColor: AppColors.surfaceAlt,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+          border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: BorderSide.none),
+          focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide:
+                  const BorderSide(color: AppColors.primary, width: 1.5)),
+          errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: const BorderSide(color: AppColors.danger)),
+          focusedErrorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide:
+                  const BorderSide(color: AppColors.danger, width: 1.5)),
+        ),
+        validator: validator,
+      );
 }

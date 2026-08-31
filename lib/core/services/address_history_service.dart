@@ -15,16 +15,19 @@ class AddressHistoryItem {
   });
 
   Map<String, dynamic> toJson() => {
-    'address': address, 'lat': lat, 'lng': lng,
-    if (placeName != null) 'place_name': placeName,
-  };
+        'address': address,
+        'lat': lat,
+        'lng': lng,
+        if (placeName != null) 'place_name': placeName,
+      };
 
-  factory AddressHistoryItem.fromJson(Map<String, dynamic> json) => AddressHistoryItem(
-    address: json['address'] as String,
-    lat: (json['lat'] as num).toDouble(),
-    lng: (json['lng'] as num).toDouble(),
-    placeName: json['place_name'] as String?,
-  );
+  factory AddressHistoryItem.fromJson(Map<String, dynamic> json) =>
+      AddressHistoryItem(
+        address: json['address'] as String,
+        lat: (json['lat'] as num).toDouble(),
+        lng: (json['lng'] as num).toDouble(),
+        placeName: json['place_name'] as String?,
+      );
 }
 
 class AddressHistoryService {
@@ -37,7 +40,9 @@ class AddressHistoryService {
       final raw = prefs.getString(_key);
       if (raw == null) return [];
       final list = jsonDecode(raw) as List;
-      return list.map((e) => AddressHistoryItem.fromJson(e as Map<String, dynamic>)).toList();
+      return list
+          .map((e) => AddressHistoryItem.fromJson(e as Map<String, dynamic>))
+          .toList();
     } catch (_) {
       return [];
     }
@@ -52,7 +57,8 @@ class AddressHistoryService {
       // Most recent first
       list.insert(0, item);
       final trimmed = list.take(_maxItems).toList();
-      await prefs.setString(_key, jsonEncode(trimmed.map((e) => e.toJson()).toList()));
+      await prefs.setString(
+          _key, jsonEncode(trimmed.map((e) => e.toJson()).toList()));
     } catch (_) {}
   }
 
@@ -61,7 +67,8 @@ class AddressHistoryService {
       final prefs = await SharedPreferences.getInstance();
       final list = await load();
       list.removeWhere((e) => e.address == address);
-      await prefs.setString(_key, jsonEncode(list.map((e) => e.toJson()).toList()));
+      await prefs.setString(
+          _key, jsonEncode(list.map((e) => e.toJson()).toList()));
     } catch (_) {}
   }
 
