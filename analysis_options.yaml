@@ -13,6 +13,8 @@ analyzer:
   exclude:
     # Generated dependencies (including iOS SwiftPM checkouts) are not app code.
     - build/**
+    - android/**
+    - ios/**
 
 linter:
   # The lint rules applied to this project can be customized in the
