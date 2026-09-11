@@ -5,11 +5,15 @@ import 'package:go_router/go_router.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../utils/booking_submit.dart';
 import '../utils/pricing_estimate.dart';
 import 'address_picker_screen.dart';
 import 'map_picker_screen.dart';
+import 'widgets/booking_summary_bar.dart';
+import '../../home/providers/service_type_provider.dart';
+import '../../../core/constants/app_constants.dart';
 
 const _quickAmounts = [500000, 1000000, 2000000, 5000000];
 
@@ -159,441 +163,329 @@ class _State extends ConsumerState<TopupBookingScreen> {
   @override
   Widget build(BuildContext context) {
     final parsedAmount = int.tryParse(_amountCtrl.text.replaceAll(',', ''));
-    final bottomPad = MediaQuery.of(context).padding.bottom;
+    final serviceName = ref
+            .watch(serviceTypeProvider)
+            .valueOrNull
+            ?.where((service) => service.key == 'topup')
+            .map((service) => service.label.trim())
+            .where((label) => label.isNotEmpty)
+            .firstOrNull ??
+        serviceDefOf('topup').label;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
+    return LiquidBackdrop(
+        child: Scaffold(
+      backgroundColor: Colors.transparent,
+      extendBody: true,
       appBar: AppBar(
-        backgroundColor: AppColors.surface,
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
+          systemNavigationBarColor: Colors.transparent,
+          systemNavigationBarContrastEnforced: false,
+        ),
         elevation: 0,
         scrolledUnderElevation: 0,
-        toolbarHeight: 70,
-        leadingWidth: 60,
-        leading: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: GestureDetector(
-              onTap: () => context.pop(),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  border: Border.all(color: AppColors.divider),
-                ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 18, color: AppColors.textPrimary),
-              ),
+        toolbarHeight: 72,
+        leadingWidth: 72,
+        centerTitle: false,
+        titleSpacing: 0,
+        flexibleSpace: const LiquidGlass(
+          borderRadius:
+              BorderRadius.vertical(bottom: Radius.circular(AppRadius.glass)),
+          child: SizedBox.expand(),
+        ),
+        leading: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+          child: IconButton(
+            tooltip: 'Quay lại',
+            onPressed: () => context.pop(),
+            style: IconButton.styleFrom(
+              backgroundColor: Colors.white.withValues(alpha: .35),
+              side: BorderSide(color: Colors.white.withValues(alpha: .7)),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.glass)),
             ),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                size: 18, color: AppColors.textPrimary),
           ),
         ),
-        title: Text('Nạp thẻ / Ví điện tử',
-            style: TextStyle(
-                fontSize: AppFontSize.display,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary)),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.divider),
+        title: Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Text(serviceName,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                  fontSize: AppFontSize.titleLarge,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary)),
         ),
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 18, 16, 28),
-                children: [
-                  // ── Số tiền ─────────────────────────────────────────────
-                  Row(children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySoft,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: const Icon(Icons.credit_card_rounded,
-                          size: 15, color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Số tiền cần nạp',
-                        style: TextStyle(
+      body: Builder(
+        builder: (bodyContext) => Form(
+          key: _formKey,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(
+                16, 16, 16, MediaQuery.paddingOf(bodyContext).bottom + 28),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              // ── Số tiền ─────────────────────────────────────────────
+              Row(children: [
+                const GlassIcon(
+                  icon: Icons.credit_card_rounded,
+                  color: AppColors.primary,
+                  size: 32,
+                  iconSize: 17,
+                ),
+                const SizedBox(width: 8),
+                Text('Số tiền cần nạp',
+                    style: TextStyle(
+                        fontSize: AppFontSize.bodyLarge,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
+              ]),
+              const SizedBox(height: 10),
+
+              LiquidGlass(
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      controller: _amountCtrl,
+                      keyboardType: TextInputType.number,
+                      style: const TextStyle(
+                          fontSize: AppFontSize.xlarge,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary),
+                      textAlign: TextAlign.center,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly,
+                        TextInputFormatter.withFunction((old, newVal) {
+                          final formatted = _formatNumber(newVal.text);
+                          return TextEditingValue(
+                            text: formatted,
+                            selection: TextSelection.collapsed(
+                                offset: formatted.length),
+                          );
+                        }),
+                      ],
+                      onChanged: (v) {
+                        setState(() {});
+                        final n = int.tryParse(v.replaceAll(',', ''));
+                        if (n != null && n > 0) _estimate(n);
+                      },
+                      decoration: InputDecoration(
+                        hintText: '0',
+                        hintStyle: const TextStyle(
+                            fontSize: AppFontSize.display,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textSecondary),
+                        suffixText: 'đ',
+                        suffixStyle: const TextStyle(
                             fontSize: AppFontSize.bodyLarge,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary)),
-                  ]),
-                  const SizedBox(height: 10),
-
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                      border: Border.all(color: AppColors.divider),
+                            color: AppColors.textSecondary),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
+                      ),
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'Nhập số tiền';
+                        }
+                        final n = int.tryParse(v.replaceAll(',', ''));
+                        if (n == null || n <= 0) {
+                          return 'Số tiền không hợp lệ';
+                        }
+                        return null;
+                      },
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextFormField(
-                          controller: _amountCtrl,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(
-                              fontSize: AppFontSize.xlarge,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.primary),
-                          textAlign: TextAlign.center,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                            TextInputFormatter.withFunction((old, newVal) {
-                              final formatted = _formatNumber(newVal.text);
-                              return TextEditingValue(
-                                text: formatted,
-                                selection: TextSelection.collapsed(
-                                    offset: formatted.length),
-                              );
-                            }),
-                          ],
-                          onChanged: (v) {
-                            setState(() {});
-                            final n = int.tryParse(v.replaceAll(',', ''));
-                            if (n != null && n > 0) _estimate(n);
-                          },
-                          decoration: InputDecoration(
-                            hintText: '0',
-                            hintStyle: const TextStyle(
-                                fontSize: AppFontSize.display,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textSecondary),
-                            suffixText: 'đ',
-                            suffixStyle: const TextStyle(
-                                fontSize: AppFontSize.bodyLarge,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textSecondary),
-                            filled: true,
-                            fillColor: AppColors.primarySoft,
-                            contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
-                            border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.md),
-                                borderSide: BorderSide.none),
-                            enabledBorder: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.md),
-                                borderSide: BorderSide.none),
-                            focusedBorder: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.md),
-                                borderSide: const BorderSide(
-                                    color: AppColors.primary, width: 1.5)),
-                            errorBorder: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.sm),
-                                borderSide:
-                                    const BorderSide(color: AppColors.danger)),
-                            focusedErrorBorder: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.sm),
-                                borderSide: const BorderSide(
-                                    color: AppColors.danger, width: 1.5)),
-                          ),
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) {
-                              return 'Nhập số tiền';
-                            }
-                            final n = int.tryParse(v.replaceAll(',', ''));
-                            if (n == null || n <= 0) {
-                              return 'Số tiền không hợp lệ';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 14),
-                        Row(
-                          children: _quickAmounts.asMap().entries.map((e) {
-                            final selected = parsedAmount == e.value;
-                            return Expanded(
-                              child: Padding(
-                                padding: EdgeInsets.only(
-                                    left: e.key == 0 ? 0 : 4,
-                                    right: e.key == _quickAmounts.length - 1
-                                        ? 0
-                                        : 4),
-                                child: GestureDetector(
-                                  onTap: () => _pickAmount(e.value),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        vertical: 10),
-                                    decoration: BoxDecoration(
-                                      color: selected
-                                          ? AppColors.primarySoft
-                                          : AppColors.surfaceAlt,
-                                      borderRadius:
-                                          BorderRadius.circular(AppRadius.sm),
-                                      border: Border.all(
-                                        color: selected
-                                            ? AppColors.primary
-                                            : AppColors.divider,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(Fmt.shortAmount(e.value),
-                                          style: TextStyle(
-                                              fontSize: AppFontSize.body,
-                                              fontWeight: FontWeight.w600,
-                                              color: selected
-                                                  ? AppColors.primary
-                                                  : AppColors.textSecondary)),
-                                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      children: _quickAmounts.asMap().entries.map((e) {
+                        final selected = parsedAmount == e.value;
+                        return Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                                left: e.key == 0 ? 0 : 4,
+                                right:
+                                    e.key == _quickAmounts.length - 1 ? 0 : 4),
+                            child: GestureDetector(
+                              onTap: () => _pickAmount(e.value),
+                              child: Container(
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: selected
+                                      ? AppColors.primary.withValues(alpha: .14)
+                                      : Colors.white.withValues(alpha: .28),
+                                  borderRadius:
+                                      BorderRadius.circular(AppRadius.glass),
+                                  border: Border.all(
+                                    color: selected
+                                        ? AppColors.primary
+                                        : Colors.white.withValues(alpha: .7),
                                   ),
                                 ),
+                                child: Center(
+                                  child: Text(Fmt.shortAmount(e.value),
+                                      style: TextStyle(
+                                          fontSize: AppFontSize.body,
+                                          fontWeight: FontWeight.w600,
+                                          color: selected
+                                              ? AppColors.primary
+                                              : AppColors.textSecondary)),
+                                ),
                               ),
-                            );
-                          }).toList(),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // ── Thông tin nạp ───────────────────────────────────────
-                  Row(children: [
-                    Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: AppColors.infoSoft,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: const Icon(Icons.info_outline_rounded,
-                          size: 15, color: AppColors.info),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('Thông tin nạp',
-                        style: TextStyle(
-                            fontSize: AppFontSize.bodyLarge,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary)),
-                  ]),
-                  const SizedBox(height: 10),
-
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                      border: Border.all(color: AppColors.divider),
-                    ),
-                    child: Column(children: [
-                      GestureDetector(
-                        onTap: _pickLocation,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 12),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceAlt,
-                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            ),
                           ),
-                          child: Row(children: [
-                            Icon(Icons.location_on_outlined,
-                                size: 16,
-                                color: _locationCtrl.text.isNotEmpty
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: _loadingGps
-                                  ? const Text('Đang lấy vị trí...',
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
+              // ── Thông tin nạp ───────────────────────────────────────
+              Row(children: [
+                const GlassIcon(
+                  icon: Icons.info_outline_rounded,
+                  color: AppColors.info,
+                  size: 32,
+                  iconSize: 17,
+                ),
+                const SizedBox(width: 8),
+                Text('Thông tin nạp',
+                    style: TextStyle(
+                        fontSize: AppFontSize.bodyLarge,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textPrimary)),
+              ]),
+              const SizedBox(height: 10),
+
+              LiquidGlass(
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                padding: const EdgeInsets.all(16),
+                child: Column(children: [
+                  GestureDetector(
+                    onTap: _pickLocation,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: .28),
+                        borderRadius: BorderRadius.circular(AppRadius.glass),
+                      ),
+                      child: Row(children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 16,
+                            color: _locationCtrl.text.isNotEmpty
+                                ? AppColors.primary
+                                : AppColors.textSecondary),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: _loadingGps
+                              ? const Text('Đang lấy vị trí...',
+                                  style: TextStyle(
+                                      fontSize: AppFontSize.bodyLarge,
+                                      color: AppColors.textSecondary))
+                              : _locationCtrl.text.isNotEmpty
+                                  ? Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          _placeName ??
+                                              ref
+                                                  .read(authProvider)
+                                                  .user
+                                                  ?.name ??
+                                              'Vị trí của bạn',
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontSize: AppFontSize.bodyLarge,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.textPrimary),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _locationCtrl.text,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                              fontSize: AppFontSize.body,
+                                              color: AppColors.textSecondary),
+                                        ),
+                                      ],
+                                    )
+                                  : const Text('Chọn địa điểm nạp tiền *',
                                       style: TextStyle(
                                           fontSize: AppFontSize.bodyLarge,
-                                          color: AppColors.textSecondary))
-                                  : _locationCtrl.text.isNotEmpty
-                                      ? Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            Text(
-                                              _placeName ??
-                                                  ref
-                                                      .read(authProvider)
-                                                      .user
-                                                      ?.name ??
-                                                  'Vị trí của bạn',
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                  fontSize: AppFontSize.bodyLarge,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: AppColors.textPrimary),
-                                            ),
-                                            const SizedBox(height: 2),
-                                            Text(
-                                              _locationCtrl.text,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                  fontSize: AppFontSize.body,
-                                                  color:
-                                                      AppColors.textSecondary),
-                                            ),
-                                          ],
-                                        )
-                                      : const Text('Chọn địa điểm nạp tiền *',
-                                          style: TextStyle(
-                                              fontSize: AppFontSize.bodyLarge,
-                                              color: AppColors.textSecondary)),
-                            ),
-                            const Icon(Icons.chevron_right_rounded,
-                                size: 18, color: AppColors.textSecondary),
-                          ]),
+                                          color: AppColors.textSecondary)),
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      _FlatField(
-                        controller: _phoneCtrl,
-                        hint: 'SĐT liên hệ *',
-                        icon: Icons.phone_outlined,
-                        keyboardType: TextInputType.phone,
-                        validator: (v) => (v == null || v.trim().isEmpty)
-                            ? 'Nhập SĐT liên hệ'
-                            : null,
-                      ),
-                      const SizedBox(height: 12),
-                      _FlatField(
-                        controller: _noteCtrl,
-                        hint: 'Ghi chú (tuỳ chọn)',
-                        icon: Icons.note_alt_outlined,
-                      ),
-                    ]),
-                  ),
-
-                  if (_error != null) ...[
-                    const SizedBox(height: 12),
-                    Row(children: [
-                      const Icon(Icons.error_outline_rounded,
-                          color: AppColors.danger, size: 14),
-                      const SizedBox(width: 6),
-                      Expanded(
-                          child: Text(_error!,
-                              style: const TextStyle(
-                                  color: AppColors.danger, fontSize: AppFontSize.caption))),
-                    ]),
-                  ],
-                ],
-              ),
-            ),
-          ),
-
-          // ── Bottom bar ────────────────────────────────────────────────
-          Container(
-            padding: EdgeInsets.fromLTRB(16, 16, 16, bottomPad + 16),
-            decoration: const BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(26)),
-              border: Border(top: BorderSide(color: AppColors.divider)),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Summary row
-                Row(children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: AppColors.primarySoft,
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: const Icon(Icons.credit_card_rounded,
-                        color: AppColors.primary, size: 19),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Nạp thẻ / Ví điện tử',
-                            style: TextStyle(
-                                fontSize: AppFontSize.bodyLarge,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary)),
-                        if (parsedAmount != null && parsedAmount > 0)
-                          Text('Nạp ${Fmt.currency(parsedAmount)}',
-                              style: const TextStyle(
-                                  fontSize: AppFontSize.caption,
-                                  color: AppColors.textSecondary)),
-                      ],
+                        const Icon(Icons.chevron_right_rounded,
+                            size: 18, color: AppColors.textSecondary),
+                      ]),
                     ),
                   ),
-                  if (_loadingFee)
-                    const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2, color: AppColors.primary))
-                  else
-                    Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text(
-                            _fee != null ? Fmt.currency(_fee!) : '—',
-                            style: TextStyle(
-                                fontSize: AppFontSize.display,
-                                fontWeight: FontWeight.w600,
-                                color: _fee != null
-                                    ? AppColors.primary
-                                    : AppColors.textSecondary),
-                          ),
-                          if (_fee != null)
-                            const Text('Phí dịch vụ',
-                                style: TextStyle(
-                                    fontSize: AppFontSize.caption,
-                                    color: AppColors.textSecondary)),
-                          if (!_loadingFee && _nightSurcharge > 0)
-                            Text('+${Fmt.currency(_nightSurcharge)} đêm',
-                                style: const TextStyle(
-                                    fontSize: AppFontSize.caption, color: AppColors.warning)),
-                        ]),
+                  const SizedBox(height: 12),
+                  _FlatField(
+                    controller: _phoneCtrl,
+                    hint: 'SĐT liên hệ *',
+                    icon: Icons.phone_outlined,
+                    keyboardType: TextInputType.phone,
+                    validator: (v) => (v == null || v.trim().isEmpty)
+                        ? 'Nhập SĐT liên hệ'
+                        : null,
+                  ),
+                  const SizedBox(height: 12),
+                  _FlatField(
+                    controller: _noteCtrl,
+                    hint: 'Ghi chú (tuỳ chọn)',
+                    icon: Icons.note_alt_outlined,
+                  ),
                 ]),
+              ),
 
-                const SizedBox(height: 14),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: _submitting ? null : _submit,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      disabledBackgroundColor:
-                          AppColors.primary.withValues(alpha: 0.5),
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
-                      shape: const StadiumBorder(),
-                    ),
-                    child: _submitting
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                                strokeWidth: 2, color: Colors.white))
-                        : Text('Đặt nạp thẻ ngay',
-                            style: TextStyle(
-                                fontSize: AppFontSize.bodyLarge,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white)),
-                  ),
-                ),
+              if (_error != null) ...[
+                const SizedBox(height: 12),
+                Row(children: [
+                  const Icon(Icons.error_outline_rounded,
+                      color: AppColors.danger, size: 14),
+                  const SizedBox(width: 6),
+                  Expanded(
+                      child: Text(_error!,
+                          style: const TextStyle(
+                              color: AppColors.danger,
+                              fontSize: AppFontSize.caption))),
+                ]),
               ],
-            ),
+            ],
           ),
-        ],
+        ),
       ),
-    );
+      bottomNavigationBar: BookingSummaryBar(
+        serviceName: parsedAmount != null && parsedAmount > 0
+            ? 'Nạp ${Fmt.currency(parsedAmount)}'
+            : serviceName,
+        buttonLabel: 'Đặt nạp tiền hộ',
+        feeLabel: 'Phí dịch vụ',
+        emptyPriceHint: 'Nhập số tiền cần nạp để xem phí dịch vụ',
+        canEstimate: (parsedAmount ?? 0) > 0,
+        onRetry: () => _estimate(parsedAmount ?? 0),
+        distanceKm: null,
+        fee: (parsedAmount ?? 0) > 0 ? _fee : null,
+        netFee: _fee ?? 0,
+        nightSurcharge: _nightSurcharge,
+        loadingFee: _loadingFee,
+        error: null,
+        submitting: _submitting,
+        onSubmit: _submit,
+      ),
+    ));
   }
 }
 
@@ -619,11 +511,12 @@ class _FlatField extends StatelessWidget {
         controller: controller,
         keyboardType: keyboardType,
         maxLines: 1,
-        style: const TextStyle(fontSize: AppFontSize.bodyLarge, color: AppColors.textPrimary),
+        style: const TextStyle(
+            fontSize: AppFontSize.bodyLarge, color: AppColors.textPrimary),
         decoration: InputDecoration(
           labelText: hint,
-          labelStyle:
-              const TextStyle(fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
+          labelStyle: const TextStyle(
+              fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
           floatingLabelStyle: const TextStyle(
               fontSize: AppFontSize.body,
               color: AppColors.primary,
@@ -635,27 +528,8 @@ class _FlatField extends StatelessWidget {
               ? const BoxConstraints(minWidth: 40, minHeight: 40)
               : null,
           alignLabelWithHint: true,
-          filled: true,
-          fillColor: AppColors.surfaceAlt,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-          border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: BorderSide.none),
-          focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide:
-                  const BorderSide(color: AppColors.primary, width: 1.5)),
-          errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide: const BorderSide(color: AppColors.danger)),
-          focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppRadius.md),
-              borderSide:
-                  const BorderSide(color: AppColors.danger, width: 1.5)),
         ),
         validator: validator,
       );

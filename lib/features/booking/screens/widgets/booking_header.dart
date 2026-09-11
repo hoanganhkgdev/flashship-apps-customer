@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/widgets/liquid_glass.dart';
 
 class BookingHeader extends StatelessWidget {
   final String serviceType;
@@ -19,22 +20,20 @@ class BookingHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final svc = serviceDefOf(serviceType);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: svc.bgColor,
-        borderRadius: BorderRadius.circular(AppRadius.md),
-      ),
+    return LiquidGlass(
+      borderRadius: BorderRadius.circular(AppRadius.card),
+      padding: const EdgeInsets.all(14),
       child: Row(
         children: [
           Container(
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: svc.color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
+              color: svc.color.withValues(alpha: 0.16),
+              shape: BoxShape.circle,
+              border: Border.all(color: svc.color.withValues(alpha: 0.22)),
             ),
-            child: Icon(svc.icon, color: svc.color, size: 26),
+            child: Icon(svc.icon, color: svc.color, size: 24),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -42,10 +41,10 @@ class BookingHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
                       fontSize: AppFontSize.bodyLarge,
-                      color: svc.color,
+                      color: AppColors.textPrimary,
                     )),
                 const SizedBox(height: 3),
                 Text(subtitle,
@@ -55,14 +54,15 @@ class BookingHeader extends StatelessWidget {
             ),
           ),
           if (onPricingTap != null)
-            GestureDetector(
+            InkWell(
               onTap: onPricingTap,
+              borderRadius: BorderRadius.circular(999),
               child: Container(
                 padding:
                     const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
-                  color: svc.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
+                  color: svc.color.withValues(alpha: 0.14),
+                  borderRadius: BorderRadius.circular(999),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,

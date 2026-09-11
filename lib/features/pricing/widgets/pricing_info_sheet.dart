@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/formatters.dart';
 import '../providers/pricing_provider.dart';
 
@@ -11,9 +12,11 @@ class PricingInfoSheet extends ConsumerWidget {
 
   static void show(BuildContext context, {required String serviceType}) {
     showModalBottomSheet(
+      showDragHandle: false,
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      useSafeArea: true,
       builder: (_) => PricingInfoSheet(serviceType: serviceType),
     );
   }
@@ -24,10 +27,9 @@ class PricingInfoSheet extends ConsumerWidget {
     final color = AppColors.serviceColor(serviceType);
     final maxH = MediaQuery.of(context).size.height * 0.82;
 
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+    return GlassBottomSheet(
       child: Container(
-        color: AppColors.surface,
+        color: Colors.transparent,
         constraints: BoxConstraints(maxHeight: maxH),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -82,7 +84,7 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.055),
           border:
@@ -90,17 +92,14 @@ class _Header extends StatelessWidget {
         ),
         child: Row(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.md),
-              ),
-              child: Icon(Fmt.serviceIcon(serviceType), color: color, size: 24),
-            ),
+            GlassIcon(
+                icon: Fmt.serviceIcon(serviceType),
+                color: color,
+                size: 40,
+                iconSize: 21),
             const SizedBox(width: 12),
-            Column(
+            Expanded(
+                child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(Fmt.serviceLabel(serviceType),
@@ -110,9 +109,14 @@ class _Header extends StatelessWidget {
                         color: AppColors.textPrimary)),
                 Text('Bảng giá dịch vụ',
                     style: TextStyle(
-                        color: AppColors.textSecondary, fontSize: AppFontSize.bodyLarge)),
+                        color: AppColors.textSecondary,
+                        fontSize: AppFontSize.bodyLarge)),
               ],
-            ),
+            )),
+            IconButton(
+                tooltip: 'Đóng',
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded, size: 20)),
           ],
         ),
       );
@@ -128,7 +132,7 @@ class _PricingBody extends StatelessWidget {
     final type = cfg.configJson?['type'] as String?;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(24, 18, 24, 32),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 20),
       shrinkWrap: true,
       children: [
         if (type == 'slab') _SlabTable(cfg: cfg, color: color),
@@ -322,8 +326,10 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Text(
         text,
-        style:
-            TextStyle(fontWeight: FontWeight.w600, fontSize: AppFontSize.bodyLarge, color: color),
+        style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: AppFontSize.bodyLarge,
+            color: color),
       );
 }
 
@@ -455,7 +461,9 @@ class _NoteBox extends StatelessWidget {
                 'Phí được tính theo khoảng cách đường thực tế. '
                 'Giá cuối cùng hiển thị khi bạn chọn điểm đến.',
                 style: TextStyle(
-                    fontSize: AppFontSize.body, height: 1.5, color: AppColors.textSecondary),
+                    fontSize: AppFontSize.body,
+                    height: 1.5,
+                    color: AppColors.textSecondary),
               ),
             ),
           ],

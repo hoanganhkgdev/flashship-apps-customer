@@ -3,6 +3,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart' as gm;
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
 
 class MapPickResult {
   final String address;
@@ -152,24 +153,54 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.location_pin,
-                      color: AppColors.primary,
-                      size: 64,
-                      shadows: [
-                        Shadow(
-                          color: Color(0x44000000),
-                          blurRadius: 12,
-                          offset: Offset(0, 6),
-                        )
-                      ],
+                    SizedBox(
+                      width: 58,
+                      height: 64,
+                      child: Stack(alignment: Alignment.topCenter, children: [
+                        Positioned(
+                          bottom: 5,
+                          child: Transform.rotate(
+                            angle: .785398,
+                            child: Container(
+                              width: 18,
+                              height: 18,
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(
+                                    color: Colors.white.withValues(alpha: .85)),
+                              ),
+                            ),
+                          ),
+                        ),
+                        LiquidGlass(
+                          child: Container(
+                            width: 54,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(18),
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  Colors.white.withValues(alpha: .8),
+                                  AppColors.primary.withValues(alpha: .3)
+                                ],
+                              ),
+                            ),
+                            child: const Center(
+                                child: Icon(Icons.location_on_rounded,
+                                    size: 28, color: AppColors.primary)),
+                          ),
+                        ),
+                      ]),
                     ),
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 180),
                       width: _loadingAddress ? 30 : 22,
                       height: 6,
                       decoration: BoxDecoration(
-                        color: const Color(0x55382E29),
+                        color: AppColors.primary.withValues(alpha: .22),
                         borderRadius: BorderRadius.circular(99),
                       ),
                     ),
@@ -183,48 +214,49 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             bottom: false,
             child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: GestureDetector(
-                onTap: () => Navigator.of(context).pop(),
-                behavior: HitTestBehavior.opaque,
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    border: Border.all(color: AppColors.divider),
+              child:
+                  Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                LiquidGlass(
+                    child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: IconButton(
+                      tooltip: 'Quay lại',
+                      onPressed: () => Navigator.of(context).pop(),
+                      icon: const Icon(Icons.arrow_back_rounded,
+                          size: 22, color: AppColors.textPrimary)),
+                )),
+                const SizedBox(width: 10),
+                const Expanded(
+                    child: SizedBox(
+                  height: 48,
+                  child: LiquidGlass(
+                    padding: EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Chọn vị trí',
+                                  style: TextStyle(
+                                      fontSize: AppFontSize.bodyLarge,
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.textPrimary)),
+                              SizedBox(height: 2),
+                              Text('Di chuyển bản đồ để đặt ghim',
+                                  style: TextStyle(
+                                      fontSize: AppFontSize.caption,
+                                      color: AppColors.textSecondary)),
+                            ]),
+                      ),
+                    ),
                   ),
-                  child: const Icon(Icons.arrow_back_ios_new_rounded,
-                      size: 18, color: AppColors.textPrimary),
-                ),
-              ),
-            ),
-          ),
-
-          Positioned(
-            right: 24,
-            bottom: MediaQuery.of(context).padding.bottom + 224,
-            child: Material(
-              color: AppColors.surface,
-              elevation: 2,
-              shadowColor: const Color(0x22000000),
-              shape: const CircleBorder(),
-              child: InkWell(
-                onTap: _loadGpsLocation,
-                customBorder: const CircleBorder(),
-                child: SizedBox(
-                  width: 56,
-                  height: 56,
-                  child: _locating
-                      ? const Padding(
-                          padding: EdgeInsets.all(17),
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: AppColors.primary),
-                        )
-                      : const Icon(Icons.my_location_rounded,
-                          size: 25, color: AppColors.primary),
-                ),
-              ),
+                )),
+              ]),
             ),
           ),
 
@@ -232,57 +264,54 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
             left: 0,
             right: 0,
             bottom: 0,
-            child: Container(
-              decoration: const BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x22000000),
-                    blurRadius: 24,
-                    offset: Offset(0, -6),
-                  )
-                ],
-              ),
+            child: LiquidGlass(
+              borderRadius:
+                  const BorderRadius.vertical(top: Radius.circular(18)),
               padding: EdgeInsets.fromLTRB(
-                24,
-                22,
-                24,
-                MediaQuery.of(context).padding.bottom + 24,
+                16,
+                16,
+                16,
+                MediaQuery.of(context).padding.bottom + 16,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: AppColors.divider,
-                        borderRadius: BorderRadius.circular(99),
+                  Row(children: [
+                    const Expanded(
+                        child: Text('Vị trí đã chọn',
+                            style: TextStyle(
+                                fontSize: AppFontSize.bodyLarge,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary))),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      tooltip: 'Về vị trí hiện tại',
+                      onPressed: _locating ? null : _loadGpsLocation,
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: .45),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18)),
                       ),
+                      icon: _locating
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2, color: AppColors.primary))
+                          : const Icon(Icons.my_location_rounded,
+                              size: 21, color: AppColors.primary),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text('VỊ TRÍ ĐÃ CHỌN',
-                      style: TextStyle(
-                          fontSize: AppFontSize.caption,
-                          letterSpacing: .8,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textTertiary)),
-                  const SizedBox(height: 10),
+                  ]),
+                  const SizedBox(height: 8),
                   Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Padding(
-                        padding: const EdgeInsets.only(top: 1),
-                        child: Icon(
-                          Icons.location_on_rounded,
+                      const GlassIcon(
+                          icon: Icons.location_on_rounded,
                           color: AppColors.primary,
-                          size: 24,
-                        ),
-                      ),
+                          size: 34,
+                          iconSize: 18),
                       const SizedBox(width: 8),
                       Expanded(
                         child: _loadingAddress
@@ -316,10 +345,16 @@ class _MapPickerScreenState extends State<MapPickerScreen> {
                           : _confirm,
                       style: ElevatedButton.styleFrom(
                         elevation: 0,
-                        backgroundColor: AppColors.primary,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: const Color(0xFFFFC8B5),
-                        shape: const StadiumBorder(),
+                        backgroundColor:
+                            AppColors.primary.withValues(alpha: .16),
+                        foregroundColor: AppColors.primary,
+                        disabledBackgroundColor:
+                            Colors.white.withValues(alpha: .3),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                            side: BorderSide(
+                                color:
+                                    AppColors.primary.withValues(alpha: .2))),
                       ),
                       child: Text(
                         'Chọn địa điểm này',

@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/glass_input_border.dart';
 import '../providers/auth_provider.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
@@ -25,6 +27,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   }
 
   Future<void> _submit() async {
+    if (ref.read(authProvider).isLoading) return;
     if (!_formKey.currentState!.validate()) return;
     final phone = _phoneCtrl.text.trim();
     final ok = await ref.read(authProvider.notifier).forgotPassword(phone);
@@ -40,127 +43,203 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    final keyboardBottom = MediaQuery.viewInsetsOf(context).bottom;
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
+    return LiquidBackdrop(
+        child: Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: EdgeInsets.fromLTRB(24, 18, 24, keyboardBottom + 32),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _BackButton(onTap: () => context.pop()),
-                const SizedBox(height: 24),
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppColors.primarySoft,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                  ),
-                  child: const Icon(
-                    Icons.lock_outline_rounded,
-                    size: 30,
-                    color: _orange,
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Quên mật khẩu?',
-                  style: _style(AppFontSize.xlarge, FontWeight.w600, _ink),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Nhập số điện thoại đã đăng ký, chúng tôi sẽ gửi mã xác thực để đặt lại mật khẩu',
-                  style: _style(AppFontSize.bodyLarge, FontWeight.w500, _muted, 1.45),
-                ),
-                const SizedBox(height: 26),
-                Text(
-                  'Số điện thoại',
-                  style: _style(AppFontSize.body, FontWeight.w600, _ink),
-                ),
-                const SizedBox(height: 7),
-                TextFormField(
-                  controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _submit(),
-                  style: _style(AppFontSize.bodyLarge, FontWeight.w600, _ink),
-                  decoration: InputDecoration(
-                    hintText: '0912 345 678',
-                    hintStyle: _style(AppFontSize.bodyLarge, FontWeight.w600, _softMuted),
-                    prefixIcon: const Icon(
-                      Icons.phone_outlined,
-                      size: 22,
-                      color: _muted,
-                    ),
-                    filled: true,
-                    fillColor: AppColors.surfaceAlt,
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 18,
-                      vertical: 17,
-                    ),
-                    border: _border(Colors.transparent),
-                    enabledBorder: _border(Colors.transparent),
-                    focusedBorder: _border(_orange, width: 1.5),
-                    errorBorder: _border(AppColors.danger),
-                    focusedErrorBorder: _border(AppColors.danger, width: 1.5),
-                    errorStyle: _style(AppFontSize.caption, null, AppColors.danger),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Vui lòng nhập số điện thoại';
-                    }
-                    if (value.trim().length < 9) {
-                      return 'Số điện thoại không hợp lệ';
-                    }
-                    return null;
-                  },
-                ),
-                if (auth.error != null) ...[
-                  const SizedBox(height: 12),
-                  _ErrorMessage(message: auth.error!),
-                ],
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: FilledButton(
-                    onPressed: auth.isLoading ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _orange,
-                      disabledBackgroundColor: _orange.withValues(alpha: .5),
-                      shape: const StadiumBorder(),
-                      elevation: 0,
-                      textStyle: _style(AppFontSize.bodyLarge, FontWeight.w600),
-                    ),
-                    child: auth.isLoading
-                        ? const SizedBox.square(
-                            dimension: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Gửi mã xác thực'),
-                  ),
-                ),
-              ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _BackButton(onTap: () => context.pop()),
             ),
-          ),
+            Expanded(
+                child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 480),
+                        child: SingleChildScrollView(
+                          keyboardDismissBehavior:
+                              ScrollViewKeyboardDismissBehavior.onDrag,
+                          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Center(
+                                    child: GlassIcon(
+                                        icon: Icons.lock_reset_rounded,
+                                        color: _orange,
+                                        size: 72,
+                                        iconSize: 36)),
+                                const SizedBox(height: 20),
+                                Center(
+                                    child: Text(
+                                  'Quên mật khẩu?',
+                                  style: _style(AppFontSize.xlarge,
+                                      FontWeight.w800, _ink),
+                                )),
+                                const SizedBox(height: 8),
+                                Center(
+                                    child: Text(
+                                  'Nhận mã để đặt lại mật khẩu',
+                                  textAlign: TextAlign.center,
+                                  style: _style(AppFontSize.bodyLarge,
+                                      FontWeight.w500, _muted, 1.45),
+                                )),
+                                const SizedBox(height: 26),
+                                LiquidGlass(
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Số điện thoại',
+                                          style: _style(AppFontSize.body,
+                                              FontWeight.w600, _ink),
+                                        ),
+                                        const SizedBox(height: 7),
+                                        TextFormField(
+                                          controller: _phoneCtrl,
+                                          keyboardType: TextInputType.phone,
+                                          inputFormatters: [
+                                            FilteringTextInputFormatter
+                                                .digitsOnly
+                                          ],
+                                          textInputAction: TextInputAction.done,
+                                          onFieldSubmitted: (_) => _submit(),
+                                          style: _style(AppFontSize.bodyLarge,
+                                              FontWeight.w600, _ink),
+                                          decoration: InputDecoration(
+                                            hintText: '0912 345 678',
+                                            hintStyle: _style(
+                                                AppFontSize.bodyLarge,
+                                                FontWeight.w600,
+                                                _softMuted),
+                                            prefixIcon: const Padding(
+                                                padding: EdgeInsets.all(9),
+                                                child: GlassIcon(
+                                                    icon: Icons.phone_outlined,
+                                                    color: _orange,
+                                                    size: 32,
+                                                    iconSize: 17)),
+                                            filled: true,
+                                            fillColor: Colors.white
+                                                .withValues(alpha: .46),
+                                            contentPadding:
+                                                const EdgeInsets.symmetric(
+                                              horizontal: 18,
+                                              vertical: 17,
+                                            ),
+                                            border: _border(Colors.transparent),
+                                            enabledBorder: _border(Colors.white
+                                                .withValues(alpha: .8)),
+                                            focusedBorder:
+                                                _border(_orange, width: 1.5),
+                                            errorBorder:
+                                                _border(AppColors.danger),
+                                            focusedErrorBorder: _border(
+                                                AppColors.danger,
+                                                width: 1.5),
+                                            errorStyle: _style(
+                                                AppFontSize.caption,
+                                                null,
+                                                AppColors.danger),
+                                          ),
+                                          validator: (value) {
+                                            if (value == null ||
+                                                value.trim().isEmpty) {
+                                              return 'Vui lòng nhập số điện thoại';
+                                            }
+                                            if (value.trim().length < 9) {
+                                              return 'Số điện thoại không hợp lệ';
+                                            }
+                                            return null;
+                                          },
+                                        ),
+                                        if (auth.error != null) ...[
+                                          const SizedBox(height: 12),
+                                          _ErrorMessage(message: auth.error!),
+                                        ],
+                                        const SizedBox(height: 28),
+                                        SizedBox(
+                                          width: double.infinity,
+                                          height: 54,
+                                          child: DecoratedBox(
+                                            decoration: BoxDecoration(
+                                              borderRadius:
+                                                  BorderRadius.circular(18),
+                                              gradient: const LinearGradient(
+                                                  colors: [
+                                                    Color(0xFFFF9454),
+                                                    _orange
+                                                  ]),
+                                              boxShadow: [
+                                                BoxShadow(
+                                                    color: _orange.withValues(
+                                                        alpha: .2),
+                                                    blurRadius: 16,
+                                                    offset: const Offset(0, 6))
+                                              ],
+                                            ),
+                                            child: FilledButton(
+                                              onPressed: auth.isLoading
+                                                  ? null
+                                                  : _submit,
+                                              style: FilledButton.styleFrom(
+                                                backgroundColor:
+                                                    Colors.transparent,
+                                                foregroundColor: Colors.white,
+                                                disabledBackgroundColor: _orange
+                                                    .withValues(alpha: .5),
+                                                shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            18)),
+                                                elevation: 0,
+                                                textStyle: _style(
+                                                    AppFontSize.bodyLarge,
+                                                    FontWeight.w600),
+                                              ),
+                                              child: auth.isLoading
+                                                  ? const SizedBox.square(
+                                                      dimension: 22,
+                                                      child:
+                                                          CircularProgressIndicator(
+                                                        strokeWidth: 2.5,
+                                                        color: Colors.white,
+                                                      ),
+                                                    )
+                                                  : const Text(
+                                                      'Gửi mã xác thực'),
+                                            ),
+                                          ),
+                                        ),
+                                      ]),
+                                ),
+                                const SizedBox(height: 16),
+                                Center(
+                                    child: TextButton(
+                                  onPressed: () => context.pop(),
+                                  child: const Text('Quay lại đăng nhập'),
+                                )),
+                              ],
+                            ),
+                          ),
+                        )))),
+          ],
         ),
       ),
-    );
+    ));
   }
 
   OutlineInputBorder _border(Color color, {double width = 1}) {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppRadius.md),
+    return GlassInputBorder(
+      borderRadius: BorderRadius.circular(18),
       borderSide: BorderSide(color: color, width: width),
     );
   }
@@ -173,22 +252,15 @@ class _BackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.divider),
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        child: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          size: 18,
-          color: _ink,
-        ),
-      ),
+    return LiquidGlass(
+      child: SizedBox(
+          width: 48,
+          height: 48,
+          child: IconButton(
+              tooltip: 'Quay lại',
+              onPressed: onTap,
+              icon:
+                  const Icon(Icons.arrow_back_rounded, size: 22, color: _ink))),
     );
   }
 }
@@ -218,7 +290,8 @@ class _ErrorMessage extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: _style(AppFontSize.body, FontWeight.w500, AppColors.danger),
+              style:
+                  _style(AppFontSize.body, FontWeight.w500, AppColors.danger),
             ),
           ),
         ],

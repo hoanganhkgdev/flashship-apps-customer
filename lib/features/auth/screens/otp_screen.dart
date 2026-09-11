@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../providers/auth_provider.dart';
 
 class OtpScreen extends ConsumerStatefulWidget {
@@ -120,144 +121,195 @@ class _OtpScreenState extends ConsumerState<OtpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final keyboardBottom = MediaQuery.viewInsetsOf(context).bottom;
     final codeComplete = _otpCtrl.text.length == 6;
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
+    return LiquidBackdrop(
+        child: Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: EdgeInsets.fromLTRB(24, 18, 24, keyboardBottom + 32),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _BackButton(onTap: () => context.pop()),
-              const SizedBox(height: 24),
-              Container(
-                width: 64,
-                height: 64,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                ),
-                child: _otpSending
-                    ? const Center(
-                        child: SizedBox.square(
-                          dimension: 26,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: _orange,
-                          ),
-                        ),
-                      )
-                    : const Icon(
-                        Icons.mail_outline_rounded,
-                        size: 30,
-                        color: _orange,
-                      ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                _otpSending ? 'Đang gửi lại mã...' : 'Xác thực OTP',
-                style: _style(AppFontSize.xlarge, FontWeight.w600, _ink),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Nhập mã 6 số vừa được gửi đến số điện thoại',
-                style: _style(AppFontSize.bodyLarge, FontWeight.w500, _muted, 1.4),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                _formattedPhone,
-                style: _style(AppFontSize.bodyLarge, FontWeight.w600, _ink),
-              ),
-              const SizedBox(height: 30),
-              if (!_otpSending) ...[
-                _OtpInputRow(
-                  controller: _otpCtrl,
-                  onChanged: () => setState(() => _error = null),
-                  onFilled: _submit,
-                ),
-                if (_error != null) ...[
-                  const SizedBox(height: 14),
-                  _ErrorMessage(message: _error!),
-                ],
-                const SizedBox(height: 22),
-                Center(
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: _resendSeconds > 0
-                        ? RichText(
-                            key: const ValueKey('countdown'),
-                            text: TextSpan(
-                              style: _style(AppFontSize.body, FontWeight.w500, _muted),
-                              children: [
-                                const TextSpan(text: 'Không nhận được mã? '),
-                                TextSpan(
-                                  text: 'Gửi lại sau ${_resendSeconds}s',
-                                  style: _style(
-                                    AppFontSize.body,
-                                    FontWeight.w600,
-                                    _softMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )
-                        : GestureDetector(
-                            key: const ValueKey('resend'),
-                            onTap: _resend,
-                            child: RichText(
-                              text: TextSpan(
-                                style: _style(AppFontSize.body, FontWeight.w500, _muted),
-                                children: [
-                                  const TextSpan(text: 'Không nhận được mã? '),
-                                  TextSpan(
-                                    text: 'Gửi lại',
-                                    style: _style(
-                                      AppFontSize.body,
-                                      FontWeight.w600,
-                                      _orange,
-                                    ),
-                                  ),
-                                ],
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _BackButton(onTap: () => context.pop())),
+          Expanded(
+              child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: SingleChildScrollView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Center(
+                                child: Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: AppColors.primarySoft,
+                                borderRadius:
+                                    BorderRadius.circular(AppRadius.card),
                               ),
+                              child: _otpSending
+                                  ? const Center(
+                                      child: SizedBox.square(
+                                        dimension: 26,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2.5,
+                                          color: _orange,
+                                        ),
+                                      ),
+                                    )
+                                  : const GlassIcon(
+                                      icon: Icons.mark_email_read_outlined,
+                                      size: 64,
+                                      iconSize: 30,
+                                      color: _orange),
+                            )),
+                            const SizedBox(height: 20),
+                            Text(
+                              _otpSending
+                                  ? 'Đang gửi lại mã...'
+                                  : 'Xác thực OTP',
+                              textAlign: TextAlign.center,
+                              style: _style(
+                                  AppFontSize.xlarge, FontWeight.w800, _ink),
                             ),
-                          ),
-                  ),
-                ),
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: FilledButton(
-                    onPressed: !codeComplete || _loading ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _orange,
-                      disabledBackgroundColor: AppColors.surfaceAlt,
-                      disabledForegroundColor: _softMuted,
-                      shape: const StadiumBorder(),
-                      elevation: 0,
-                      textStyle: _style(AppFontSize.bodyLarge, FontWeight.w600),
-                    ),
-                    child: _loading
-                        ? const SizedBox.square(
-                            dimension: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
+                            const SizedBox(height: 8),
+                            Text(
+                              'Nhập mã 6 số đã gửi đến',
+                              textAlign: TextAlign.center,
+                              style: _style(AppFontSize.bodyLarge,
+                                  FontWeight.w500, _muted, 1.4),
                             ),
-                          )
-                        : const Text('Xác nhận'),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _formattedPhone,
+                              textAlign: TextAlign.center,
+                              style: _style(
+                                  AppFontSize.bodyLarge, FontWeight.w600, _ink),
+                            ),
+                            const SizedBox(height: 30),
+                            if (!_otpSending) ...[
+                              LiquidGlass(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
+                                    children: [
+                                      _OtpInputRow(
+                                        controller: _otpCtrl,
+                                        onChanged: () =>
+                                            setState(() => _error = null),
+                                        onFilled: _submit,
+                                      ),
+                                      if (_error != null) ...[
+                                        const SizedBox(height: 14),
+                                        _ErrorMessage(message: _error!),
+                                      ],
+                                      const SizedBox(height: 22),
+                                      Center(
+                                        child: AnimatedSwitcher(
+                                          duration:
+                                              const Duration(milliseconds: 200),
+                                          child: _resendSeconds > 0
+                                              ? RichText(
+                                                  textAlign: TextAlign.center,
+                                                  key: const ValueKey(
+                                                      'countdown'),
+                                                  text: TextSpan(
+                                                    style: _style(
+                                                        AppFontSize.body,
+                                                        FontWeight.w500,
+                                                        _muted),
+                                                    children: [
+                                                      const TextSpan(
+                                                          text:
+                                                              'Không nhận được mã? '),
+                                                      TextSpan(
+                                                        text:
+                                                            'Gửi lại sau ${_resendSeconds}s',
+                                                        style: _style(
+                                                          AppFontSize.body,
+                                                          FontWeight.w600,
+                                                          _softMuted,
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                )
+                                              : GestureDetector(
+                                                  key: const ValueKey('resend'),
+                                                  onTap: _resend,
+                                                  child: RichText(
+                                                    textAlign: TextAlign.center,
+                                                    text: TextSpan(
+                                                      style: _style(
+                                                          AppFontSize.body,
+                                                          FontWeight.w500,
+                                                          _muted),
+                                                      children: [
+                                                        const TextSpan(
+                                                            text:
+                                                                'Không nhận được mã? '),
+                                                        TextSpan(
+                                                          text: 'Gửi lại',
+                                                          style: _style(
+                                                            AppFontSize.body,
+                                                            FontWeight.w600,
+                                                            _orange,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 28),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 54,
+                                        child: FilledButton(
+                                          onPressed: !codeComplete || _loading
+                                              ? null
+                                              : _submit,
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor: _orange,
+                                            disabledBackgroundColor:
+                                                AppColors.surfaceAlt,
+                                            disabledForegroundColor: _softMuted,
+                                            shape: RoundedRectangleBorder(
+                                                borderRadius:
+                                                    BorderRadius.circular(18)),
+                                            elevation: 0,
+                                            textStyle: _style(
+                                                AppFontSize.bodyLarge,
+                                                FontWeight.w600),
+                                          ),
+                                          child: _loading
+                                              ? const SizedBox.square(
+                                                  dimension: 22,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                    strokeWidth: 2.5,
+                                                    color: Colors.white,
+                                                  ),
+                                                )
+                                              : const Text('Xác nhận'),
+                                        ),
+                                      ),
+                                    ]),
+                              ),
+                            ],
+                          ],
+                        ),
+                      )))),
+        ]),
       ),
-    );
+    ));
   }
 }
 
@@ -268,22 +320,15 @@ class _BackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.divider),
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        child: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          size: 18,
-          color: _ink,
-        ),
-      ),
+    return LiquidGlass(
+      child: SizedBox(
+          width: 48,
+          height: 48,
+          child: IconButton(
+              tooltip: 'Quay lại',
+              onPressed: onTap,
+              icon:
+                  const Icon(Icons.arrow_back_rounded, size: 22, color: _ink))),
     );
   }
 }
@@ -355,7 +400,7 @@ class _OtpInputRowState extends State<_OtpInputRow> {
             builder: (context, constraints) {
               const gap = 8.0;
               final boxWidth = (constraints.maxWidth - gap * 5) / 6;
-              final width = boxWidth.clamp(42.0, 58.0);
+              final width = boxWidth.clamp(0.0, 58.0);
               final code = widget.controller.text;
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -367,16 +412,22 @@ class _OtpInputRowState extends State<_OtpInputRow> {
                     width: width,
                     height: 58,
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceAlt,
-                      borderRadius: BorderRadius.circular(AppRadius.md),
-                      border:
-                          active ? Border.all(color: _orange, width: 2) : null,
+                      color: filled
+                          ? _orange.withValues(alpha: .1)
+                          : Colors.white.withValues(alpha: .45),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                          color: active
+                              ? _orange
+                              : Colors.white.withValues(alpha: .8),
+                          width: active ? 2 : 1),
                     ),
                     alignment: Alignment.center,
                     child: filled
                         ? Text(
                             code[index],
-                            style: _style(AppFontSize.display, FontWeight.w600, _ink),
+                            style: _style(
+                                AppFontSize.display, FontWeight.w600, _ink),
                           )
                         : null,
                   );
@@ -415,7 +466,8 @@ class _ErrorMessage extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: _style(AppFontSize.body, FontWeight.w500, AppColors.danger),
+              style:
+                  _style(AppFontSize.body, FontWeight.w500, AppColors.danger),
             ),
           ),
         ],

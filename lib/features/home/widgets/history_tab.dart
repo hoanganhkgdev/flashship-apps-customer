@@ -49,38 +49,34 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
       _ => all,
     };
     final query = _searchCtrl.text.trim().toLowerCase();
-    final filtered = byStatus
-        .where((order) {
-          if (query.isEmpty) return true;
-          return order.code.toLowerCase().contains(query) ||
-              (order.pickupAddress?.toLowerCase().contains(query) ?? false) ||
-              (order.deliveryAddress?.toLowerCase().contains(query) ?? false) ||
-              Fmt.serviceLabel(order.serviceType).toLowerCase().contains(query);
-        })
-        .take(10)
-        .toList();
+    final filtered = byStatus.where((order) {
+      if (query.isEmpty) return true;
+      return order.code.toLowerCase().contains(query) ||
+          (order.pickupAddress?.toLowerCase().contains(query) ?? false) ||
+          (order.deliveryAddress?.toLowerCase().contains(query) ?? false) ||
+          Fmt.serviceLabel(order.serviceType).toLowerCase().contains(query);
+    }).toList();
 
-    return ColoredBox(
-      color: AppColors.surface,
+    return LiquidBackdrop(
       child: SafeArea(
-        child: ColoredBox(
-          color: AppColors.background,
+        bottom: false,
+        child: Padding(
+          padding: EdgeInsets.zero,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // ── Header + Filter ──────────────────────────────────────────
               Container(
-                color: AppColors.surface,
-                padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(children: [
-                      Text('Hoạt động',
+                      Text('Lịch sử đơn',
                           style: TextStyle(
                               fontSize: AppFontSize.display,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textPrimary)),
+                              fontWeight: FontWeight.w800,
+                              color: HomeStyle.ink)),
                       const Spacer(),
                       if (loading)
                         const SizedBox(
@@ -96,9 +92,13 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                           }),
                           style: IconButton.styleFrom(
                             minimumSize: const Size(42, 42),
-                            side: const BorderSide(color: AppColors.divider),
+                            backgroundColor:
+                                Colors.white.withValues(alpha: .45),
+                            side: BorderSide(
+                                color: Colors.white.withValues(alpha: .8)),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                              borderRadius:
+                                  BorderRadius.circular(AppRadius.glass),
                             ),
                           ),
                           icon: Icon(
@@ -131,17 +131,20 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                             color: AppColors.textTertiary,
                           ),
                           filled: true,
-                          fillColor: AppColors.surfaceAlt,
+                          fillColor: Colors.white.withValues(alpha: .45),
                           border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.glass),
                             borderSide: BorderSide.none,
                           ),
                           enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.glass),
                             borderSide: BorderSide.none,
                           ),
                           focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            borderRadius:
+                                BorderRadius.circular(AppRadius.glass),
                             borderSide: const BorderSide(
                               color: AppColors.primary,
                             ),
@@ -149,7 +152,14 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                         ),
                       ),
                     ],
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Theo dõi hành trình và xem lại các đơn của bạn',
+                      style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          color: HomeStyle.muted),
+                    ),
+                    const SizedBox(height: 16),
                     SizedBox(
                       height: 36,
                       child: ListView.separated(
@@ -168,14 +178,14 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                                   const EdgeInsets.symmetric(horizontal: 14),
                               decoration: BoxDecoration(
                                 color: selected
-                                    ? AppColors.primary
-                                    : AppColors.surface,
+                                    ? AppColors.primary.withValues(alpha: .16)
+                                    : Colors.white.withValues(alpha: .42),
                                 borderRadius:
                                     BorderRadius.circular(AppRadius.card),
                                 border: Border.all(
                                   color: selected
-                                      ? AppColors.primary
-                                      : AppColors.divider,
+                                      ? AppColors.primary.withValues(alpha: .3)
+                                      : Colors.white.withValues(alpha: .8),
                                 ),
                               ),
                               child: Center(
@@ -186,7 +196,7 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                                             ? FontWeight.w600
                                             : FontWeight.w500,
                                         color: selected
-                                            ? Colors.white
+                                            ? AppColors.primary
                                             : AppColors.textSecondary)),
                               ),
                             ),
@@ -197,7 +207,6 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                   ],
                 ),
               ),
-              const Divider(height: 1, color: AppColors.divider),
 
               // ── Content ──────────────────────────────────────────────────
               Expanded(
@@ -246,71 +255,75 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
                                   ),
                                 ]),
                           )
-                        : filtered.isEmpty
-                            ? _HistoryEmpty(
-                                onTryNow: () => ref
-                                    .read(_homeTabProvider.notifier)
-                                    .state = 0)
-                            : RefreshIndicator(
-                                color: AppColors.primary,
-                                onRefresh: () async => ref
-                                    .read(orderListProvider.notifier)
-                                    .fetch(),
-                                child: ListView.builder(
-                                  padding: EdgeInsets.fromLTRB(16, 12, 16,
-                                      32 + BottomNav.reservedHeight(context)),
-                                  itemCount: filtered.length +
-                                      (state.hasMore && _selectedType == 'all'
-                                          ? 1
-                                          : 0),
-                                  itemBuilder: (_, i) {
-                                    if (i == filtered.length) {
-                                      return Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 16),
-                                        child: Center(
-                                          child: state.isLoadingMore
-                                              ? const SizedBox(
-                                                  width: 20,
-                                                  height: 20,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          color: AppColors
-                                                              .primary))
-                                              : OutlinedButton.icon(
-                                                  onPressed: () => ref
-                                                      .read(orderListProvider
-                                                          .notifier)
-                                                      .loadMore(),
-                                                  icon: const Icon(
-                                                      Icons.expand_more_rounded,
-                                                      size: 18),
-                                                  label: Text('Xem thêm',
-                                                      style: TextStyle(
-                                                          fontSize: AppFontSize.body,
-                                                          fontWeight:
-                                                              FontWeight.w600)),
-                                                  style:
-                                                      OutlinedButton.styleFrom(
-                                                    foregroundColor:
-                                                        AppColors.primary,
-                                                    side: const BorderSide(
-                                                        color:
-                                                            AppColors.primary),
-                                                  ),
-                                                ),
-                                        ),
-                                      );
-                                    }
-                                    return Padding(
-                                      padding:
-                                          const EdgeInsets.only(bottom: 10),
-                                      child: _OrderCard(order: filtered[i]),
-                                    );
-                                  },
-                                ),
-                              ),
+                        : RefreshIndicator(
+                            color: AppColors.primary,
+                            onRefresh: () async =>
+                                ref.read(orderListProvider.notifier).fetch(),
+                            child: ListView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: EdgeInsets.fromLTRB(16, 12, 16,
+                                  32 + BottomNav.reservedHeight(context)),
+                              itemCount:
+                                  (filtered.isEmpty ? 1 : filtered.length) +
+                                      (state.hasMore ? 1 : 0),
+                              itemBuilder: (_, i) {
+                                if (filtered.isEmpty && i == 0) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 32),
+                                    child: _HistoryEmpty(
+                                      isFiltered: query.isNotEmpty ||
+                                          _selectedType != 'all',
+                                      onTryNow: () => ref
+                                          .read(_homeTabProvider.notifier)
+                                          .state = 0,
+                                    ),
+                                  );
+                                }
+                                if (i ==
+                                    (filtered.isEmpty ? 1 : filtered.length)) {
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 16),
+                                    child: Center(
+                                      child: state.isLoadingMore
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                  strokeWidth: 2,
+                                                  color: AppColors.primary))
+                                          : OutlinedButton.icon(
+                                              onPressed: () => ref
+                                                  .read(orderListProvider
+                                                      .notifier)
+                                                  .loadMore(),
+                                              icon: const Icon(
+                                                  Icons.expand_more_rounded,
+                                                  size: 18),
+                                              label: Text('Xem thêm',
+                                                  style: TextStyle(
+                                                      fontSize:
+                                                          AppFontSize.body,
+                                                      fontWeight:
+                                                          FontWeight.w600)),
+                                              style: OutlinedButton.styleFrom(
+                                                foregroundColor:
+                                                    AppColors.primary,
+                                                side: const BorderSide(
+                                                    color: AppColors.primary),
+                                              ),
+                                            ),
+                                    ),
+                                  );
+                                }
+                                return Padding(
+                                  padding: const EdgeInsets.only(bottom: 10),
+                                  child: _OrderCard(order: filtered[i]),
+                                );
+                              },
+                            ),
+                          ),
               ),
             ],
           ),
@@ -324,7 +337,8 @@ class _HistoryTabState extends ConsumerState<_HistoryTab> {
 
 class _HistoryEmpty extends StatelessWidget {
   final VoidCallback onTryNow;
-  const _HistoryEmpty({required this.onTryNow});
+  final bool isFiltered;
+  const _HistoryEmpty({required this.onTryNow, this.isFiltered = false});
 
   @override
   Widget build(BuildContext context) {
@@ -334,19 +348,14 @@ class _HistoryEmpty extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: 96,
-              height: 96,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(AppRadius.xl),
-              ),
-              child: Icon(Icons.receipt_long_outlined,
-                  size: 46, color: AppColors.primary.withValues(alpha: 0.8)),
-            ),
+            const GlassIcon(
+                icon: Icons.receipt_long_rounded,
+                color: HomeStyle.orange,
+                size: 72,
+                iconSize: 34),
             const SizedBox(height: 24),
             Text(
-              'Chưa có đơn hàng nào',
+              isFiltered ? 'Không có đơn phù hợp' : 'Chưa có đơn hàng nào',
               style: TextStyle(
                   fontSize: AppFontSize.title,
                   fontWeight: FontWeight.w600,
@@ -354,26 +363,32 @@ class _HistoryEmpty extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Hãy đặt dịch vụ đầu tiên và\ntận hưởng các ưu đãi cực khủng!',
+              isFiltered
+                  ? 'Thử đổi trạng thái hoặc từ khóa tìm kiếm.'
+                  : 'Các đơn bạn đặt sẽ xuất hiện tại đây.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                  fontSize: AppFontSize.body, color: AppColors.textSecondary, height: 1.6),
+                  fontSize: AppFontSize.body,
+                  color: AppColors.textSecondary,
+                  height: 1.6),
             ),
             const SizedBox(height: 28),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: FilledButton(
-                onPressed: onTryNow,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  elevation: 0,
-                  textStyle:
-                      TextStyle(fontSize: AppFontSize.bodyLarge, fontWeight: FontWeight.w600),
+            if (!isFiltered)
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: FilledButton(
+                  onPressed: onTryNow,
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    elevation: 0,
+                    textStyle: TextStyle(
+                        fontSize: AppFontSize.bodyLarge,
+                        fontWeight: FontWeight.w600),
+                  ),
+                  child: const Text('Đặt ngay'),
                 ),
-                child: const Text('Đặt ngay'),
               ),
-            ),
           ],
         ),
       ),
@@ -424,133 +439,126 @@ class _OrderCard extends StatelessWidget {
     final totalFee = order.shippingFee;
     final pickup = order.pickupAddress ?? order.storeName ?? '—';
 
-    return Material(
-      color: AppColors.surface,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        side: const BorderSide(color: AppColors.divider),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push('/order/${order.code}'),
-        borderRadius: BorderRadius.circular(AppRadius.card),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: _iconColor().withValues(alpha: .12),
-                      borderRadius: BorderRadius.circular(AppRadius.sm),
-                    ),
-                    child: Icon(
-                      Fmt.serviceIcon(order.serviceType),
-                      size: 21,
-                      color: _iconColor(),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      '${Fmt.serviceLabel(order.serviceType)} · #${order.code}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: AppFontSize.bodyLarge,
-                        fontWeight: FontWeight.w600,
-                        color: order.isCancelled
-                            ? const Color(0xFFBEB5B0)
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 6,
-                    ),
-                    decoration: BoxDecoration(
-                      color: statusColor.withValues(alpha: .12),
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                    ),
-                    child: Text(
-                      _statusLabel(),
-                      style: TextStyle(
-                        fontSize: AppFontSize.body,
-                        fontWeight: FontWeight.w600,
-                        color: statusColor,
-                      ),
-                    ),
-                  ),
-                ],
+    return LiquidGlass(
+      borderRadius: HomeStyle.radius,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => context.push('/order/${order.code}'),
+          borderRadius: HomeStyle.radius,
+          child: Padding(
+            padding: const EdgeInsets.all(14),
+            child:
+                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Row(children: [
+                GlassIcon(
+                    icon: Fmt.serviceIcon(order.serviceType),
+                    color: _iconColor(),
+                    size: 42,
+                    iconSize: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text('#${order.code}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontSize: AppFontSize.bodyLarge,
+                              fontWeight: FontWeight.w700,
+                              color: HomeStyle.ink)),
+                      const SizedBox(height: 4),
+                      Text.rich(
+                          TextSpan(children: [
+                            TextSpan(
+                                text:
+                                    '${Fmt.serviceLabel(order.serviceType)} · ',
+                                style: const TextStyle(color: HomeStyle.muted)),
+                            TextSpan(
+                                text: _statusLabel(),
+                                style: TextStyle(color: statusColor)),
+                          ]),
+                          style: const TextStyle(
+                              fontSize: AppFontSize.caption,
+                              fontWeight: FontWeight.w600)),
+                    ])),
+                const SizedBox(width: 6),
+                const Icon(Icons.chevron_right_rounded,
+                    color: HomeStyle.muted, size: 20),
+              ]),
+              const SizedBox(height: 14),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: .35),
+                  borderRadius: HomeStyle.radius,
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: .65)),
+                ),
+                child: Column(children: [
+                  _addressRow(Icons.radio_button_checked_rounded,
+                      HomeStyle.orange, 'Điểm lấy', pickup),
+                  if (order.deliveryAddress?.trim().isNotEmpty == true) ...[
+                    const SizedBox(height: 10),
+                    _addressRow(Icons.location_on_rounded, AppColors.info,
+                        'Điểm giao', order.deliveryAddress!),
+                  ],
+                ]),
               ),
-              const SizedBox(height: 13),
-              Row(
-                children: [
-                  const Icon(
-                    Icons.location_on_outlined,
-                    size: 17,
-                    color: AppColors.textTertiary,
-                  ),
-                  const SizedBox(width: 7),
-                  Expanded(
+              const SizedBox(height: 12),
+              Row(children: [
+                const Icon(Icons.schedule_rounded,
+                    size: 14, color: HomeStyle.muted),
+                const SizedBox(width: 5),
+                Expanded(
                     child: Text(
-                      order.isCancelled && order.cancelReason != null
-                          ? order.cancelReason!
-                          : pickup,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontSize: AppFontSize.body,
-                        fontWeight: FontWeight.w500,
-                        color: order.isCancelled
-                            ? const Color(0xFFBEB5B0)
-                            : AppColors.textSecondary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 13),
-                child: Divider(color: AppColors.divider),
-              ),
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      createdAt != null ? Fmt.timeAgo(createdAt) : '—',
-                      style: TextStyle(
-                        fontSize: AppFontSize.body,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.textTertiary,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    Fmt.currency(totalFee),
+                        createdAt != null ? Fmt.timeAgo(createdAt) : '—',
+                        style: const TextStyle(
+                            fontSize: AppFontSize.caption,
+                            color: HomeStyle.muted))),
+                const SizedBox(width: 8),
+                Text(Fmt.currency(totalFee),
                     style: TextStyle(
                       fontSize: AppFontSize.bodyLarge,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w800,
                       color: order.isCancelled
-                          ? const Color(0xFFBEB5B0)
-                          : AppColors.primary,
+                          ? HomeStyle.muted
+                          : HomeStyle.orange,
                       decoration: order.isCancelled
                           ? TextDecoration.lineThrough
                           : TextDecoration.none,
-                    ),
-                  ),
-                ],
-              ),
-            ],
+                    )),
+              ]),
+            ]),
           ),
         ),
       ),
     );
+  }
+
+  Widget _addressRow(IconData icon, Color color, String label, String address) {
+    return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+          padding: const EdgeInsets.only(top: 2),
+          child: Icon(icon, size: 16, color: color)),
+      const SizedBox(width: 8),
+      Expanded(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(label,
+            style: const TextStyle(
+                fontSize: AppFontSize.caption, color: HomeStyle.muted)),
+        const SizedBox(height: 2),
+        Text(address,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+                fontSize: AppFontSize.body,
+                height: 1.35,
+                fontWeight: FontWeight.w500,
+                color: HomeStyle.ink)),
+      ])),
+    ]);
   }
 }

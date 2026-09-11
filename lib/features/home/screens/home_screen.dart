@@ -11,6 +11,7 @@ import '../../../core/api/api_client.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
+import '../../../core/widgets/liquid_glass.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/notification/models/notification_item.dart';
 import '../../../features/notification/providers/notification_provider.dart';
@@ -18,7 +19,6 @@ import '../../../features/order/models/order_model.dart';
 import '../../../features/order/providers/order_provider.dart';
 import '../../../features/profile/models/address_model.dart';
 import '../../../features/profile/providers/addresses_provider.dart';
-import '../../../core/services/address_history_service.dart';
 import '../../../features/profile/providers/active_city_provider.dart';
 import '../../booking/screens/address_picker_screen.dart';
 import '../../booking/screens/map_picker_screen.dart';
@@ -31,9 +31,13 @@ import '../../voucher/providers/voucher_provider.dart';
 import '../../../features/profile/providers/support_provider.dart';
 import '../../../features/notification/screens/notification_inbox_screen.dart';
 import '../widgets/bottom_nav.dart';
+import '../widgets/home_style.dart';
+import '../../voucher/models/voucher_model.dart';
 
 part '../widgets/home_tab.dart';
 part '../widgets/home_header_section.dart';
+part '../widgets/home_service_section.dart';
+part '../widgets/home_quick_service_row.dart';
 part '../widgets/home_orders_section.dart';
 part '../widgets/home_banners_section.dart';
 part '../widgets/home_voucher_section.dart';
@@ -100,18 +104,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     if (!isAuth) {
       return Scaffold(
-        backgroundColor: AppColors.background,
-        body: const _HomeTab(),
+        backgroundColor: HomeStyle.background,
+        body: const HomeTab(),
         bottomNavigationBar: _GuestBottomBar(),
       );
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: HomeStyle.background,
+      extendBody: true,
       body: IndexedStack(
         index: tab,
         children: [
-          const _HomeTab(),
+          const HomeTab(),
           const _HistoryTab(),
           const NotificationInboxScreen(),
           const _ProfileTab(),

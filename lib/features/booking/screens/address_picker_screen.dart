@@ -6,6 +6,9 @@ import '../../../core/constants/app_constants.dart';
 import '../../../core/services/address_history_service.dart';
 import '../../../core/services/address_search_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/glass_input_border.dart';
+import '../../home/widgets/home_style.dart';
 import '../../profile/models/address_model.dart';
 import '../../profile/providers/active_city_provider.dart';
 import '../../profile/providers/addresses_provider.dart';
@@ -227,33 +230,46 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
+    return LiquidBackdrop(
+        child: Scaffold(
+      backgroundColor: Colors.transparent,
       body: Column(
         children: [
           ColoredBox(
-            color: AppColors.surface,
+            color: Colors.transparent,
             child: SafeArea(
               bottom: false,
               child: Column(children: [
+                const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 16, 16, 0),
+                  child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text('Chọn địa chỉ',
+                          style: TextStyle(
+                              fontSize: AppFontSize.display,
+                              fontWeight: FontWeight.w800,
+                              color: HomeStyle.ink))),
+                ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 20, 12),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
                   child: Row(children: [
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      behavior: HitTestBehavior.opaque,
-                      child: Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(AppRadius.sm),
-                          border: Border.all(color: AppColors.divider),
+                    LiquidGlass(
+                      child: SizedBox(
+                        width: 48,
+                        height: 48,
+                        child: IconButton(
+                          tooltip: 'Quay lại',
+                          onPressed: () => Navigator.of(context).pop(),
+                          style: IconButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                                borderRadius: HomeStyle.radius),
+                          ),
+                          icon: const Icon(Icons.arrow_back_rounded,
+                              size: 22, color: HomeStyle.ink),
                         ),
-                        child: const Icon(Icons.arrow_back_ios_new_rounded,
-                            size: 18, color: AppColors.textPrimary),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: SizedBox(
                         height: 48,
@@ -261,14 +277,27 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                           controller: _controller,
                           focusNode: _focusNode,
                           onChanged: _onChanged,
+                          textAlignVertical: TextAlignVertical.center,
+                          textInputAction: TextInputAction.search,
                           style: TextStyle(
-                              fontSize: AppFontSize.bodyLarge, color: AppColors.textPrimary),
+                              fontSize: AppFontSize.bodyLarge,
+                              color: AppColors.textPrimary),
                           decoration: InputDecoration(
-                            hintText: 'Tìm địa chỉ, tên địa điểm...',
+                            hintText: 'Địa chỉ, tên địa điểm...',
+                            isDense: true,
+                            filled: true,
+                            fillColor: Colors.white.withValues(alpha: .45),
+                            enabledBorder: const GlassInputBorder(
+                                borderSide: BorderSide(
+                                    color: Colors.white, width: 1.2)),
+                            focusedBorder: const GlassInputBorder(
+                                borderSide:
+                                    BorderSide(color: HomeStyle.orange)),
                             hintStyle: TextStyle(
-                                color: AppColors.textTertiary, fontSize: AppFontSize.bodyLarge),
+                                color: AppColors.textTertiary,
+                                fontSize: AppFontSize.bodyLarge),
                             prefixIcon: const Icon(Icons.search_rounded,
-                                size: 20, color: AppColors.textSecondary),
+                                size: 21, color: HomeStyle.orange),
                             suffixIcon: _searching
                                 ? const Padding(
                                     padding: EdgeInsets.all(12),
@@ -281,8 +310,9 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                                     ),
                                   )
                                 : _controller.text.isNotEmpty
-                                    ? GestureDetector(
-                                        onTap: () {
+                                    ? IconButton(
+                                        tooltip: 'Xóa tìm kiếm',
+                                        onPressed: () {
                                           _debounce?.cancel();
                                           _searchRequestId++;
                                           _controller.clear();
@@ -292,31 +322,12 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                                             _searchError = false;
                                           });
                                         },
-                                        child: const Padding(
-                                          padding: EdgeInsets.all(10),
-                                          child: Icon(Icons.cancel_rounded,
-                                              size: 18,
-                                              color: AppColors.textSecondary),
-                                        ),
+                                        icon: const Icon(Icons.close_rounded,
+                                            size: 18, color: HomeStyle.muted),
                                       )
                                     : null,
-                            filled: true,
-                            fillColor: AppColors.surfaceAlt,
                             contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 0, vertical: 0),
-                            border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.md),
-                                borderSide: BorderSide.none),
-                            enabledBorder: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.md),
-                                borderSide: BorderSide.none),
-                            focusedBorder: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.md),
-                                borderSide: const BorderSide(
-                                    color: AppColors.primary, width: 1.5)),
+                                horizontal: 12, vertical: 12),
                           ),
                         ),
                       ),
@@ -326,7 +337,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                 if (_selecting)
                   const LinearProgressIndicator(
                       minHeight: 2, color: AppColors.primary),
-                const Divider(height: 1, color: AppColors.divider),
+                const SizedBox(height: 4),
               ]),
             ),
           ),
@@ -341,14 +352,16 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                       _mapCard(),
                       _quickSavedRow(),
                       Container(
-                        color: AppColors.background,
+                        color: Colors.transparent,
                         child: const TabBar(
                           labelColor: AppColors.primary,
                           unselectedLabelColor: AppColors.textSecondary,
                           labelStyle: TextStyle(
-                              fontSize: AppFontSize.bodyLarge, fontWeight: FontWeight.w600),
+                              fontSize: AppFontSize.bodyLarge,
+                              fontWeight: FontWeight.w600),
                           unselectedLabelStyle: TextStyle(
-                              fontSize: AppFontSize.bodyLarge, fontWeight: FontWeight.w600),
+                              fontSize: AppFontSize.bodyLarge,
+                              fontWeight: FontWeight.w600),
                           indicatorColor: AppColors.primary,
                           indicatorWeight: 2,
                           indicatorSize: TabBarIndicatorSize.tab,
@@ -427,7 +440,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _searchRegionLabel() {
@@ -435,7 +448,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
     if (cityName.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Row(
         children: [
           const Icon(Icons.location_on_outlined,
@@ -472,7 +485,8 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
           ),
           const SizedBox(height: 14),
           const Text('Chưa có lịch sử tìm kiếm',
-              style: TextStyle(fontSize: AppFontSize.body, color: AppColors.textSecondary)),
+              style: TextStyle(
+                  fontSize: AppFontSize.body, color: AppColors.textSecondary)),
         ]),
       );
     }
@@ -528,7 +542,9 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
           onTap: _clearAllHistory,
           child: const Center(
             child: Text('Xóa tất cả lịch sử',
-                style: TextStyle(fontSize: AppFontSize.body, color: AppColors.textSecondary)),
+                style: TextStyle(
+                    fontSize: AppFontSize.body,
+                    color: AppColors.textSecondary)),
           ),
         ),
       ],
@@ -551,7 +567,8 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
           ),
           const SizedBox(height: 14),
           const Text('Chưa có địa chỉ đã lưu',
-              style: TextStyle(fontSize: AppFontSize.body, color: AppColors.textSecondary)),
+              style: TextStyle(
+                  fontSize: AppFontSize.body, color: AppColors.textSecondary)),
         ]),
       );
     }
@@ -586,7 +603,7 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
     if (quick.isEmpty) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
       child: Row(
         children: [
           for (int i = 0; i < quick.length; i++) ...[
@@ -604,28 +621,18 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
   }
 
   Widget _mapCard() => Padding(
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
         child: GestureDetector(
           onTap: _openMap,
           behavior: HitTestBehavior.opaque,
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(color: AppColors.divider),
-            ),
+          child: LiquidGlass(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
             child: Row(children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
-                  borderRadius: BorderRadius.circular(AppRadius.md),
-                ),
-                child: const Icon(Icons.map_rounded,
-                    size: 24, color: AppColors.primary),
-              ),
+              const GlassIcon(
+                  icon: Icons.map_rounded,
+                  color: HomeStyle.orange,
+                  size: 40,
+                  iconSize: 21),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -639,7 +646,8 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
                     SizedBox(height: 2),
                     Text('Kéo ghim để xác định chính xác',
                         style: TextStyle(
-                            fontSize: AppFontSize.body, color: AppColors.textSecondary)),
+                            fontSize: AppFontSize.body,
+                            color: AppColors.textSecondary)),
                   ],
                 ),
               ),
@@ -650,15 +658,11 @@ class _AddressPickerScreenState extends ConsumerState<AddressPickerScreen> {
         ),
       );
 
-  Widget _card({required List<Widget> children}) => Container(
-        margin: const EdgeInsets.fromLTRB(20, 0, 20, 0),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(AppRadius.card),
-          border: Border.all(color: AppColors.divider),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(children: children),
+  Widget _card({required List<Widget> children}) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        child: LiquidGlass(
+            child: Material(
+                color: Colors.transparent, child: Column(children: children))),
       );
 }
 
@@ -681,10 +685,10 @@ class _QuickSavedTile extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: _color.withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderRadius: BorderRadius.circular(AppRadius.glass),
           ),
           child: Row(children: [
-            Icon(_icon, size: 20, color: _color),
+            GlassIcon(icon: _icon, color: _color, size: 30, iconSize: 16),
             const SizedBox(width: 8),
             Expanded(
               child: Text(addr.label,
@@ -725,17 +729,9 @@ class _SavedAddressItem extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           child: Row(children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: _iconColor.withValues(alpha: 0.10),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: Icon(_icon, size: 18, color: _iconColor),
-            ),
+            GlassIcon(icon: _icon, color: _iconColor, size: 34, iconSize: 18),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -754,7 +750,8 @@ class _SavedAddressItem extends StatelessWidget {
                           ? '${addr.placeName} · ${addr.address}'
                           : addr.address,
                       style: const TextStyle(
-                          fontSize: AppFontSize.body, color: AppColors.textSecondary),
+                          fontSize: AppFontSize.body,
+                          color: AppColors.textSecondary),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis),
                 ],
@@ -779,18 +776,13 @@ class _HistoryItem extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 15, 16, 15),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           child: Row(children: [
-            Container(
-              width: 42,
-              height: 42,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceAlt,
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: const Icon(Icons.history_rounded,
-                  size: 18, color: AppColors.textSecondary),
-            ),
+            GlassIcon(
+                icon: Icons.history_rounded,
+                color: HomeStyle.muted,
+                size: 34,
+                iconSize: 18),
             const SizedBox(width: 12),
             Expanded(
               child: item.placeName != null
@@ -807,7 +799,8 @@ class _HistoryItem extends StatelessWidget {
                           const SizedBox(height: 2),
                           Text(item.address,
                               style: const TextStyle(
-                                  fontSize: AppFontSize.body, color: AppColors.textSecondary),
+                                  fontSize: AppFontSize.body,
+                                  color: AppColors.textSecondary),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis),
                         ])
@@ -838,18 +831,13 @@ class _SuggestionItem extends StatelessWidget {
   Widget build(BuildContext context) => InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 13, 16, 13),
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
           child: Row(children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: const BoxDecoration(
-                color: AppColors.primarySoft,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.location_on_rounded,
-                  size: 18, color: AppColors.primary),
-            ),
+            GlassIcon(
+                icon: Icons.location_on_rounded,
+                color: HomeStyle.orange,
+                size: 34,
+                iconSize: 18),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -870,7 +858,8 @@ class _SuggestionItem extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(suggestion.secondaryText,
                         style: const TextStyle(
-                            fontSize: AppFontSize.caption, color: AppColors.textSecondary),
+                            fontSize: AppFontSize.caption,
+                            color: AppColors.textSecondary),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis),
                   ],

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../widgets/glass_input_border.dart';
+import 'app_radius.dart';
+
+export 'app_radius.dart';
 
 /// Token màu dùng chung toàn app — theo đúng style app shop (nền kem ấm,
 /// cam san hô làm chủ đạo, card viền phẳng không đổ bóng). Đổi giá trị ở
@@ -58,16 +62,6 @@ class AppColors {
       serviceColor(type).withValues(alpha: 0.12);
 }
 
-/// Bán kính bo góc dùng chung — tránh số lẻ rải rác khắp nơi.
-class AppRadius {
-  static const sm = 10.0; // chip nhỏ, icon badge
-  static const md = 16.0; // field, card nhỏ
-  static const lg = 20.0; // dialog
-  static const xl = 24.0; // bottom sheet, hero card
-  static const card = 20.0; // card chính
-  static const full = 999.0; // nút dạng pill
-}
-
 /// Khoảng cách dùng chung — tránh số lẻ rải rác khắp nơi.
 class AppSpace {
   static const xs = 4.0;
@@ -95,6 +89,54 @@ class AppFontSize {
 }
 
 class AppTheme {
+  static InputDecorationTheme get glassInputDecoration => InputDecorationTheme(
+        filled: true,
+        fillColor: WidgetStateColor.resolveWith((states) {
+          if (states.contains(WidgetState.disabled)) {
+            return const Color(0x18FFFFFF);
+          }
+          if (states.contains(WidgetState.error)) {
+            return const Color(0x33FFE5E1);
+          }
+          return states.contains(WidgetState.focused)
+              ? const Color(0x80FFFFFF)
+              : const Color(0x40FFFFFF);
+        }),
+        border: const GlassInputBorder(),
+        enabledBorder: const GlassInputBorder(),
+        disabledBorder: const GlassInputBorder(
+          borderSide: BorderSide(color: Color(0x18938A86)),
+        ),
+        focusedBorder: const GlassInputBorder(
+          borderSide: BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        errorBorder: const GlassInputBorder(
+          borderSide: BorderSide(color: AppColors.danger),
+        ),
+        focusedErrorBorder: const GlassInputBorder(
+          borderSide: BorderSide(color: AppColors.danger, width: 1.5),
+        ),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        hintStyle: const TextStyle(
+          color: AppColors.textSecondary,
+          fontSize: AppFontSize.bodyLarge,
+          fontWeight: FontWeight.w400,
+        ),
+        labelStyle: const TextStyle(color: AppColors.textSecondary),
+        floatingLabelStyle:
+            WidgetStateTextStyle.resolveWith((states) => TextStyle(
+                  color: states.contains(WidgetState.error)
+                      ? AppColors.danger
+                      : states.contains(WidgetState.focused)
+                          ? AppColors.primary
+                          : AppColors.textSecondary,
+                )),
+        prefixIconColor: AppColors.textSecondary,
+        suffixIconColor: AppColors.textSecondary,
+        errorMaxLines: 3,
+      );
+
   static ThemeData get light {
     final colorScheme = ColorScheme.fromSeed(
       seedColor: AppColors.primary,
@@ -104,7 +146,7 @@ class AppTheme {
     );
 
     final base = ThemeData(colorScheme: colorScheme).textTheme;
-    final textTheme = GoogleFonts.beVietnamProTextTheme(base)
+    final textTheme = GoogleFonts.interTextTheme(base)
         .copyWith(
           headlineLarge: const TextStyle(fontSize: AppFontSize.xxlarge),
           headlineMedium: const TextStyle(fontSize: AppFontSize.xlarge),
@@ -127,7 +169,7 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       colorScheme: colorScheme,
-      fontFamily: GoogleFonts.beVietnamPro().fontFamily,
+      fontFamily: GoogleFonts.inter().fontFamily,
       textTheme: textTheme,
       scaffoldBackgroundColor: AppColors.background,
       dividerColor: AppColors.divider,
@@ -168,7 +210,9 @@ class AppTheme {
           foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.4),
           minimumSize: const Size.fromHeight(52),
-          shape: const StadiumBorder(),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.glass),
+          ),
           elevation: 0,
           textStyle: TextStyle(
             fontSize: AppFontSize.bodyLarge,
@@ -177,14 +221,16 @@ class AppTheme {
         ),
       ),
 
-      // ── ElevatedButton (đồng nhất pill giống FilledButton) ────────────────
+      // ── ElevatedButton (đồng nhất với FilledButton) ────────────────
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           disabledBackgroundColor: AppColors.primary.withValues(alpha: 0.4),
           minimumSize: const Size(double.infinity, 52),
-          shape: const StadiumBorder(),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.glass),
+          ),
           elevation: 0,
           shadowColor: Colors.transparent,
           textStyle: TextStyle(
@@ -199,7 +245,9 @@ class AppTheme {
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.textPrimary,
           minimumSize: const Size(double.infinity, 52),
-          shape: const StadiumBorder(),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.glass),
+          ),
           side: const BorderSide(color: AppColors.divider),
           textStyle: TextStyle(
             fontSize: AppFontSize.bodyLarge,
@@ -211,6 +259,9 @@ class AppTheme {
       // ── TextButton ───────────────────────────────────────────────────────
       textButtonTheme: TextButtonThemeData(
         style: TextButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.glass),
+          ),
           foregroundColor: AppColors.primary,
           textStyle: TextStyle(
             fontSize: AppFontSize.body,
@@ -220,38 +271,7 @@ class AppTheme {
       ),
 
       // ── Input ────────────────────────────────────────────────────────────
-      inputDecorationTheme: InputDecorationTheme(
-        filled: true,
-        fillColor: AppColors.surfaceAlt,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.danger),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(AppRadius.md),
-          borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
-        ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        hintStyle: TextStyle(
-          color: AppColors.textTertiary,
-          fontSize: AppFontSize.bodyLarge,
-        ),
-        labelStyle: const TextStyle(color: AppColors.textSecondary),
-        floatingLabelStyle: const TextStyle(color: AppColors.primary),
-      ),
+      inputDecorationTheme: glassInputDecoration,
 
       // ── BottomSheet ──────────────────────────────────────────────────────
       bottomSheetTheme: const BottomSheetThemeData(
@@ -259,7 +279,7 @@ class AppTheme {
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius:
-              BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
+              BorderRadius.vertical(top: Radius.circular(AppRadius.glass)),
         ),
         showDragHandle: true,
       ),

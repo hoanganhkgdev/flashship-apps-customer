@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../home/widgets/home_style.dart';
 import '../../../core/utils/formatters.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
@@ -102,265 +104,509 @@ class _State extends ConsumerState<OrderStatsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        toolbarHeight: 70,
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        leading: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  border: Border.all(color: AppColors.divider),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 18, color: AppColors.textPrimary),
-              ),
-            ),
-          ),
-        ),
-        leadingWidth: 60,
-        title: Text('Điểm thưởng',
-            style: TextStyle(
-                fontSize: AppFontSize.display,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary)),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.divider),
-        ),
-      ),
-      body: _loading
-          ? const Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.primary, strokeWidth: 2))
-          : ListView(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
-              children: [
-                // ── Points hero card ───────────────────────────────────────
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: AppColors.divider),
+    return LiquidBackdrop(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Row(children: [
+                IconButton(
+                  tooltip: 'Quay lại',
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: IconButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: .45),
+                    side: BorderSide(color: Colors.white.withValues(alpha: .8)),
+                    shape:
+                        RoundedRectangleBorder(borderRadius: HomeStyle.radius),
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(children: [
-                    Container(
-                      decoration: const BoxDecoration(
-                        color: AppColors.primary,
-                      ),
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-                      child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 18, color: HomeStyle.ink),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text('Điểm thưởng',
+                          style: TextStyle(
+                              fontSize: AppFontSize.display,
+                              fontWeight: FontWeight.w800,
+                              color: HomeStyle.ink)),
+                      SizedBox(height: 4),
+                      Text('Tích điểm qua mỗi đơn hoàn thành',
+                          style: TextStyle(
+                              fontSize: AppFontSize.caption,
+                              color: HomeStyle.muted)),
+                    ])),
+              ]),
+            ),
+            Expanded(
+                child: _loading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                            color: AppColors.primary, strokeWidth: 2))
+                    : RefreshIndicator(
+                        onRefresh: _loadStats,
+                        child: ListView(
+                          physics: const AlwaysScrollableScrollPhysics(),
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
                           children: [
-                            Row(
+                            // ── Points hero card ───────────────────────────────────────
+                            LiquidGlass(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Expanded(
+                                  Row(children: [
+                                    const GlassIcon(
+                                        icon: Icons.stars_rounded,
+                                        color: HomeStyle.orange,
+                                        size: 36,
+                                        iconSize: 20),
+                                    const SizedBox(width: 10),
+                                    const Expanded(
+                                        child: Text('Điểm tích lũy',
+                                            style: TextStyle(
+                                                fontSize: AppFontSize.bodyLarge,
+                                                fontWeight: FontWeight.w700,
+                                                color: HomeStyle.ink))),
+                                  ]),
+                                  const SizedBox(height: 16),
+                                  Row(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.center,
+                                      children: [
+                                        Expanded(
+                                            child: Text.rich(
+                                          TextSpan(children: [
+                                            TextSpan(
+                                                text: '$_points',
+                                                style: const TextStyle(
+                                                    fontSize: 44,
+                                                    height: 1.1,
+                                                    fontWeight: FontWeight.w800,
+                                                    color: HomeStyle.orange)),
+                                            const TextSpan(
+                                                text: ' điểm',
+                                                style: TextStyle(
+                                                    fontSize: AppFontSize.body,
+                                                    color: HomeStyle.muted)),
+                                          ]),
+                                        )),
+                                        const SizedBox(width: 12),
+                                        Flexible(
+                                            child: Align(
+                                          alignment: Alignment.centerRight,
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 12, vertical: 8),
+                                            decoration: BoxDecoration(
+                                              color: HomeStyle.orange
+                                                  .withValues(alpha: .09),
+                                              borderRadius: HomeStyle.radius,
+                                              border: Border.all(
+                                                  color: Colors.white
+                                                      .withValues(alpha: .8)),
+                                            ),
+                                            child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(
+                                                      Icons
+                                                          .workspace_premium_rounded,
+                                                      size: 18,
+                                                      color: HomeStyle.orange),
+                                                  const SizedBox(width: 6),
+                                                  Flexible(
+                                                      child: Text(
+                                                          _rankLabel(_points),
+                                                          style: const TextStyle(
+                                                              fontSize:
+                                                                  AppFontSize
+                                                                      .caption,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w700,
+                                                              color: HomeStyle
+                                                                  .orange))),
+                                                ]),
+                                          ),
+                                        )),
+                                      ]),
+                                  const SizedBox(height: 18),
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          Colors.white.withValues(alpha: .35),
+                                      borderRadius: HomeStyle.radius,
+                                      border: Border.all(
+                                          color: Colors.white
+                                              .withValues(alpha: .65)),
+                                    ),
                                     child: Column(
                                         crossAxisAlignment:
                                             CrossAxisAlignment.start,
                                         children: [
-                                          Text('Điểm tích lũy',
-                                              style: TextStyle(
-                                                  color:
-                                                      const Color(0xFFFFD5C7),
-                                                  fontSize: AppFontSize.body)),
-                                          const SizedBox(height: 4),
+                                          Text(_nextMilestone(),
+                                              style: const TextStyle(
+                                                  fontSize: AppFontSize.caption,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: HomeStyle.ink)),
+                                          const SizedBox(height: 10),
+                                          _RankProgress(points: _points),
+                                          const SizedBox(height: 12),
                                           Row(
                                               crossAxisAlignment:
-                                                  CrossAxisAlignment.end,
+                                                  CrossAxisAlignment.start,
                                               children: [
-                                                Text('$_points',
-                                                    style: TextStyle(
-                                                        color: Colors.white,
-                                                        fontSize: AppFontSize.hero,
-                                                        fontWeight:
-                                                            FontWeight.w600,
-                                                        height: 1)),
-                                                const SizedBox(width: 6),
-                                                Padding(
-                                                  padding:
-                                                      const EdgeInsets.only(
-                                                          bottom: 6),
-                                                  child: Text('điểm',
-                                                      style: TextStyle(
-                                                          color: const Color(
-                                                              0xFFFFD5C7),
-                                                          fontSize: AppFontSize.bodyLarge)),
-                                                ),
+                                                for (final milestone in [
+                                                  5,
+                                                  20,
+                                                  50
+                                                ]) ...[
+                                                  if (milestone != 5)
+                                                    const SizedBox(width: 8),
+                                                  Expanded(
+                                                      child: Column(children: [
+                                                    Icon(
+                                                        _points >= milestone
+                                                            ? Icons
+                                                                .check_circle_rounded
+                                                            : Icons
+                                                                .radio_button_unchecked_rounded,
+                                                        size: 16,
+                                                        color: _points >=
+                                                                milestone
+                                                            ? HomeStyle.orange
+                                                            : HomeStyle.muted),
+                                                    const SizedBox(height: 5),
+                                                    Text('$milestone điểm',
+                                                        style: TextStyle(
+                                                            fontSize:
+                                                                AppFontSize
+                                                                    .caption,
+                                                            fontWeight:
+                                                                FontWeight.w700,
+                                                            color: _points >=
+                                                                    milestone
+                                                                ? HomeStyle
+                                                                    .orange
+                                                                : HomeStyle
+                                                                    .ink)),
+                                                    const SizedBox(height: 2),
+                                                    Text(_rankLabel(milestone),
+                                                        textAlign:
+                                                            TextAlign.center,
+                                                        style: const TextStyle(
+                                                            fontSize:
+                                                                AppFontSize
+                                                                    .caption,
+                                                            color: HomeStyle
+                                                                .muted)),
+                                                  ])),
+                                                ],
                                               ]),
                                         ]),
                                   ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          Colors.white.withValues(alpha: 0.22),
-                                      borderRadius:
-                                          BorderRadius.circular(AppRadius.card),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // ── Stats card ────────────────────────────────────────────
+                            LiquidGlass(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(children: [
+                                      GlassIcon(
+                                          icon: Icons.bar_chart_rounded,
+                                          color: HomeStyle.orange,
+                                          size: 36,
+                                          iconSize: 20),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                          child: Text('Thống kê đơn hàng',
+                                              style: TextStyle(
+                                                  fontSize:
+                                                      AppFontSize.bodyLarge,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: HomeStyle.ink))),
+                                    ]),
+                                    const SizedBox(height: 14),
+                                    IntrinsicHeight(
+                                        child: Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                          Expanded(
+                                              child: _OrderMetric(
+                                                  label: 'Tổng đơn',
+                                                  value: _totalOrders,
+                                                  icon: Icons
+                                                      .receipt_long_rounded,
+                                                  color: HomeStyle.orange)),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                              child: _OrderMetric(
+                                                  label: 'Hoàn thành',
+                                                  value: _completedOrders,
+                                                  icon: Icons
+                                                      .check_circle_outline_rounded,
+                                                  color: AppColors.success)),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                              child: _OrderMetric(
+                                                  label: 'Đã hủy',
+                                                  value: _cancelledOrders,
+                                                  icon: Icons.cancel_outlined,
+                                                  color: AppColors.danger)),
+                                        ])),
+                                    const SizedBox(height: 12),
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: HomeStyle.orange
+                                            .withValues(alpha: .07),
+                                        borderRadius: HomeStyle.radius,
+                                        border: Border.all(
+                                            color: Colors.white
+                                                .withValues(alpha: .75)),
+                                      ),
+                                      child: Row(children: [
+                                        const GlassIcon(
+                                            icon: Icons.payments_outlined,
+                                            color: HomeStyle.orange,
+                                            size: 36,
+                                            iconSize: 19),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                            child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                              const Text('Tổng chi tiêu',
+                                                  style: TextStyle(
+                                                      fontSize:
+                                                          AppFontSize.caption,
+                                                      color: HomeStyle.muted)),
+                                              const SizedBox(height: 3),
+                                              Text(_compactMoney(_totalSpent),
+                                                  style: const TextStyle(
+                                                      fontSize:
+                                                          AppFontSize.title,
+                                                      fontWeight:
+                                                          FontWeight.w800,
+                                                      color: HomeStyle.orange)),
+                                            ])),
+                                      ]),
                                     ),
-                                    child: Text(_rankLabel(_points),
+                                    const SizedBox(height: 14),
+                                    Row(children: [
+                                      const Expanded(
+                                          child: Text('Tỉ lệ hoàn thành',
+                                              style: TextStyle(
+                                                  fontSize: AppFontSize.caption,
+                                                  color: HomeStyle.muted))),
+                                      Text(
+                                          _totalOrders > 0
+                                              ? '${(_completedOrders / _totalOrders * 100).toStringAsFixed(0)}%'
+                                              : '—',
+                                          style: const TextStyle(
+                                              fontSize: AppFontSize.body,
+                                              fontWeight: FontWeight.w700,
+                                              color: AppColors.success)),
+                                    ]),
+                                    const SizedBox(height: 8),
+                                    ClipRRect(
+                                        borderRadius: HomeStyle.radius,
+                                        child: LinearProgressIndicator(
+                                          value: _totalOrders > 0
+                                              ? (_completedOrders /
+                                                      _totalOrders)
+                                                  .clamp(0.0, 1.0)
+                                              : 0,
+                                          minHeight: 5,
+                                          color: AppColors.success,
+                                          backgroundColor: AppColors.success
+                                              .withValues(alpha: .1),
+                                        )),
+                                    if (_favoriteService != null) ...[
+                                      const SizedBox(height: 14),
+                                      Row(children: [
+                                        const Icon(
+                                            Icons.favorite_border_rounded,
+                                            size: 16,
+                                            color: HomeStyle.orange),
+                                        const SizedBox(width: 6),
+                                        const Expanded(
+                                            child: Text('Dịch vụ hay dùng',
+                                                style: TextStyle(
+                                                    fontSize:
+                                                        AppFontSize.caption,
+                                                    color: HomeStyle.muted))),
+                                        const SizedBox(width: 8),
+                                        Flexible(
+                                            child: Text(
+                                                _serviceLabel(
+                                                    _favoriteService!),
+                                                textAlign: TextAlign.right,
+                                                style: const TextStyle(
+                                                    fontSize:
+                                                        AppFontSize.caption,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: HomeStyle.ink))),
+                                      ]),
+                                    ],
+                                  ]),
+                            ),
+                            const SizedBox(height: 12),
+
+                            // ── How to earn card ──────────────────────────────────────
+                            LiquidGlass(
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Row(children: [
+                                      GlassIcon(
+                                          icon: Icons.auto_awesome_rounded,
+                                          color: HomeStyle.orange,
+                                          size: 36,
+                                          iconSize: 20),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                          child: Text('Cách tích điểm',
+                                              style: TextStyle(
+                                                  fontSize:
+                                                      AppFontSize.bodyLarge,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: HomeStyle.ink))),
+                                    ]),
+                                    const SizedBox(height: 14),
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.success
+                                            .withValues(alpha: .07),
+                                        borderRadius: HomeStyle.radius,
+                                        border: Border.all(
+                                            color: Colors.white
+                                                .withValues(alpha: .75)),
+                                      ),
+                                      child: Row(children: [
+                                        const GlassIcon(
+                                            icon: Icons
+                                                .check_circle_outline_rounded,
+                                            color: AppColors.success,
+                                            size: 34,
+                                            iconSize: 18),
+                                        const SizedBox(width: 10),
+                                        const Expanded(
+                                            child: Text('Mỗi đơn hoàn thành',
+                                                style: TextStyle(
+                                                    fontSize: AppFontSize.body,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: HomeStyle.ink))),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 10, vertical: 6),
+                                          decoration: BoxDecoration(
+                                              color: AppColors.success
+                                                  .withValues(alpha: .12),
+                                              borderRadius: HomeStyle.radius),
+                                          child: const Text('+1 điểm',
+                                              style: TextStyle(
+                                                  fontSize: AppFontSize.body,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: AppColors.success)),
+                                        ),
+                                      ]),
+                                    ),
+                                    const SizedBox(height: 14),
+                                    const Text('Các mốc lên hạng',
                                         style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: AppFontSize.caption,
-                                            fontWeight: FontWeight.w600)),
-                                  ),
-                                ]),
-                            const SizedBox(height: 14),
-                            _RankProgress(points: _points),
-                          ]),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 12),
-                      child: Row(children: [
-                        const Icon(Icons.emoji_events_rounded,
-                            size: 16, color: AppColors.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(_nextMilestone(),
-                              style: TextStyle(
-                                  fontSize: AppFontSize.body,
-                                  color: AppColors.textSecondary)),
+                                            fontSize: AppFontSize.body,
+                                            fontWeight: FontWeight.w600,
+                                            color: HomeStyle.ink)),
+                                    const SizedBox(height: 10),
+                                    IntrinsicHeight(
+                                        child: Row(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.stretch,
+                                            children: [
+                                          for (final milestone in [
+                                            5,
+                                            20,
+                                            50
+                                          ]) ...[
+                                            if (milestone != 5)
+                                              const SizedBox(width: 8),
+                                            Expanded(
+                                                child: Container(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 10),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white
+                                                    .withValues(alpha: .35),
+                                                borderRadius: HomeStyle.radius,
+                                                border: Border.all(
+                                                    color: Colors.white
+                                                        .withValues(alpha: .7)),
+                                              ),
+                                              child: Column(children: [
+                                                Text('$milestone điểm',
+                                                    style: const TextStyle(
+                                                        fontSize:
+                                                            AppFontSize.body,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color:
+                                                            HomeStyle.orange)),
+                                                const SizedBox(height: 4),
+                                                Text(_rankLabel(milestone),
+                                                    textAlign: TextAlign.center,
+                                                    style: const TextStyle(
+                                                        fontSize:
+                                                            AppFontSize.caption,
+                                                        color:
+                                                            HomeStyle.muted)),
+                                              ]),
+                                            )),
+                                          ],
+                                        ])),
+                                    const SizedBox(height: 14),
+                                    const Row(children: [
+                                      GlassIcon(
+                                          icon: Icons.local_offer_outlined,
+                                          color: HomeStyle.orange,
+                                          size: 30,
+                                          iconSize: 16),
+                                      SizedBox(width: 10),
+                                      Expanded(
+                                          child: Text(
+                                              'Nhận voucher theo hạng thành viên',
+                                              style: TextStyle(
+                                                  fontSize: AppFontSize.caption,
+                                                  height: 1.4,
+                                                  color: HomeStyle.muted))),
+                                    ]),
+                                  ]),
+                            ),
+                          ],
                         ),
-                      ]),
-                    ),
-                  ]),
-                ),
-
-                const SizedBox(height: 12),
-
-                // ── Stats card ────────────────────────────────────────────
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                      child: Row(children: [
-                        Container(
-                            width: 3,
-                            height: 16,
-                            decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2))),
-                        const SizedBox(width: 8),
-                        Text('Thống kê đơn hàng',
-                            style: TextStyle(
-                                fontSize: AppFontSize.bodyLarge,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary)),
-                      ]),
-                    ),
-                    const Divider(height: 1, color: AppColors.divider),
-                    _StatsRow(
-                        icon: Icons.receipt_long_outlined,
-                        label: 'Tổng đơn',
-                        value: '$_totalOrders'),
-                    const Divider(
-                        height: 1, indent: 56, color: AppColors.surfaceAlt),
-                    _StatsRow(
-                        icon: Icons.check_circle_outline_rounded,
-                        label: 'Hoàn thành',
-                        value: '$_completedOrders',
-                        valueColor: AppColors.success),
-                    const Divider(
-                        height: 1, indent: 56, color: AppColors.surfaceAlt),
-                    _StatsRow(
-                        icon: Icons.cancel_outlined,
-                        label: 'Đã huỷ',
-                        value: '$_cancelledOrders',
-                        valueColor: AppColors.danger),
-                    const Divider(
-                        height: 1, indent: 56, color: AppColors.surfaceAlt),
-                    _StatsRow(
-                        icon: Icons.payments_outlined,
-                        label: 'Tổng chi tiêu',
-                        value: _compactMoney(_totalSpent)),
-                    if (_favoriteService != null) ...[
-                      const Divider(
-                          height: 1, indent: 56, color: AppColors.surfaceAlt),
-                      _StatsRow(
-                          icon: Icons.favorite_border_rounded,
-                          label: 'Dịch vụ hay dùng',
-                          value: _serviceLabel(_favoriteService!),
-                          valueColor: AppColors.primary),
-                    ],
-                    const Divider(
-                        height: 1, indent: 56, color: AppColors.surfaceAlt),
-                    _StatsRow(
-                        icon: Icons.trending_up_rounded,
-                        label: 'Tỉ lệ hoàn thành',
-                        value: _totalOrders > 0
-                            ? '${(_completedOrders / _totalOrders * 100).toStringAsFixed(0)}%'
-                            : '—',
-                        valueColor: AppColors.success),
-                  ]),
-                ),
-
-                const SizedBox(height: 12),
-
-                // ── How to earn card ──────────────────────────────────────
-                Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: AppColors.divider),
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: Column(children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
-                      child: Row(children: [
-                        Container(
-                            width: 3,
-                            height: 16,
-                            decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(2))),
-                        const SizedBox(width: 8),
-                        Text('Cách tích điểm',
-                            style: TextStyle(
-                                fontSize: AppFontSize.bodyLarge,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary)),
-                      ]),
-                    ),
-                    const Divider(height: 1, color: AppColors.divider),
-                    _HowItem(Icons.check_circle_rounded, AppColors.success,
-                        '+1 điểm', 'Mỗi đơn hàng hoàn thành'),
-                    const Divider(
-                        height: 1, indent: 56, color: AppColors.surfaceAlt),
-                    _HowItem(Icons.local_offer_rounded, AppColors.primary,
-                        'Ưu đãi', 'Nhận voucher theo hạng thành viên'),
-                    const Divider(
-                        height: 1, indent: 56, color: AppColors.surfaceAlt),
-                    _HowItem(
-                        Icons.emoji_events_rounded,
-                        const Color(0xFFFF9500),
-                        'Lên hạng',
-                        '5 đơn → Thường xuyên · 20 → Thân thiết · 50 → VIP'),
-                  ]),
-                ),
-              ],
-            ),
+                      )),
+          ]),
+        ),
+      ),
     );
   }
 
@@ -391,11 +637,11 @@ class _RankProgress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (current, next, label) = switch (points) {
-      < 5 => (0, 5, 'Còn ${5 - points} đơn để lên Thường xuyên'),
-      < 20 => (5, 20, 'Còn ${20 - points} đơn để lên Thân thiết'),
-      < 50 => (20, 50, 'Còn ${50 - points} đơn để lên VIP'),
-      _ => (50, 50, 'Bạn đã đạt hạng cao nhất'),
+    final (current, next) = switch (points) {
+      < 5 => (0, 5),
+      < 20 => (5, 20),
+      < 50 => (20, 50),
+      _ => (50, 50),
     };
 
     final progress = next > current
@@ -408,76 +654,49 @@ class _RankProgress extends StatelessWidget {
         child: LinearProgressIndicator(
           value: progress,
           minHeight: 6,
-          backgroundColor: Colors.white.withValues(alpha: 0.25),
-          valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+          backgroundColor: HomeStyle.orange.withValues(alpha: .12),
+          valueColor: const AlwaysStoppedAnimation<Color>(HomeStyle.orange),
         ),
       ),
-      const SizedBox(height: 6),
-      Text(label,
-          style: TextStyle(color: const Color(0xFFFFD5C7), fontSize: AppFontSize.caption)),
     ]);
   }
 }
 
 // ── Stats row ─────────────────────────────────────────────────────────────────
 
-class _StatsRow extends StatelessWidget {
-  final IconData icon;
-  final String label, value;
-  final Color? valueColor;
-  const _StatsRow(
-      {required this.icon,
-      required this.label,
+class _OrderMetric extends StatelessWidget {
+  const _OrderMetric(
+      {required this.label,
       required this.value,
-      this.valueColor});
-
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(children: [
-          SizedBox(
-              width: 24,
-              child: Icon(icon, size: 20, color: AppColors.textSecondary)),
-          const SizedBox(width: 16),
-          Expanded(
-              child: Text(label,
-                  style:
-                      TextStyle(fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary))),
-          Text(value,
-              style: TextStyle(
-                  fontSize: AppFontSize.bodyLarge,
-                  fontWeight: FontWeight.w600,
-                  color: valueColor ?? AppColors.textPrimary)),
-        ]),
-      );
-}
-
-// ── How item ─────────────────────────────────────────────────────────────────
-
-class _HowItem extends StatelessWidget {
+      required this.icon,
+      required this.color});
+  final String label;
+  final int value;
   final IconData icon;
   final Color color;
-  final String badge, text;
-  const _HowItem(this.icon, this.color, this.badge, this.text);
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-        child: Row(children: [
-          SizedBox(width: 24, child: Icon(icon, size: 20, color: color)),
-          const SizedBox(width: 16),
-          Expanded(
-            child:
-                Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(badge,
-                  style: TextStyle(
-                      fontSize: AppFontSize.body, fontWeight: FontWeight.w600, color: color)),
-              const SizedBox(height: 2),
-              Text(text,
-                  style:
-                      TextStyle(fontSize: AppFontSize.body, color: AppColors.textSecondary)),
-            ]),
-          ),
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: .35),
+          borderRadius: HomeStyle.radius,
+          border: Border.all(color: Colors.white.withValues(alpha: .7)),
+        ),
+        child: Column(children: [
+          GlassIcon(icon: icon, color: color, size: 30, iconSize: 16),
+          const SizedBox(height: 8),
+          Text('$value',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                  fontSize: AppFontSize.title,
+                  fontWeight: FontWeight.w800,
+                  color: color)),
+          const SizedBox(height: 3),
+          Text(label,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                  fontSize: AppFontSize.caption, color: HomeStyle.muted)),
         ]),
       );
 }

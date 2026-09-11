@@ -132,20 +132,8 @@ class _State extends State<RideNoteScreen> {
                     color: AppColors.textSecondary,
                     fontWeight: FontWeight.w400),
                 alignLabelWithHint: true,
-                filled: true,
-                fillColor: AppColors.surfaceAlt,
                 contentPadding:
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-                border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    borderSide: BorderSide.none),
-                enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    borderSide: BorderSide.none),
-                focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.sm),
-                    borderSide:
-                        const BorderSide(color: AppColors.primary, width: 1.5)),
               ),
             ),
           ),

@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/glass_input_border.dart';
 import '../providers/auth_provider.dart';
 
 class ResetPasswordScreen extends ConsumerStatefulWidget {
@@ -35,6 +37,7 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   }
 
   Future<void> _submit() async {
+    if (ref.read(authProvider).isLoading) return;
     if (!_formKey.currentState!.validate()) return;
     final ok = await ref.read(authProvider.notifier).resetPassword(
           phone: widget.phone,
@@ -59,114 +62,175 @@ class _ResetPasswordScreenState extends ConsumerState<ResetPasswordScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
-    final keyboardBottom = MediaQuery.viewInsetsOf(context).bottom;
 
-    return Scaffold(
-      backgroundColor: AppColors.surface,
+    return LiquidBackdrop(
+        child: Scaffold(
+      backgroundColor: Colors.transparent,
       body: SafeArea(
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          padding: EdgeInsets.fromLTRB(24, 18, 24, keyboardBottom + 32),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _BackButton(onTap: () => context.pop()),
-                const SizedBox(height: 26),
-                Text(
-                  'Đặt lại mật khẩu',
-                  style: _style(AppFontSize.xlarge, FontWeight.w600, _ink),
-                ),
-                const SizedBox(height: 7),
-                Text(
-                  'Tạo mật khẩu mới cho tài khoản của bạn',
-                  style: _style(AppFontSize.bodyLarge, FontWeight.w500, _muted),
-                ),
-                const SizedBox(height: 28),
-                _PasswordField(
-                  label: 'Mật khẩu mới',
-                  controller: _passwordCtrl,
-                  obscureText: _obscurePassword,
-                  textInputAction: TextInputAction.next,
-                  onVisibilityPressed: () => setState(
-                    () => _obscurePassword = !_obscurePassword,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng nhập mật khẩu mới';
-                    }
-                    if (value.length < 6) {
-                      return 'Mật khẩu phải tối thiểu 6 ký tự';
-                    }
-                    return null;
-                  },
-                ),
-                const Padding(
-                  padding: EdgeInsets.only(left: 2, top: 6),
-                  child: Text(
-                    'Tối thiểu 6 ký tự',
-                    style: TextStyle(
-                      fontSize: AppFontSize.body,
-                      fontWeight: FontWeight.w500,
-                      color: _softMuted,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 18),
-                _PasswordField(
-                  label: 'Xác nhận mật khẩu mới',
-                  controller: _confirmCtrl,
-                  obscureText: _obscureConfirmation,
-                  textInputAction: TextInputAction.done,
-                  onFieldSubmitted: (_) => _submit(),
-                  onVisibilityPressed: () => setState(
-                    () => _obscureConfirmation = !_obscureConfirmation,
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Vui lòng xác nhận mật khẩu';
-                    }
-                    if (value != _passwordCtrl.text) {
-                      return 'Mật khẩu xác nhận không khớp';
-                    }
-                    return null;
-                  },
-                ),
-                if (auth.error != null) ...[
-                  const SizedBox(height: 14),
-                  _ErrorMessage(message: auth.error!),
-                ],
-                const SizedBox(height: 28),
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: FilledButton(
-                    onPressed: auth.isLoading ? null : _submit,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: _orange,
-                      disabledBackgroundColor: _orange.withValues(alpha: .5),
-                      shape: const StadiumBorder(),
-                      elevation: 0,
-                      textStyle: _style(AppFontSize.bodyLarge, FontWeight.w600),
-                    ),
-                    child: auth.isLoading
-                        ? const SizedBox.square(
-                            dimension: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Xác nhận'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _BackButton(onTap: () => context.pop())),
+          Expanded(
+              child: Align(
+                  alignment: Alignment.topCenter,
+                  child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: SingleChildScrollView(
+                        keyboardDismissBehavior:
+                            ScrollViewKeyboardDismissBehavior.onDrag,
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+                        child: Form(
+                          key: _formKey,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Center(
+                                  child: GlassIcon(
+                                      icon: Icons.lock_reset_rounded,
+                                      color: _orange,
+                                      size: 72,
+                                      iconSize: 36)),
+                              const SizedBox(height: 20),
+                              Center(
+                                  child: Text(
+                                'Đặt lại mật khẩu',
+                                style: _style(
+                                    AppFontSize.xlarge, FontWeight.w800, _ink),
+                              )),
+                              const SizedBox(height: 7),
+                              Center(
+                                  child: Text(
+                                'Tạo mật khẩu mới',
+                                textAlign: TextAlign.center,
+                                style: _style(AppFontSize.bodyLarge,
+                                    FontWeight.w500, _muted),
+                              )),
+                              const SizedBox(height: 28),
+                              LiquidGlass(
+                                padding: const EdgeInsets.all(20),
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      _PasswordField(
+                                        label: 'Mật khẩu mới',
+                                        controller: _passwordCtrl,
+                                        obscureText: _obscurePassword,
+                                        textInputAction: TextInputAction.next,
+                                        onVisibilityPressed: () => setState(
+                                          () => _obscurePassword =
+                                              !_obscurePassword,
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Vui lòng nhập mật khẩu mới';
+                                          }
+                                          if (value.length < 6) {
+                                            return 'Mật khẩu phải tối thiểu 6 ký tự';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      const Padding(
+                                        padding:
+                                            EdgeInsets.only(left: 2, top: 6),
+                                        child: Text(
+                                          'Tối thiểu 6 ký tự',
+                                          style: TextStyle(
+                                            fontSize: AppFontSize.body,
+                                            fontWeight: FontWeight.w500,
+                                            color: _softMuted,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 18),
+                                      _PasswordField(
+                                        label: 'Xác nhận mật khẩu mới',
+                                        controller: _confirmCtrl,
+                                        obscureText: _obscureConfirmation,
+                                        textInputAction: TextInputAction.done,
+                                        onFieldSubmitted: (_) => _submit(),
+                                        onVisibilityPressed: () => setState(
+                                          () => _obscureConfirmation =
+                                              !_obscureConfirmation,
+                                        ),
+                                        validator: (value) {
+                                          if (value == null || value.isEmpty) {
+                                            return 'Vui lòng xác nhận mật khẩu';
+                                          }
+                                          if (value != _passwordCtrl.text) {
+                                            return 'Mật khẩu xác nhận không khớp';
+                                          }
+                                          return null;
+                                        },
+                                      ),
+                                      if (auth.error != null) ...[
+                                        const SizedBox(height: 14),
+                                        _ErrorMessage(message: auth.error!),
+                                      ],
+                                      const SizedBox(height: 28),
+                                      SizedBox(
+                                        width: double.infinity,
+                                        height: 54,
+                                        child: DecoratedBox(
+                                          decoration: BoxDecoration(
+                                            borderRadius:
+                                                BorderRadius.circular(18),
+                                            gradient: const LinearGradient(
+                                                colors: [
+                                                  Color(0xFFFF9454),
+                                                  _orange
+                                                ]),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                  color: _orange.withValues(
+                                                      alpha: .2),
+                                                  blurRadius: 16,
+                                                  offset: const Offset(0, 6))
+                                            ],
+                                          ),
+                                          child: FilledButton(
+                                            onPressed:
+                                                auth.isLoading ? null : _submit,
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor:
+                                                  Colors.transparent,
+                                              foregroundColor: Colors.white,
+                                              disabledBackgroundColor:
+                                                  _orange.withValues(alpha: .5),
+                                              shape: RoundedRectangleBorder(
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          18)),
+                                              elevation: 0,
+                                              textStyle: _style(
+                                                  AppFontSize.bodyLarge,
+                                                  FontWeight.w600),
+                                            ),
+                                            child: auth.isLoading
+                                                ? const SizedBox.square(
+                                                    dimension: 22,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2.5,
+                                                      color: Colors.white,
+                                                    ),
+                                                  )
+                                                : const Text(
+                                                    'Lưu mật khẩu mới'),
+                                          ),
+                                        ),
+                                      ),
+                                    ]),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )))),
+        ]),
       ),
-    );
+    ));
   }
 }
 
@@ -177,22 +241,15 @@ class _BackButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppRadius.sm),
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          border: Border.all(color: AppColors.divider),
-          borderRadius: BorderRadius.circular(AppRadius.sm),
-        ),
-        child: const Icon(
-          Icons.arrow_back_ios_new_rounded,
-          size: 18,
-          color: _ink,
-        ),
-      ),
+    return LiquidGlass(
+      child: SizedBox(
+          width: 48,
+          height: 48,
+          child: IconButton(
+              tooltip: 'Quay lại',
+              onPressed: onTap,
+              icon:
+                  const Icon(Icons.arrow_back_rounded, size: 22, color: _ink))),
     );
   }
 }
@@ -226,17 +283,23 @@ class _PasswordField extends StatelessWidget {
         TextFormField(
           controller: controller,
           obscureText: obscureText,
+          autocorrect: false,
+          enableSuggestions: false,
+          autofillHints: const [AutofillHints.newPassword],
           textInputAction: textInputAction,
           onFieldSubmitted: onFieldSubmitted,
           style: _style(AppFontSize.bodyLarge, FontWeight.w600, _ink),
           decoration: InputDecoration(
             hintText: '••••••••',
-            hintStyle: _style(AppFontSize.bodyLarge, FontWeight.w600, _softMuted),
-            prefixIcon: const Icon(
-              Icons.lock_outline_rounded,
-              size: 22,
-              color: _muted,
-            ),
+            hintStyle:
+                _style(AppFontSize.bodyLarge, FontWeight.w600, _softMuted),
+            prefixIcon: const Padding(
+                padding: EdgeInsets.all(9),
+                child: GlassIcon(
+                    icon: Icons.lock_outline_rounded,
+                    color: _orange,
+                    size: 32,
+                    iconSize: 17)),
             suffixIcon: IconButton(
               tooltip: obscureText ? 'Hiện mật khẩu' : 'Ẩn mật khẩu',
               onPressed: onVisibilityPressed,
@@ -248,13 +311,13 @@ class _PasswordField extends StatelessWidget {
             ),
             suffixIconColor: _muted,
             filled: true,
-            fillColor: AppColors.surfaceAlt,
+            fillColor: Colors.white.withValues(alpha: .46),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 18,
               vertical: 17,
             ),
             border: _border(Colors.transparent),
-            enabledBorder: _border(Colors.transparent),
+            enabledBorder: _border(Colors.white.withValues(alpha: .8)),
             focusedBorder: _border(_orange, width: 1.5),
             errorBorder: _border(AppColors.danger),
             focusedErrorBorder: _border(AppColors.danger, width: 1.5),
@@ -267,8 +330,8 @@ class _PasswordField extends StatelessWidget {
   }
 
   OutlineInputBorder _border(Color color, {double width = 1}) {
-    return OutlineInputBorder(
-      borderRadius: BorderRadius.circular(AppRadius.md),
+    return GlassInputBorder(
+      borderRadius: BorderRadius.circular(18),
       borderSide: BorderSide(color: color, width: width),
     );
   }
@@ -286,7 +349,7 @@ class _ErrorMessage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
       decoration: BoxDecoration(
         color: AppColors.dangerSoft,
-        borderRadius: BorderRadius.circular(AppRadius.sm),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
@@ -299,7 +362,8 @@ class _ErrorMessage extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: _style(AppFontSize.body, FontWeight.w500, AppColors.danger),
+              style:
+                  _style(AppFontSize.body, FontWeight.w500, AppColors.danger),
             ),
           ),
         ],

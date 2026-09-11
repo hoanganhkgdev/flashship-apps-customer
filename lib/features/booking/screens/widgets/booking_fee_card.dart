@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/liquid_glass.dart';
 
 class BookingFeeCard extends StatelessWidget {
   final String serviceType;
@@ -24,13 +25,9 @@ class BookingFeeCard extends StatelessWidget {
     final finalFee = fee != null ? (fee! - discount).clamp(0, fee!) : null;
     final hasDiscount = discount > 0 && fee != null;
 
-    return Container(
+    return LiquidGlass(
+      borderRadius: BorderRadius.circular(AppRadius.card),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(AppRadius.md),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -38,8 +35,9 @@ class BookingFeeCard extends StatelessWidget {
             width: 40,
             height: 40,
             decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(AppRadius.sm),
+              color: color.withValues(alpha: 0.14),
+              shape: BoxShape.circle,
+              border: Border.all(color: color.withValues(alpha: .2)),
             ),
             child: Icon(Icons.receipt_outlined, color: color, size: 20),
           ),
@@ -88,8 +86,8 @@ class BookingFeeCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
+                color: color.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(999),
               ),
               child: Text('${distanceKm!.toStringAsFixed(1)} km',
                   style: TextStyle(

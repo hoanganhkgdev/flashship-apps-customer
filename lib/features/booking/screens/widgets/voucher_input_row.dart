@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/api/api_error.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
+import '../../../../core/widgets/liquid_glass.dart';
 import '../../../voucher/providers/voucher_validation_provider.dart';
 
 class VoucherInputRow extends ConsumerStatefulWidget {
@@ -177,13 +178,9 @@ class _AppliedBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return LiquidGlass(
+      borderRadius: BorderRadius.circular(AppRadius.md),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: AppColors.success.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppRadius.sm),
-        border: Border.all(color: AppColors.success.withValues(alpha: 0.3)),
-      ),
       child: Row(children: [
         Container(
           width: 34,

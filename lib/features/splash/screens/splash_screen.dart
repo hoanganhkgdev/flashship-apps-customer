@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../home/widgets/home_style.dart';
 import '../../version/providers/app_version_provider.dart';
 
 final splashReadyProvider = StateProvider<bool>((ref) => false);
@@ -56,8 +58,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       }
     }
 
-    return Scaffold(
-      backgroundColor: AppColors.primary,
+    return LiquidBackdrop(
+        child: Scaffold(
+      backgroundColor: Colors.transparent,
       body: Stack(
         children: [
           Center(
@@ -66,37 +69,49 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    width: 84,
-                    height: 84,
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(AppRadius.xl),
-                    ),
-                    child: const Icon(
-                      Icons.inventory_2_outlined,
-                      size: 38,
-                      color: AppColors.primary,
-                    ),
+                  SizedBox(
+                    width: 124,
+                    height: 124,
+                    child: Stack(alignment: Alignment.center, children: [
+                      Transform.rotate(
+                        angle: -.16,
+                        child: Container(
+                          width: 94,
+                          height: 94,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary.withValues(alpha: .13),
+                            borderRadius: HomeStyle.radius,
+                            border: Border.all(
+                                color: Colors.white.withValues(alpha: .8)),
+                          ),
+                        ),
+                      ),
+                      const LiquidGlass(
+                          child: SizedBox(
+                              width: 88,
+                              height: 88,
+                              child: Icon(Icons.local_shipping_rounded,
+                                  size: 42, color: AppColors.primary))),
+                    ]),
                   ),
                   const SizedBox(height: 20),
                   Text(
                     'Flash Ship',
                     style: TextStyle(
-                      fontSize: AppFontSize.xlarge,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      fontSize: 36,
+                      fontWeight: FontWeight.w800,
+                      color: HomeStyle.ink,
                       height: 1.1,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Giao hàng, mua hộ, đặt xe trong 1 chạm',
+                    'Giao hàng · Mua hộ · Đặt xe',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: AppFontSize.body,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: .92),
+                      color: HomeStyle.muted,
                     ),
                   ),
                 ],
@@ -121,8 +136,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                         height: 7,
                         margin: const EdgeInsets.symmetric(horizontal: 4),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(
-                            alpha: index == activeDot ? 1 : .45,
+                          color: AppColors.primary.withValues(
+                            alpha: index == activeDot ? 1 : .2,
                           ),
                           shape: BoxShape.circle,
                         ),
@@ -135,7 +150,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
           ),
         ],
       ),
-    );
+    ));
   }
 
   void _showForceUpdateDialog(BuildContext context, AppVersionState v) {

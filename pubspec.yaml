@@ -1,7 +1,7 @@
 name: flashship_customer
 description: FlashShip Customer App - Đặt đơn giao hàng, xe ôm, mua hộ
 publish_to: 'none'
-version: 10.0.3+103
+version: 10.0.4+104
 
 environment:
   sdk: ^3.6.0

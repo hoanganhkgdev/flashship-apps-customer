@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../home/widgets/home_style.dart';
 
 class LegalPageScreen extends ConsumerStatefulWidget {
   final String slug;
@@ -24,7 +26,7 @@ class _State extends ConsumerState<LegalPageScreen> {
     super.initState();
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(AppColors.background)
+      ..setBackgroundColor(Colors.transparent)
       ..setNavigationDelegate(NavigationDelegate(
         onPageFinished: (_) {
           if (mounted) setState(() => _loading = false);
@@ -64,21 +66,25 @@ class _State extends ConsumerState<LegalPageScreen> {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: "Arial Narrow", "Roboto Condensed", Arial, sans-serif;
-      font-size: 17px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-size: 16px;
       line-height: 1.7;
-      color: #6E6561;
-      background: #FCF7F3;
-      padding: 8px 24px 48px;
+      color: #465166;
+      background: transparent;
+      overflow-wrap: anywhere;
+      padding: 16px 16px 32px;
     }
-    h1, h2, h3 { margin: 22px 0 10px; font-weight: 800; color: #211A17; }
+    h1, h2, h3 { margin: 22px 0 10px; font-weight: 800; color: #141B2E; }
     h1 { font-size: 23px; }
     h2 { font-size: 20px; }
     h3 { font-size: 18px; }
-    p  { margin-bottom: 15px; color: #6E6561; }
+    p  { margin-bottom: 15px; color: #465166; }
     ul, ol { padding-left: 20px; margin-bottom: 12px; }
     li { margin-bottom: 4px; }
-    a  { color: #E8720C; }
+    a  { color: #C64B00; }
+    img, video { max-width: 100%; height: auto; }
+    table { display: block; max-width: 100%; overflow-x: auto; }
+    h1:first-child, h2:first-child, h3:first-child { margin-top: 0; }
   </style>
 </head>
 <body>$content</body>
@@ -104,95 +110,95 @@ class _State extends ConsumerState<LegalPageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        toolbarHeight: 70,
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        leading: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  border: Border.all(color: AppColors.divider),
-                ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 18, color: AppColors.textPrimary),
-              ),
-            ),
-          ),
-        ),
-        leadingWidth: 60,
-        title: Text(widget.title,
-            style: TextStyle(
-                fontSize: AppFontSize.display,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary)),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.divider),
-        ),
-      ),
-      body: _error != null
-          ? Center(
-              child: Column(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.error_outline_rounded,
-                  size: 40, color: AppColors.textSecondary),
-              const SizedBox(height: 12),
-              Text(_error!,
-                  style: const TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: 12),
-              TextButton(
-                  onPressed: () {
-                    setState(() {
-                      _loading = true;
-                      _error = null;
-                    });
-                    _fetchContent();
-                  },
-                  child: const Text('Thử lại')),
-            ]))
-          : Column(children: [
-              if (_updatedAt != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 12),
-                  child: Row(children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: AppColors.primarySoft,
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                      ),
-                      child: const Icon(Icons.shield_outlined,
-                          size: 22, color: AppColors.primary),
-                    ),
-                    const SizedBox(width: 12),
-                    Text('Cập nhật lần cuối: $_updatedLabel',
-                        style: TextStyle(
-                            fontSize: AppFontSize.bodyLarge, color: AppColors.textTertiary)),
-                  ]),
-                ),
+    return LiquidBackdrop(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+            child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+            child: Row(children: [
+              IconButton(
+                  tooltip: 'Quay lại',
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: IconButton.styleFrom(
+                      backgroundColor: Colors.white.withValues(alpha: .45),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: HomeStyle.radius)),
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                      size: 18, color: HomeStyle.ink)),
+              const SizedBox(width: 12),
               Expanded(
-                child: Stack(children: [
-                  WebViewWidget(controller: _controller),
-                  if (_loading)
-                    const Center(
-                      child: CircularProgressIndicator(
-                          color: AppColors.primary, strokeWidth: 2),
-                    ),
-                ]),
-              ),
+                  child: Text(widget.title,
+                      style: const TextStyle(
+                          fontSize: AppFontSize.display,
+                          fontWeight: FontWeight.w800,
+                          color: HomeStyle.ink))),
             ]),
+          ),
+          Expanded(
+              child: _error != null
+                  ? Center(
+                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                      const Icon(Icons.error_outline_rounded,
+                          size: 40, color: AppColors.textSecondary),
+                      const SizedBox(height: 12),
+                      Text(_error!,
+                          style:
+                              const TextStyle(color: AppColors.textSecondary)),
+                      const SizedBox(height: 12),
+                      TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _loading = true;
+                              _error = null;
+                            });
+                            _fetchContent();
+                          },
+                          child: const Text('Thử lại')),
+                    ]))
+                  : Column(children: [
+                      if (_updatedAt != null)
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                          child: LiquidGlass(
+                            padding: const EdgeInsets.all(12),
+                            child: Row(children: [
+                              GlassIcon(
+                                  icon: widget.slug == 'privacy-policy'
+                                      ? Icons.shield_outlined
+                                      : Icons.description_outlined,
+                                  color: HomeStyle.orange,
+                                  size: 34,
+                                  iconSize: 18),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                  child: Text(
+                                      'Cập nhật lần cuối: $_updatedLabel',
+                                      style: const TextStyle(
+                                          fontSize: AppFontSize.caption,
+                                          color: HomeStyle.muted))),
+                            ]),
+                          ),
+                        ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                          child: LiquidGlass(
+                            child: Stack(children: [
+                              WebViewWidget(controller: _controller),
+                              if (_loading)
+                                const Center(
+                                  child: CircularProgressIndicator(
+                                      color: AppColors.primary, strokeWidth: 2),
+                                ),
+                            ]),
+                          ),
+                        ),
+                      ),
+                    ])),
+        ])),
+      ),
     );
   }
 }

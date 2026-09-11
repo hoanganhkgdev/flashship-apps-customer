@@ -1,243 +1,200 @@
 part of '../screens/home_screen.dart';
 
-// ── Contact section ───────────────────────────────────────────────────────────
-
-// ── Voucher section ───────────────────────────────────────────────────────────
-
 class _VoucherSection extends ConsumerWidget {
   const _VoucherSection();
-
-  static IconData _typeIcon(String? type) => switch (type) {
-        'freeship' => Icons.local_shipping_rounded,
-        'percent' => Icons.percent_rounded,
-        _ => Icons.card_giftcard_rounded,
-      };
-
-  static Color _typeColor(String? type) => switch (type) {
-        'freeship' => AppColors.accent2,
-        'percent' => AppColors.primary,
-        _ => AppColors.primary,
-      };
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vouchers = ref.watch(voucherProvider).valueOrNull ?? [];
     if (vouchers.isEmpty) return const SizedBox.shrink();
-    // Voucher appOnly lên đầu danh sách, giữ nguyên thứ tự tương đối trong mỗi nhóm
     final sorted = [
       ...vouchers.where((v) => v.appOnly),
       ...vouchers.where((v) => !v.appOnly),
     ];
+    final shown = sorted.take(2).toList();
+    void viewAll() => context.push('/vouchers');
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
-          child: Row(children: [
-            Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppRadius.sm),
-              ),
-              child: const Icon(Icons.local_offer_rounded,
-                  size: 15, color: AppColors.primary),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text('Ưu đãi dành cho bạn',
-                  style: TextStyle(
-                      fontSize: AppFontSize.title,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textPrimary)),
-            ),
-            GestureDetector(
-              onTap: () => context.push('/vouchers'),
-              child: const Text('Xem tất cả',
-                  style: TextStyle(
-                      fontSize: AppFontSize.body,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primary)),
-            ),
-          ]),
-        ),
-        SizedBox(
-          height: 130,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            itemCount: sorted.length,
-            separatorBuilder: (_, __) => const SizedBox(width: 10),
-            itemBuilder: (_, i) {
-              final v = sorted[i];
-              final color = _typeColor(v.type);
-              final icon = _typeIcon(v.type);
-              final isExpiringSoon = v.expiresAt != null &&
-                  v.expiresAt!.difference(DateTime.now()).inDays <= 3;
-              return GestureDetector(
-                onTap: () => context.push('/vouchers'),
-                child: Container(
-                  width: 210,
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: LiquidGlass(
+        borderRadius: HomeStyle.radius,
+        padding: const EdgeInsets.all(4),
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+            child: Row(children: [
+              const GlassIcon(
+                  icon: Icons.local_offer_rounded,
+                  color: HomeStyle.orange,
+                  size: 34,
+                  iconSize: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                  child: Row(children: [
+                const Flexible(
+                    child: Text('Ưu đãi dành cho bạn',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: AppFontSize.bodyLarge,
+                            fontWeight: FontWeight.w700,
+                            color: HomeStyle.ink))),
+                const SizedBox(width: 7),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                   decoration: BoxDecoration(
-                    color: AppColors.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
-                    border: Border.all(color: AppColors.divider, width: 1),
-                  ),
-                  child: Stack(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(14),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(children: [
-                              Container(
-                                width: 32,
-                                height: 32,
-                                decoration: BoxDecoration(
-                                  color: color.withValues(alpha: 0.18),
-                                  borderRadius:
-                                      BorderRadius.circular(AppRadius.sm),
-                                ),
-                                child: Icon(icon, size: 16, color: color),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(v.discountLabel,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: TextStyle(
-                                        fontSize: AppFontSize.bodyLarge,
-                                        fontWeight: FontWeight.w600,
-                                        color: color)),
-                              ),
-                            ]),
-                            const Spacer(),
-                            if (v.description != null)
-                              Text(v.description!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                      fontSize: AppFontSize.body,
-                                      fontWeight: FontWeight.w500,
-                                      color: AppColors.textSecondary)),
-                            const SizedBox(height: 6),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 1,
-                              child: CustomPaint(
-                                painter: _DashedLinePainter(
-                                    color: color.withValues(alpha: 0.35)),
-                              ),
-                            ),
-                            const SizedBox(height: 6),
-                            GestureDetector(
-                              behavior: HitTestBehavior.opaque,
-                              onTap: () async {
-                                await Clipboard.setData(
-                                    ClipboardData(text: v.code));
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                        content:
-                                            Text('Đã sao chép mã ${v.code}')),
-                                  );
-                                }
-                              },
-                              child: Row(children: [
-                                Expanded(
-                                  child: Text(v.code,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: TextStyle(
-                                          fontSize: AppFontSize.caption,
-                                          fontWeight: FontWeight.w600,
-                                          color: color,
-                                          letterSpacing: 0.5)),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(Icons.copy_rounded,
-                                    size: 13, color: color),
-                              ]),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (isExpiringSoon)
-                        Positioned(
-                          top: 8,
-                          right: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: const BoxDecoration(
-                              color: AppColors.danger,
-                              shape: BoxShape.rectangle,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(20)),
-                            ),
-                            child: const Text('Sắp hết',
-                                style: TextStyle(
-                                    fontSize: AppFontSize.caption,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white)),
-                          ),
-                        ),
-                      if (v.appOnly)
-                        Positioned(
-                          top: 8,
-                          left: 8,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 3),
-                            decoration: const BoxDecoration(
-                              color: AppColors.primary,
-                              shape: BoxShape.rectangle,
-                              borderRadius:
-                                  BorderRadius.all(Radius.circular(20)),
-                            ),
-                            child: const Text('Chỉ có trên app',
-                                style: TextStyle(
-                                    fontSize: AppFontSize.caption,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white)),
-                          ),
-                        ),
-                    ],
-                  ),
+                      color: HomeStyle.orange.withValues(alpha: .10),
+                      borderRadius: BorderRadius.circular(AppRadius.glass)),
+                  child: Text('${vouchers.length}',
+                      style: const TextStyle(
+                          fontSize: AppFontSize.caption,
+                          fontWeight: FontWeight.w700,
+                          color: HomeStyle.orange)),
                 ),
-              );
-            },
+              ])),
+              const SizedBox(width: 8),
+              TextButton(
+                onPressed: viewAll,
+                style: TextButton.styleFrom(
+                    foregroundColor: HomeStyle.orange,
+                    backgroundColor: HomeStyle.orange.withValues(alpha: .08),
+                    minimumSize: const Size(0, 36),
+                    padding: const EdgeInsets.symmetric(horizontal: 11),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.glass))),
+                child: const Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text('Xem tất cả',
+                      style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          fontWeight: FontWeight.w600)),
+                  SizedBox(width: 2),
+                  Icon(Icons.chevron_right_rounded, size: 17)
+                ]),
+              ),
+            ]),
           ),
-        ),
-        const SizedBox(height: 8),
-      ],
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
+            child: IntrinsicHeight(
+                child: Row(children: [
+              for (var i = 0; i < shown.length; i++) ...[
+                if (i > 0) const SizedBox(width: 8),
+                Expanded(
+                    child: _HomeVoucherCard(
+                        voucher: shown[i], index: i, onTap: viewAll)),
+              ],
+            ])),
+          ),
+        ]),
+      ),
     );
   }
 }
 
-class _DashedLinePainter extends CustomPainter {
-  final Color color;
-  const _DashedLinePainter({required this.color});
-
-  static const _dashWidth = 4.0;
-  static const _dashSpace = 3.0;
+class _HomeVoucherCard extends StatelessWidget {
+  const _HomeVoucherCard(
+      {required this.voucher, required this.index, required this.onTap});
+  final VoucherModel voucher;
+  final int index;
+  final VoidCallback onTap;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-    double startX = 0;
-    while (startX < size.width) {
-      canvas.drawLine(Offset(startX, 0), Offset(startX + _dashWidth, 0), paint);
-      startX += _dashWidth + _dashSpace;
-    }
+  Widget build(BuildContext context) {
+    const colors = [HomeStyle.orange, Color(0xFF318B83)];
+    final accent = colors[index % colors.length];
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: HomeStyle.radius,
+        child: Ink(
+          padding: const EdgeInsets.all(11),
+          decoration: BoxDecoration(
+            borderRadius: HomeStyle.radius,
+            gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  Colors.white.withValues(alpha: .76),
+                  accent.withValues(alpha: .11)
+                ]),
+            border: Border.all(color: Colors.white.withValues(alpha: .88)),
+          ),
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Row(children: [
+              GlassIcon(
+                  icon: Icons.confirmation_number_rounded,
+                  color: accent,
+                  size: 32,
+                  iconSize: 17),
+              const Spacer(),
+              if (voucher.appOnly)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(
+                      color: accent.withValues(alpha: .11),
+                      borderRadius: BorderRadius.circular(AppRadius.glass)),
+                  child: Text('APP',
+                      style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          color: accent)),
+                ),
+            ]),
+            const SizedBox(height: 10),
+            Text(voucher.discountLabel,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    height: 1.15,
+                    fontWeight: FontWeight.w800,
+                    color: accent)),
+            const SizedBox(height: 5),
+            Text(voucher.code,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontSize: AppFontSize.caption,
+                    letterSpacing: .4,
+                    fontWeight: FontWeight.w700,
+                    color: HomeStyle.ink)),
+            if (voucher.description?.isNotEmpty == true) ...[
+              const SizedBox(height: 4),
+              Text(voucher.description!,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: 10, height: 1.25, color: HomeStyle.muted)),
+            ],
+            const Spacer(),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 34,
+              child: FilledButton(
+                onPressed: onTap,
+                style: FilledButton.styleFrom(
+                    elevation: 0,
+                    backgroundColor: accent.withValues(alpha: .13),
+                    foregroundColor: accent,
+                    padding: EdgeInsets.zero,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.glass),
+                        side:
+                            BorderSide(color: accent.withValues(alpha: .16)))),
+                child: const Text('Dùng ngay',
+                    style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant _DashedLinePainter oldDelegate) =>
-      oldDelegate.color != color;
 }

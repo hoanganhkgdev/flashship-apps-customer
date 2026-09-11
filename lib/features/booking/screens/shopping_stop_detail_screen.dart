@@ -147,25 +147,8 @@ class _State extends State<ShoppingStopDetailScreen> {
                         color: AppColors.textSecondary,
                         fontWeight: FontWeight.w400),
                     alignLabelWithHint: true,
-                    filled: true,
-                    fillColor: _error != null
-                        ? AppColors.danger.withValues(alpha: 0.04)
-                        : AppColors.surfaceAlt,
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                        borderSide: BorderSide.none),
-                    enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                        borderSide: _error != null
-                            ? BorderSide(
-                                color: AppColors.danger.withValues(alpha: 0.5))
-                            : BorderSide.none),
-                    focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.sm),
-                        borderSide: const BorderSide(
-                            color: AppColors.primary, width: 1.5)),
                     errorText: _error,
                     errorStyle:
                         const TextStyle(fontSize: AppFontSize.caption, color: AppColors.danger),

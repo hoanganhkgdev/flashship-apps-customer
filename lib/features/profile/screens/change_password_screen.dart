@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/liquid_glass.dart';
+import '../../../core/widgets/glass_input_border.dart';
+import '../../home/widgets/home_style.dart';
 import '../../auth/providers/auth_provider.dart';
 
 class ChangePasswordScreen extends ConsumerStatefulWidget {
@@ -76,159 +79,181 @@ class _State extends ConsumerState<ChangePasswordScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        toolbarHeight: 70,
-        backgroundColor: AppColors.surface,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: true,
-        leading: Center(
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16),
-            child: GestureDetector(
-              onTap: () => Navigator.of(context).pop(),
-              behavior: HitTestBehavior.opaque,
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                  border: Border.all(color: AppColors.divider),
-                ),
-                child: const Icon(Icons.arrow_back_ios_new_rounded,
-                    size: 18, color: AppColors.textPrimary),
-              ),
-            ),
-          ),
-        ),
-        leadingWidth: 60,
-        title: Text('Đổi mật khẩu',
-            style: TextStyle(
-                fontSize: AppFontSize.display,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary)),
-        bottom: const PreferredSize(
-          preferredSize: Size.fromHeight(1),
-          child: Divider(height: 1, color: AppColors.divider),
-        ),
-      ),
-      body: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          const SizedBox(height: 26),
-
-          // ── Card 1: mật khẩu hiện tại ──────────────────────────
-          _card(
-              child: _PassRow(
-            label: 'Mật khẩu hiện tại',
-            hint: 'Nhập mật khẩu hiện tại',
-            controller: _curCtrl,
-            show: _showCur,
-            onChanged: (_) => setState(() {}),
-            onToggle: () => setState(() => _showCur = !_showCur),
-          )),
-
-          const SizedBox(height: 2),
-
-          // ── Card 2: mới + xác nhận ─────────────────────────────
-          _card(
-              child: Column(children: [
-            _PassRow(
-              label: 'Mật khẩu mới',
-              hint: 'Tối thiểu 6 ký tự',
-              controller: _newCtrl,
-              show: _showNew,
-              onChanged: (_) => setState(() {}),
-              onToggle: () => setState(() => _showNew = !_showNew),
-            ),
-            _PassRow(
-              label: 'Xác nhận mật khẩu mới',
-              hint: 'Nhập lại mật khẩu mới',
-              controller: _confCtrl,
-              show: _showConf,
-              onToggle: () => setState(() => _showConf = !_showConf),
-            ),
-          ])),
-
-          const SizedBox(height: 14),
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 24),
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              border: Border.all(color: AppColors.divider),
-            ),
-            child: Column(children: [
-              _PasswordRule(
-                passed: _newCtrl.text.length >= 6,
-                label: 'Tối thiểu 6 ký tự',
-              ),
-              const SizedBox(height: 12),
-              _PasswordRule(
-                passed:
-                    _newCtrl.text.isNotEmpty && _newCtrl.text != _curCtrl.text,
-                label: 'Khác với mật khẩu hiện tại',
-              ),
-            ]),
-          ),
-
-          // ── Error banner ───────────────────────────────────────
-          if (_error != null)
+    return LiquidBackdrop(
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
+          child: Column(children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: AppColors.danger.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(AppRadius.sm),
-                ),
-                child: Row(children: [
-                  const Icon(Icons.error_outline_rounded,
-                      color: AppColors.danger, size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                      child: Text(_error!,
-                          style: const TextStyle(
-                              color: AppColors.danger, fontSize: AppFontSize.body))),
-                ]),
-              ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Row(children: [
+                IconButton(
+                    tooltip: 'Quay lại',
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: IconButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: .45),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: HomeStyle.radius)),
+                    icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                        size: 18, color: HomeStyle.ink)),
+                const SizedBox(width: 12),
+                const Expanded(
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                      Text('Đổi mật khẩu',
+                          style: TextStyle(
+                              fontSize: AppFontSize.display,
+                              fontWeight: FontWeight.w800,
+                              color: HomeStyle.ink)),
+                      SizedBox(height: 4),
+                      Text('Cập nhật mật khẩu cho tài khoản',
+                          style: TextStyle(
+                              fontSize: AppFontSize.caption,
+                              color: HomeStyle.muted)),
+                    ])),
+              ]),
             ),
+            Expanded(
+                child: ListView(
+              keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+              children: [
+                const LiquidGlass(
+                  padding: EdgeInsets.all(14),
+                  child: Row(children: [
+                    GlassIcon(
+                        icon: Icons.lock_outline_rounded,
+                        color: HomeStyle.orange,
+                        size: 42,
+                        iconSize: 22),
+                    SizedBox(width: 12),
+                    Expanded(
+                        child: Text(
+                            'Chọn mật khẩu mới dễ nhớ với bạn và khó đoán với người khác.',
+                            style: TextStyle(
+                                fontSize: AppFontSize.body,
+                                height: 1.4,
+                                color: HomeStyle.muted))),
+                  ]),
+                ),
+                const SizedBox(height: 12),
+                // ── Card 1: mật khẩu hiện tại ──────────────────────────
+                _card(
+                    child: _PassRow(
+                  label: 'Mật khẩu hiện tại',
+                  hint: 'Nhập mật khẩu hiện tại',
+                  controller: _curCtrl,
+                  show: _showCur,
+                  onChanged: (_) => setState(() {}),
+                  onToggle: () => setState(() => _showCur = !_showCur),
+                )),
 
-          // ── Save button ────────────────────────────────────────
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 28, 24, 40),
-            child: SizedBox(
-              height: 56,
-              child: FilledButton(
-                onPressed: _saving ? null : _save,
-                style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  disabledBackgroundColor: AppColors.divider,
-                  elevation: 0,
-                  textStyle:
-                      TextStyle(fontSize: AppFontSize.bodyLarge, fontWeight: FontWeight.w600),
+                const SizedBox(height: 12),
+
+                // ── Card 2: mới + xác nhận ─────────────────────────────
+                _card(
+                    child: Column(children: [
+                  _PassRow(
+                    label: 'Mật khẩu mới',
+                    hint: 'Tối thiểu 6 ký tự',
+                    controller: _newCtrl,
+                    show: _showNew,
+                    onChanged: (_) => setState(() {}),
+                    onToggle: () => setState(() => _showNew = !_showNew),
+                  ),
+                  _PassRow(
+                    label: 'Xác nhận mật khẩu mới',
+                    hint: 'Nhập lại mật khẩu mới',
+                    controller: _confCtrl,
+                    show: _showConf,
+                    onToggle: () => setState(() => _showConf = !_showConf),
+                  ),
+                ])),
+
+                const SizedBox(height: 14),
+                LiquidGlass(
+                  padding: const EdgeInsets.all(14),
+                  child: Column(children: [
+                    _PasswordRule(
+                      passed: _newCtrl.text.length >= 6,
+                      label: 'Tối thiểu 6 ký tự',
+                    ),
+                    const SizedBox(height: 12),
+                    _PasswordRule(
+                      passed: _newCtrl.text.isNotEmpty &&
+                          _newCtrl.text != _curCtrl.text,
+                      label: 'Khác với mật khẩu hiện tại',
+                    ),
+                  ]),
                 ),
-                child: _saving
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                            strokeWidth: 2.5, color: Colors.white))
-                    : const Text('Cập nhật mật khẩu'),
-              ),
-            ),
-          ),
-        ],
+
+                // ── Error banner ───────────────────────────────────────
+                if (_error != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.danger.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(AppRadius.glass),
+                      ),
+                      child: Row(children: [
+                        const Icon(Icons.error_outline_rounded,
+                            color: AppColors.danger, size: 16),
+                        const SizedBox(width: 8),
+                        Expanded(
+                            child: Text(_error!,
+                                style: const TextStyle(
+                                    color: AppColors.danger,
+                                    fontSize: AppFontSize.body))),
+                      ]),
+                    ),
+                  ),
+
+                // ── Save button ────────────────────────────────────────
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: LiquidGlass(
+                      child: SizedBox(
+                    height: 56,
+                    child: FilledButton(
+                      onPressed: _saving ? null : _save,
+                      style: FilledButton.styleFrom(
+                        backgroundColor:
+                            HomeStyle.orange.withValues(alpha: .16),
+                        foregroundColor: HomeStyle.orange,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: HomeStyle.radius,
+                            side: BorderSide(
+                                color: HomeStyle.orange.withValues(alpha: .2))),
+                        disabledBackgroundColor: AppColors.divider,
+                        elevation: 0,
+                        textStyle: TextStyle(
+                            fontSize: AppFontSize.bodyLarge,
+                            fontWeight: FontWeight.w600),
+                      ),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 2.5, color: HomeStyle.orange))
+                          : const Text('Cập nhật mật khẩu'),
+                    ),
+                  )),
+                ),
+              ],
+            )),
+          ]),
+        ),
       ),
     );
   }
 
-  Widget _card({required Widget child}) => Container(
-        margin: const EdgeInsets.symmetric(horizontal: 8),
+  Widget _card({required Widget child}) => LiquidGlass(
+        padding: const EdgeInsets.symmetric(vertical: 6),
         child: child,
       );
 }
@@ -246,11 +271,13 @@ class _PasswordRule extends StatelessWidget {
           color: passed ? AppColors.success : AppColors.textTertiary,
         ),
         const SizedBox(width: 12),
-        Text(label,
-            style: TextStyle(
-                fontSize: AppFontSize.bodyLarge,
-                color:
-                    passed ? AppColors.textSecondary : AppColors.textTertiary)),
+        Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    color: passed
+                        ? AppColors.textSecondary
+                        : AppColors.textTertiary))),
       ]);
 }
 
@@ -286,27 +313,32 @@ class _PassRow extends StatelessWidget {
             controller: controller,
             onChanged: onChanged,
             obscureText: !show,
+            autocorrect: false,
+            enableSuggestions: false,
             style: TextStyle(
                 fontSize: AppFontSize.bodyLarge,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary),
             decoration: InputDecoration(
               filled: true,
-              fillColor: AppColors.surfaceAlt,
+              fillColor: Colors.white.withValues(alpha: .4),
               hintText: hint,
-              hintStyle: TextStyle(fontSize: AppFontSize.bodyLarge, color: AppColors.textTertiary),
-              border: InputBorder.none,
-              enabledBorder: OutlineInputBorder(
+              hintStyle: TextStyle(
+                  fontSize: AppFontSize.bodyLarge,
+                  color: AppColors.textTertiary),
+              border: const GlassInputBorder(),
+              enabledBorder: GlassInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.card),
-                borderSide: BorderSide.none,
+                borderSide:
+                    BorderSide(color: Colors.white.withValues(alpha: .8)),
               ),
-              focusedBorder: OutlineInputBorder(
+              focusedBorder: GlassInputBorder(
                 borderRadius: BorderRadius.circular(AppRadius.card),
                 borderSide:
                     const BorderSide(color: AppColors.primary, width: 1.5),
               ),
               contentPadding:
-                  const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               suffixIcon: GestureDetector(
                 onTap: onToggle,
                 behavior: HitTestBehavior.opaque,

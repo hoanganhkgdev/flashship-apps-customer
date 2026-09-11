@@ -4,8 +4,8 @@ part of '../screens/home_screen.dart';
 // HOME TAB
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _HomeTab extends ConsumerWidget {
-  const _HomeTab();
+class HomeTab extends ConsumerWidget {
+  const HomeTab({super.key});
 
   void _openBooking(BuildContext ctx, WidgetRef ref, String type,
       {OrderModel? reorder, AddressModel? destAddress}) {
@@ -47,10 +47,12 @@ class _HomeTab extends ConsumerWidget {
   Future<void> _pickAddressService(
       BuildContext context, WidgetRef ref, AddressModel address) async {
     final type = await showModalBottomSheet<String>(
+      showDragHandle: false,
       context: context,
       backgroundColor: Colors.transparent,
       shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
+      useSafeArea: true,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
           color: AppColors.surface,
@@ -58,7 +60,7 @@ class _HomeTab extends ConsumerWidget {
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -109,69 +111,83 @@ class _HomeTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authProvider).user;
-    final cityState = ref.watch(activeCityProvider);
-
     // Sync service labels từ backend vào Fmt cache
     final services = ref.watch(serviceTypeProvider).valueOrNull ?? [];
     if (services.isNotEmpty) {
       Fmt.updateServiceLabels({for (final s in services) s.key: s.label});
     }
 
+    final serviceKey = GlobalKey();
     return RefreshIndicator(
-      color: AppColors.primary,
+      color: HomeStyle.orange,
       onRefresh: () async {
         await ref.read(orderListProvider.notifier).fetch();
         ref.invalidate(bannerProvider);
         ref.invalidate(addressesProvider);
         ref.read(activeCityProvider.notifier).detectFromGps();
       },
-      child: ColoredBox(
-        color: AppColors.background,
-        child: CustomScrollView(
-          slivers: [
-            // ── Header (BShip style) ─────────────────────────────────────
-            SliverToBoxAdapter(
-              child: _Header(
-                name: user?.name ?? 'Khách',
-                initials: user?.initials ?? 'K',
-                currentAddress: cityState.currentAddress.isNotEmpty
-                    ? cityState.currentAddress
-                    : cityState.cityName,
-                currentPlaceName: cityState.currentPlaceName,
-                isDetecting: cityState.isDetecting,
+      child: LiquidBackdrop(
+        child: SafeArea(
+          top: false,
+          bottom: false,
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // ── Header (app bar cố định, kính mờ) ─────────────────────────
+              SliverPersistentHeader(
+                pinned: true,
+                delegate: _StickyHeaderDelegate(
+                    116 + MediaQuery.paddingOf(context).top),
               ),
-            ),
 
-            // ── Services ─────────────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: _ServiceIconGrid(
-                onTap: (type) => _openBooking(context, ref, type),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+              // ── Services ─────────────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: _ServiceIconGrid(
+                  key: serviceKey,
+                  onTap: (type) => _openBooking(context, ref, type),
+                ),
               ),
-            ),
 
-            // ── Đơn đang hoạt động ───────────────────────────────────────
-            const SliverToBoxAdapter(child: _ActiveOrdersOverview()),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-            // ── Đặt nhanh (địa chỉ đã lưu) ─────────────────────────────────
-            SliverToBoxAdapter(
-              child: _SavedAddressQuickRow(
-                onPickAddress: (addr) =>
-                    _pickAddressService(context, ref, addr),
+              SliverToBoxAdapter(
+                child: _BannersSection(onBook: () {
+                  final target = serviceKey.currentContext;
+                  if (target != null) {
+                    Scrollable.ensureVisible(target,
+                        duration: const Duration(milliseconds: 350));
+                  }
+                }),
               ),
-            ),
 
-            // ── Ưu đãi dành cho bạn ──────────────────────────────────────
-            const SliverToBoxAdapter(child: _VoucherSection()),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+              // ── Đơn đang hoạt động ───────────────────────────────────────
+              const SliverToBoxAdapter(child: _ActiveOrdersOverview()),
 
-            // Chừa chỗ cho thanh bottom nav kính mờ (extendBody: true ở
-            // HomeScreen) — không thì phần cuối bị nav che mất.
-            SliverToBoxAdapter(
-              child: SizedBox(height: BottomNav.reservedHeight(context)),
-            ),
-          ],
+              // ── Đặt nhanh (địa chỉ đã lưu) ─────────────────────────────────
+              SliverToBoxAdapter(
+                child: _SavedAddressQuickRow(
+                  onPickAddress: (addr) =>
+                      _pickAddressService(context, ref, addr),
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+              // ── Ưu đãi dành cho bạn ──────────────────────────────────────
+              const SliverToBoxAdapter(child: _VoucherSection()),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+
+              // The scaffold already reserves space for bottom navigation.
+              SliverToBoxAdapter(
+                child: SizedBox(height: BottomNav.reservedHeight(context)),
+              ),
+            ],
+          ),
         ),
       ),
     );
