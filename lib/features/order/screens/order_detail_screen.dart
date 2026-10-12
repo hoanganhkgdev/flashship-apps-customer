@@ -688,6 +688,11 @@ class _OrderDetailMockBody extends StatelessWidget {
           ]),
           const SizedBox(height: 18),
           _ProgressCard(progress: _progress, cancelled: order.isCancelled),
+          if (order.status == 'pending' &&
+              order.cancelReason == 'no_driver') ...[
+            const SizedBox(height: 16),
+            const _NoDriverSupportCard(),
+          ],
           if (order.pickupAddress != null || order.deliveryAddress != null) ...[
             const SizedBox(height: 16),
             _MockRouteCard(order: order),
@@ -711,6 +716,37 @@ class _OrderDetailMockBody extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NoDriverSupportCard extends StatelessWidget {
+  const _NoDriverSupportCard();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.warningSoft,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: AppColors.warning.withValues(alpha: .3)),
+        ),
+        child: const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.support_agent_rounded, color: AppColors.warning),
+            SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Chưa có tài xế nhận đơn. Tổng đài đang hỗ trợ tìm tài xế cho bạn.',
+                style: TextStyle(
+                  fontSize: AppFontSize.body,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.warning,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
 }
 
 class _StatusPill extends StatelessWidget {

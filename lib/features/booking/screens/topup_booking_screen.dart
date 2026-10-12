@@ -127,6 +127,11 @@ class _State extends ConsumerState<TopupBookingScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_lat == null || _lng == null) {
+      setState(() => _error =
+          'Vui lòng chọn địa chỉ từ gợi ý hoặc bản đồ để xác định vị trí chính xác.');
+      return;
+    }
     setState(() {
       _submitting = true;
       _error = null;

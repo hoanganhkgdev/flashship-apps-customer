@@ -220,6 +220,11 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
         setState(() => _error = 'Vui lòng chọn địa chỉ điểm mua ${i + 1}');
         return;
       }
+      if (_stops[i].lat == null || _stops[i].lng == null) {
+        setState(() => _error =
+            'Điểm mua ${i + 1} chưa có vị trí chính xác. Vui lòng chọn lại từ gợi ý hoặc bản đồ.');
+        return;
+      }
       if (_stops[i].descCtrl.text.trim().isEmpty) {
         setState(
             () => _error = 'Vui lòng nhập thông tin hàng tại điểm ${i + 1}');
@@ -228,6 +233,11 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
     }
     if (_deliveryAddr == null) {
       setState(() => _error = 'Vui lòng chọn địa chỉ giao hàng');
+      return;
+    }
+    if (_deliveryLat == null || _deliveryLng == null) {
+      setState(() => _error =
+          'Điểm giao chưa có vị trí chính xác. Vui lòng chọn lại từ gợi ý hoặc bản đồ.');
       return;
     }
     if (_deliveryPhoneCtrl.text.trim().isEmpty) {
