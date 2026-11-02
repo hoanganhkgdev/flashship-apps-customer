@@ -87,109 +87,76 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider).user;
     final orders = ref.watch(orderListProvider).orders;
-    final vouchers = ref.watch(voucherProvider).valueOrNull ?? [];
+    final vouchers = (ref.watch(voucherProvider).valueOrNull ?? [])
+        .where((voucher) => voucher.isAvailable)
+        .toList();
     final completedOrders = orders.where((o) => o.isCompleted).length;
 
-    return LiquidBackdrop(
+    return ColoredBox(
+      color: HomeStyle.background,
       child: SafeArea(
+        top: false,
         bottom: false,
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(
-                      height: 48,
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text('Tài khoản',
-                            style: TextStyle(
-                              fontSize: AppFontSize.display,
-                              fontWeight: FontWeight.w800,
-                              color: HomeStyle.ink,
-                            )),
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    const Text('Thông tin cá nhân và tiện ích của bạn',
+            DecoratedBox(
+              decoration: const BoxDecoration(
+                color: Color(0xFFFFE9DE),
+              ),
+              child: SafeArea(
+                bottom: false,
+                child: const Padding(
+                  padding: EdgeInsets.fromLTRB(16, 14, 16, 14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text.rich(
+                        TextSpan(children: [
+                          TextSpan(text: 'Tài '),
+                          TextSpan(
+                            text: 'khoản',
+                            style: TextStyle(color: HomeStyle.orange),
+                          ),
+                        ]),
                         style: TextStyle(
-                            fontSize: AppFontSize.caption,
-                            color: HomeStyle.muted)),
-                  ]),
+                          fontSize: 24,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -.4,
+                          color: HomeStyle.ink,
+                        ),
+                      ),
+                      SizedBox(height: 5),
+                      Text(
+                        'Hồ sơ, tiện ích và cài đặt',
+                        style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          color: HomeStyle.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ),
             Expanded(
                 child: ListView(
-              padding: EdgeInsets.zero,
+              padding: const EdgeInsets.only(top: 16),
               children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: LiquidGlass(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(children: [
-                      Row(children: [
-                        Container(
-                          width: 68,
-                          height: 68,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(colors: [
-                              Colors.white.withValues(alpha: .7),
-                              HomeStyle.orange.withValues(alpha: .15)
-                            ]),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: .8)),
-                            borderRadius: BorderRadius.circular(AppRadius.card),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: user?.avatarUrl != null
-                              ? CachedNetworkImage(
-                                  imageUrl: user!.avatarUrl!,
-                                  fit: BoxFit.cover,
-                                  placeholder: (_, __) =>
-                                      _ProfileInitials(user.initials),
-                                  errorWidget: (_, __, ___) =>
-                                      _ProfileInitials(user.initials),
-                                )
-                              : _ProfileInitials(user?.initials ?? 'U'),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                            child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(user?.name ?? 'Khách hàng',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontSize: AppFontSize.title,
-                                    fontWeight: FontWeight.w700,
-                                    color: HomeStyle.ink)),
-                            const SizedBox(height: 3),
-                            Text(
-                                '${user?.phone ?? ''}${user?.cityName?.isNotEmpty == true ? ' · ${user!.cityName}' : ''}',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                    fontSize: AppFontSize.body,
-                                    color: HomeStyle.muted)),
-                            const SizedBox(height: 8),
-                            _MemberBadge(completedOrders: completedOrders),
-                          ],
-                        )),
-                        IconButton(
-                          tooltip: 'Chỉnh sửa thông tin',
-                          onPressed: () => context.push('/profile/edit'),
-                          icon: const Icon(Icons.edit_outlined,
-                              size: 19, color: HomeStyle.orange),
-                        ),
-                      ]),
-                    ]),
+                  child: _ProfileHero(
+                    name: user?.name ?? 'Khách hàng',
+                    phone: user?.phone ?? '',
+                    city: user?.cityName,
+                    avatarUrl: user?.avatarUrl,
+                    initials: user?.initials ?? 'U',
+                    completedOrders: completedOrders,
+                    onEdit: () => context.push('/profile/edit'),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
                   child: Row(children: [
                     Expanded(
                         child: _ProfileStatCard(
@@ -202,10 +169,10 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     const SizedBox(width: 10),
                     Expanded(
                         child: _ProfileStatCard(
-                      label: 'Ưu đãi',
+                      label: 'Ưu đãi còn dùng',
                       value: '${vouchers.length}',
                       icon: Icons.confirmation_number_outlined,
-                      color: AppColors.primary,
+                      color: HomeStyle.orange,
                       onTap: () => context.push('/vouchers'),
                     )),
                   ]),
@@ -217,7 +184,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   rows: [
                     _SettingsRow(
                       icon: Icons.person_outline_rounded,
-                      iconBg: const Color(0xFFFF6B35),
+                      iconBg: HomeStyle.orange,
                       label: 'Chỉnh sửa thông tin',
                       onTap: () => context.push('/profile/edit'),
                     ),
@@ -235,7 +202,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                           style: const TextStyle(
                               fontSize: AppFontSize.body,
                               fontWeight: FontWeight.w600,
-                              color: AppColors.primary)),
+                              color: HomeStyle.orange)),
                       onTap: () => context.push('/stats'),
                     ),
                     _SettingsRow(
@@ -247,7 +214,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.primary.withValues(alpha: 0.1),
+                                color: HomeStyle.orange.withValues(alpha: 0.1),
                                 borderRadius:
                                     BorderRadius.circular(AppRadius.glass),
                               ),
@@ -255,7 +222,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                                   style: const TextStyle(
                                       fontSize: AppFontSize.body,
                                       fontWeight: FontWeight.w600,
-                                      color: AppColors.primary)),
+                                      color: HomeStyle.orange)),
                             )
                           : null,
                       onTap: () => context.push('/vouchers'),
@@ -269,11 +236,11 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   ],
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
                 // ── Hỗ trợ & Pháp lý ─────────────────────────────────────────
                 _SettingsSection(
-                  header: 'Pháp lý',
+                  header: 'Thông tin ứng dụng',
                   rows: [
                     _SettingsRow(
                       icon: Icons.shield_outlined,
@@ -293,6 +260,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                       icon: Icons.info_outline_rounded,
                       iconBg: const Color(0xFF94A3B8),
                       label: 'Phiên bản',
+                      showChevron: false,
                       trailing: Text(
                         _version.isEmpty ? '...' : _version,
                         style: const TextStyle(
@@ -304,7 +272,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   ],
                 ),
 
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
 
                 // ── Đăng xuất + Xóa tài khoản ────────────────────────────────
                 _SettingsSection(
@@ -312,7 +280,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                   rows: [
                     _SettingsRow(
                       icon: Icons.logout_rounded,
-                      iconBg: AppColors.danger.withValues(alpha: 0.15),
+                      iconBg: AppColors.danger,
                       iconColor: AppColors.danger,
                       label: 'Đăng xuất',
                       labelColor: AppColors.danger,
@@ -321,7 +289,7 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
                     ),
                     _SettingsRow(
                       icon: Icons.delete_forever_outlined,
-                      iconBg: AppColors.danger.withValues(alpha: 0.15),
+                      iconBg: AppColors.danger,
                       iconColor: AppColors.danger,
                       label: _deleting ? 'Đang xóa...' : 'Xóa tài khoản',
                       labelColor: AppColors.danger,
@@ -347,6 +315,109 @@ class _ProfileTabState extends ConsumerState<_ProfileTab> {
   }
 }
 
+class _ProfileHero extends StatelessWidget {
+  const _ProfileHero({
+    required this.name,
+    required this.phone,
+    required this.city,
+    required this.avatarUrl,
+    required this.initials,
+    required this.completedOrders,
+    required this.onEdit,
+  });
+
+  final String name;
+  final String phone;
+  final String? city;
+  final String? avatarUrl;
+  final String initials;
+  final int completedOrders;
+  final VoidCallback onEdit;
+
+  @override
+  Widget build(BuildContext context) {
+    final contact = [phone, if (city?.isNotEmpty == true) city!]
+        .where((value) => value.isNotEmpty)
+        .join(' · ');
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: HomeStyle.card,
+        borderRadius: HomeStyle.cardRadius,
+        border: Border.all(color: HomeStyle.divider),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: HomeStyle.peach,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: avatarUrl != null
+                ? CachedNetworkImage(
+                    imageUrl: avatarUrl!,
+                    fit: BoxFit.cover,
+                    placeholder: (_, __) => _ProfileInitials(initials),
+                    errorWidget: (_, __, ___) => _ProfileInitials(initials),
+                  )
+                : _ProfileInitials(initials),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: AppFontSize.title,
+                    fontWeight: FontWeight.w800,
+                    color: HomeStyle.ink,
+                  ),
+                ),
+                if (contact.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    contact,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: AppFontSize.body,
+                      height: 1.35,
+                      color: HomeStyle.muted,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 6),
+          IconButton(
+            tooltip: 'Chỉnh sửa thông tin',
+            onPressed: onEdit,
+            style: IconButton.styleFrom(
+              fixedSize: const Size.square(40),
+              backgroundColor: HomeStyle.peach,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+            ),
+            icon: const Icon(Icons.edit_outlined,
+                size: 18, color: HomeStyle.orange),
+          ),
+        ]),
+        const SizedBox(height: 12),
+        _MemberBadge(completedOrders: completedOrders),
+      ]),
+    );
+  }
+}
+
 class _ProfileInitials extends StatelessWidget {
   const _ProfileInitials(this.text);
   final String text;
@@ -357,7 +428,7 @@ class _ProfileInitials extends StatelessWidget {
             style: TextStyle(
                 fontSize: AppFontSize.display,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primary)),
+                color: HomeStyle.orange)),
       );
 }
 
@@ -377,33 +448,36 @@ class _ProfileStatCard extends StatelessWidget {
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => LiquidGlass(
+  Widget build(BuildContext context) => _FlatCard(
         child: Material(
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            borderRadius: HomeStyle.radius,
+            borderRadius: BorderRadius.circular(AppRadius.card),
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: Row(children: [
-                GlassIcon(icon: icon, color: color, size: 34, iconSize: 18),
-                const SizedBox(width: 9),
-                Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text(value,
-                          style: TextStyle(
-                              fontSize: AppFontSize.title,
-                              fontWeight: FontWeight.w800,
-                              color: color)),
-                      const SizedBox(height: 2),
-                      Text(label,
-                          style: const TextStyle(
-                              fontSize: AppFontSize.caption,
-                              color: HomeStyle.muted)),
-                    ])),
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(children: [
+                      _FlatIcon(icon: icon, color: color),
+                      const SizedBox(width: 9),
+                      Expanded(
+                          child: Text(value,
+                              textAlign: TextAlign.right,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                  fontSize: AppFontSize.title,
+                                  fontWeight: FontWeight.w800,
+                                  color: color))),
+                    ]),
+                    const SizedBox(height: 9),
+                    Text(label,
+                        style: const TextStyle(
+                            fontSize: AppFontSize.caption,
+                            color: HomeStyle.muted)),
+                  ]),
             ),
           ),
         ),
@@ -429,17 +503,19 @@ class _MemberBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
       decoration: BoxDecoration(
-        color: AppColors.primarySoft,
-        borderRadius: BorderRadius.circular(AppRadius.card),
+        color: HomeStyle.peach,
+        borderRadius: BorderRadius.circular(AppRadius.full),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 13, color: AppColors.primary),
+        Icon(icon, size: 13, color: HomeStyle.orange),
         const SizedBox(width: 5),
-        Text(label,
-            style: TextStyle(
-                fontSize: AppFontSize.body,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary)),
+        Flexible(
+            child: Text(label,
+                maxLines: 2,
+                style: TextStyle(
+                    fontSize: AppFontSize.body,
+                    fontWeight: FontWeight.w600,
+                    color: HomeStyle.orange))),
       ]),
     );
   }
@@ -456,25 +532,38 @@ class _SettingsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: LiquidGlass(
+      child: _FlatCard(
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           if (header != null)
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
-              child: Text(header!,
-                  style: const TextStyle(
-                      fontSize: AppFontSize.body,
-                      fontWeight: FontWeight.w700,
-                      color: HomeStyle.ink)),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 7),
+              child: Row(children: [
+                Container(
+                  width: 4,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: HomeStyle.orange,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(width: 9),
+                Expanded(
+                  child: Text(header!,
+                      style: const TextStyle(
+                          fontSize: AppFontSize.bodyLarge,
+                          fontWeight: FontWeight.w800,
+                          color: HomeStyle.ink)),
+                ),
+              ]),
             ),
           for (var i = 0; i < rows.length; i++) ...[
             rows[i],
             if (i < rows.length - 1)
-              Divider(
+              const Divider(
                   height: 1,
-                  indent: 58,
+                  indent: 62,
                   endIndent: 14,
-                  color: Colors.white.withValues(alpha: .65)),
+                  color: HomeStyle.divider),
           ],
           const SizedBox(height: 4),
         ]),
@@ -508,28 +597,37 @@ class _SettingsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final stacked = trailing != null &&
+        MediaQuery.sizeOf(context).width < 360 &&
+        MediaQuery.textScalerOf(context).scale(1) > 1.3;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
           child: Row(children: [
-            GlassIcon(
-                icon: icon,
-                color: iconColor ?? iconBg ?? HomeStyle.muted,
-                size: 34,
-                iconSize: 18),
+            _FlatIcon(
+                icon: icon, color: iconColor ?? iconBg ?? HomeStyle.muted),
             const SizedBox(width: 10),
             Expanded(
-              child: Text(label,
-                  style: TextStyle(
-                      fontSize: AppFontSize.body,
-                      fontWeight: FontWeight.w600,
-                      color: labelColor ?? HomeStyle.ink)),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: TextStyle(
+                          fontSize: AppFontSize.body,
+                          fontWeight: FontWeight.w600,
+                          color: labelColor ?? HomeStyle.ink)),
+                  if (stacked) ...[
+                    const SizedBox(height: 4),
+                    trailing!,
+                  ],
+                ],
+              ),
             ),
-            if (trailing != null)
-              trailing!
+            if (trailing != null && !stacked)
+              Padding(padding: const EdgeInsets.only(left: 8), child: trailing!)
             else if (showChevron)
               const Icon(Icons.chevron_right_rounded,
                   color: AppColors.textTertiary, size: 22),
@@ -538,4 +636,39 @@ class _SettingsRow extends StatelessWidget {
       ),
     );
   }
+}
+
+// ── Flat building blocks ──────────────────────────────────────────────────────
+
+class _FlatCard extends StatelessWidget {
+  const _FlatCard({required this.child});
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) => Material(
+        color: HomeStyle.card,
+        clipBehavior: Clip.antiAlias,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          side: const BorderSide(color: HomeStyle.divider),
+        ),
+        child: child,
+      );
+}
+
+class _FlatIcon extends StatelessWidget {
+  const _FlatIcon({required this.icon, required this.color});
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Icon(icon, size: 18, color: color),
+      );
 }

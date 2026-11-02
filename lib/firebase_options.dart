@@ -22,7 +22,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBiEyWGNhWj-sVJYmkfk_V5Y6wkNm5LJIA',
-    appId: '1:219581386028:ios:c4f502a5b6b5bc3cf27089',
+    appId: '1:219581386028:ios:fee9d1b4d27dafdbf27089',
     messagingSenderId: '219581386028',
     projectId: 'flashship-app',
     storageBucket: 'flashship-app.firebasestorage.app',

@@ -24,6 +24,44 @@
           "other_platform_oauth_client": []
         }
       }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:219581386028:android:a577b245c7395c69f27089",
+        "android_client_info": {
+          "package_name": "vn.flashship.driver"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSYWeYYO9oPK5I2HAkJ145eRp36WwnYaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:219581386028:android:d2e2d77ff6a965bcf27089",
+        "android_client_info": {
+          "package_name": "vn.flashship.vendor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDSYWeYYO9oPK5I2HAkJ145eRp36WwnYaI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
     }
   ],
   "configuration_version": "1"

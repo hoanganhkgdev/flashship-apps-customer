@@ -24,152 +24,360 @@ class _ServiceIconGrid extends ConsumerWidget {
       return (ai < 0 ? _order.length : ai)
           .compareTo(bi < 0 ? _order.length : bi);
     });
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-      child: LiquidGlass(
-        borderRadius: HomeStyle.radius,
-        padding: const EdgeInsets.fromLTRB(14, 16, 14, 14),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Row(
-              children: [
-                GlassIcon(
-                  icon: Icons.grid_view_rounded,
-                  color: HomeStyle.orange,
-                  size: 34,
-                  iconSize: 18,
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Bạn cần gì hôm nay?',
-                        style: TextStyle(
-                          fontSize: AppFontSize.bodyLarge,
-                          fontWeight: FontWeight.w700,
-                          color: HomeStyle.ink,
-                        ),
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        'Chọn dịch vụ để bắt đầu',
-                        style: TextStyle(
-                          fontSize: AppFontSize.caption,
-                          color: HomeStyle.muted,
-                        ),
-                      ),
-                    ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 4,
+                height: 46,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [HomeStyle.orangeLight, HomeStyle.orange],
                   ),
+                  borderRadius: BorderRadius.circular(4),
                 ),
-              ],
-            ),
-            const SizedBox(height: 14),
-            if (services.isEmpty)
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: state.isLoading
-                    ? const Center(
-                        child:
-                            CircularProgressIndicator(color: HomeStyle.orange))
-                    : Column(children: [
-                        Text(
-                            state.hasError
-                                ? 'Chưa tải được dịch vụ'
-                                : 'Chưa có dịch vụ khả dụng',
-                            style: const TextStyle(color: HomeStyle.muted)),
-                        if (state.hasError)
-                          TextButton(
-                              onPressed: () =>
-                                  ref.invalidate(serviceTypeProvider),
-                              child: const Text('Thử lại')),
-                      ]),
-              )
-            else
-              LayoutBuilder(builder: (context, constraints) {
-                final width = (constraints.maxWidth - 16) / 3;
-                return Wrap(spacing: 8, runSpacing: 8, children: [
-                  for (final service in services)
-                    SizedBox(
-                        width: width,
-                        child: _ServiceIconItem(
-                            svc: service, onTap: () => onTap(service.key))),
-                ]);
-              }),
-          ],
-        ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text.rich(
+                      const TextSpan(
+                        children: [
+                          TextSpan(text: 'Bạn cần gì '),
+                          TextSpan(
+                            text: 'hôm nay?',
+                            style: TextStyle(color: HomeStyle.orange),
+                          ),
+                        ],
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: AppFontSize.title,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -.25,
+                        color: HomeStyle.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.only(top: 1),
+                          child: Icon(
+                            Icons.bolt_rounded,
+                            size: 15,
+                            color: HomeStyle.orange,
+                          ),
+                        ),
+                        SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            'Chọn dịch vụ, đặt ngay',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: AppFontSize.caption,
+                              height: 1.25,
+                              color: HomeStyle.muted,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          if (services.isEmpty && state.isLoading)
+            const _ServiceGridSkeleton()
+          else if (services.isEmpty)
+            _ServiceEmptyState(
+              hasError: state.hasError,
+              onRetry: () => ref.invalidate(serviceTypeProvider),
+            )
+          else
+            LayoutBuilder(builder: (context, constraints) {
+              const spacing = 10.0;
+              final columns = constraints.maxWidth < 328 ||
+                      MediaQuery.textScalerOf(context).scale(1) > 1.3
+                  ? 2
+                  : 3;
+              final width =
+                  (constraints.maxWidth - spacing * (columns - 1)) / columns;
+              return Wrap(spacing: spacing, runSpacing: 10, children: [
+                for (final service in services)
+                  SizedBox(
+                    width: width,
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: _ServiceIconItem(
+                        svc: service,
+                        onTap: () => onTap(service.key),
+                      ),
+                    ),
+                  ),
+              ]);
+            }),
+        ],
       ),
     );
   }
 }
 
-class _ServiceIconItem extends StatelessWidget {
+class _ServiceGridSkeleton extends StatelessWidget {
+  const _ServiceGridSkeleton();
+
+  @override
+  Widget build(BuildContext context) =>
+      LayoutBuilder(builder: (context, constraints) {
+        const spacing = 10.0;
+        final columns = constraints.maxWidth < 328 ||
+                MediaQuery.textScalerOf(context).scale(1) > 1.3
+            ? 2
+            : 3;
+        final width =
+            (constraints.maxWidth - spacing * (columns - 1)) / columns;
+        return Wrap(
+          spacing: spacing,
+          runSpacing: 10,
+          children: List.generate(
+            6,
+            (_) => SizedBox(
+              width: width,
+              height: width,
+              child: Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: HomeStyle.card,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  border: Border.all(color: HomeStyle.divider),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Flexible(
+                      child: Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFEDEFF3),
+                          borderRadius: BorderRadius.circular(19),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: 56,
+                      height: 9,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDEFF3),
+                        borderRadius: BorderRadius.circular(5),
+                      ),
+                    ),
+                    const SizedBox(height: 7),
+                    Container(
+                      width: 42,
+                      height: 7,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1F2F5),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      });
+}
+
+class _ServiceEmptyState extends StatelessWidget {
+  const _ServiceEmptyState({
+    required this.hasError,
+    required this.onRetry,
+  });
+
+  final bool hasError;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: HomeStyle.cardRadius,
+          border: Border.all(color: HomeStyle.divider),
+        ),
+        child: Row(children: [
+          const GlassIcon(
+            icon: Icons.cloud_off_outlined,
+            color: HomeStyle.muted,
+            size: 36,
+            iconSize: 18,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              hasError ? 'Chưa tải được dịch vụ' : 'Chưa có dịch vụ khả dụng',
+              style: const TextStyle(
+                fontSize: AppFontSize.body,
+                color: HomeStyle.muted,
+              ),
+            ),
+          ),
+          if (hasError)
+            TextButton(onPressed: onRetry, child: const Text('Thử lại')),
+        ]),
+      );
+}
+
+class _ServiceIconItem extends StatefulWidget {
   final ServiceTypeModel svc;
   final VoidCallback onTap;
   const _ServiceIconItem({required this.svc, required this.onTap});
 
   @override
+  State<_ServiceIconItem> createState() => _ServiceIconItemState();
+}
+
+class _ServiceIconItemState extends State<_ServiceIconItem> {
+  bool _pressed = false;
+
+  @override
   Widget build(BuildContext context) {
-    final color = AppColors.serviceColor(svc.key);
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: HomeStyle.radius,
-        child: Ink(
-          padding: const EdgeInsets.fromLTRB(6, 8, 6, 10),
-          decoration: BoxDecoration(
-            borderRadius: HomeStyle.radius,
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withValues(alpha: .42),
-                color.withValues(alpha: .07),
-              ],
+    final service = widget.svc;
+    final color = AppColors.serviceColor(service.key);
+    return Semantics(
+      button: true,
+      label: 'Đặt dịch vụ ${service.label}',
+      child: AnimatedScale(
+        scale: _pressed ? .96 : 1,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(AppRadius.md),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: widget.onTap,
+            onHighlightChanged: (value) {
+              if (_pressed != value) setState(() => _pressed = value);
+            },
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            child: Ink(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(AppRadius.md),
+                color: _pressed ? color.withValues(alpha: .07) : HomeStyle.card,
+                border: Border.all(
+                  color: _pressed
+                      ? color.withValues(alpha: .28)
+                      : HomeStyle.divider,
+                ),
+              ),
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Align(
+                    alignment: Alignment.center,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: SizedBox.square(
+                              dimension: 72,
+                              child: service.iconUrl?.isNotEmpty == true
+                                  ? CachedNetworkImage(
+                                      imageUrl: service.iconUrl!,
+                                      fit: BoxFit.contain,
+                                      placeholder: (_, __) => _ServiceGlyph(
+                                          type: service.key, color: color),
+                                      errorWidget: (_, __, ___) =>
+                                          _ServiceGlyph(
+                                              type: service.key, color: color),
+                                    )
+                                  : _ServiceGlyph(
+                                      type: service.key, color: color),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ExcludeSemantics(
+                            child: Text(
+                              service.label,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                fontSize: AppFontSize.caption,
+                                height: 1.16,
+                                fontWeight: FontWeight.w800,
+                                color: HomeStyle.ink,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        SizedBox(
+                          width: double.infinity,
+                          child: ExcludeSemantics(
+                            child: Text(
+                              _serviceDescription(service.key),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 11,
+                                height: 1.15,
+                                fontWeight: FontWeight.w500,
+                                color: HomeStyle.muted,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
-            border: Border.all(color: Colors.white.withValues(alpha: .68)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              SizedBox(
-                height: 64,
-                child: Padding(
-                  padding: const EdgeInsets.all(2),
-                  child: svc.iconUrl?.isNotEmpty == true
-                      ? CachedNetworkImage(
-                          imageUrl: svc.iconUrl!,
-                          fit: BoxFit.contain,
-                          placeholder: (_, __) =>
-                              _ServiceGlyph(type: svc.key, color: color),
-                          errorWidget: (_, __, ___) =>
-                              _ServiceGlyph(type: svc.key, color: color))
-                      : _ServiceGlyph(type: svc.key, color: color),
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                svc.label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: AppFontSize.caption,
-                  height: 1.2,
-                  fontWeight: FontWeight.w600,
-                  color: HomeStyle.ink,
-                ),
-              ),
-            ],
           ),
         ),
       ),
     );
   }
 }
+
+String _serviceDescription(String type) => switch (type) {
+      'delivery' => 'Giao tận nơi',
+      'shopping' => 'Mua giúp bạn',
+      'bike' => 'Đặt chuyến đi',
+      'motor' => 'Lái xe giúp bạn',
+      'car' => 'An tâm về nhà',
+      'topup' => 'Giao dịch nhanh',
+      _ => 'Đặt ngay hôm nay',
+    };
 
 /// Icon 3D minh hoạ theo từng loại dịch vụ — dùng chung cho lưới dịch vụ và
 /// card đơn đang thực hiện. Rơi về icon Material phẳng khi chưa có ảnh 3D

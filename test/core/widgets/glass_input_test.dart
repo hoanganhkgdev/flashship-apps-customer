@@ -4,6 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  testWidgets('lightweight glass never uses a backdrop blur', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: LiquidBackdrop(
+        child: Center(
+          child: LiquidGlass(child: Text('Nội dung')),
+        ),
+      ),
+    ));
+
+    expect(find.byType(BackdropFilter), findsNothing);
+    expect(find.text('Nội dung'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('glass inputs retain focus, validation and multiline layout',
       (tester) async {
     final form = GlobalKey<FormState>();

@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/liquid_glass.dart';
+import '../../home/widgets/home_style.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/order/models/order_model.dart';
 import '../../../features/voucher/screens/voucher_picker_screen.dart';
@@ -14,7 +14,8 @@ import 'address_picker_screen.dart';
 import 'map_picker_screen.dart';
 import 'widgets/booking_summary_bar.dart';
 import 'widgets/delivery_voucher_card.dart';
-import 'widgets/delivery_address_card.dart';
+import 'widgets/booking_field_decoration.dart';
+import 'widgets/delivery_receiver_card.dart';
 import '../../home/providers/service_type_provider.dart';
 import '../../../core/constants/app_constants.dart';
 
@@ -27,6 +28,91 @@ class _ShopStop {
   void dispose() {
     descCtrl.dispose();
   }
+}
+
+class _ShoppingGuideCard extends StatelessWidget {
+  const _ShoppingGuideCard({
+    required this.placesSelected,
+    required this.itemsEntered,
+    required this.destinationSelected,
+  });
+
+  final bool placesSelected;
+  final bool itemsEntered;
+  final bool destinationSelected;
+
+  static const _steps = [
+    (Icons.storefront_outlined, 'Chọn điểm mua'),
+    (Icons.edit_note_rounded, 'Ghi món cần mua'),
+    (Icons.location_on_outlined, 'Chọn nơi nhận'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(12, 13, 12, 12),
+        decoration: BoxDecoration(
+          color: HomeStyle.peach,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Row(children: [
+            Icon(Icons.tips_and_updates_outlined,
+                size: 18, color: HomeStyle.orange),
+            SizedBox(width: 7),
+            Expanded(
+              child: Text('Bạn chọn món, tài xế mua giúp',
+                  style: TextStyle(
+                      fontSize: AppFontSize.body,
+                      fontWeight: FontWeight.w800,
+                      color: HomeStyle.ink)),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(_steps.length * 2 - 1, (index) {
+              if (index.isOdd) {
+                return const Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 17),
+                    child: Divider(height: 1, color: Color(0xFFFFCBB5)),
+                  ),
+                );
+              }
+              final step = index ~/ 2;
+              final (icon, label) = _steps[step];
+              final done =
+                  [placesSelected, itemsEntered, destinationSelected][step];
+              return Expanded(
+                flex: 4,
+                child: Column(children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: done ? HomeStyle.orange : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(done ? Icons.check_rounded : icon,
+                        size: 18,
+                        color: done ? Colors.white : HomeStyle.orange),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: AppFontSize.caption,
+                          height: 1.2,
+                          fontWeight: FontWeight.w600,
+                          color: HomeStyle.muted)),
+                ]),
+              );
+            }),
+          ),
+        ]),
+      );
 }
 
 class ShoppingBookingScreen extends ConsumerStatefulWidget {
@@ -52,6 +138,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
   bool _loadingFee = false;
   bool _submitting = false;
   String? _error;
+  bool _phoneError = false;
   int _voucherDiscount = 0;
   String? _voucherCode;
 
@@ -241,13 +328,17 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
       return;
     }
     if (_deliveryPhoneCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Vui lòng nhập SĐT người nhận');
+      setState(() {
+        _phoneError = true;
+        _error = 'Vui lòng nhập SĐT người nhận';
+      });
       return;
     }
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _submitting = true;
       _error = null;
+      _phoneError = false;
     });
     final first = _stops.first;
     final codAmount = _calcCodAmount();
@@ -298,52 +389,57 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
         serviceDefOf('shopping').label;
     final netFee = ((_fee ?? 0) - _voucherDiscount).clamp(0, _fee ?? 0);
 
-    return LiquidBackdrop(
-        child: Scaffold(
-      backgroundColor: Colors.transparent,
-      extendBody: true,
+    return Scaffold(
+      backgroundColor: HomeStyle.background,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
-        systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
-          systemNavigationBarColor: Colors.transparent,
-          systemNavigationBarContrastEnforced: false,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        flexibleSpace: const DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0xFFFFE9DE),
+          ),
         ),
         elevation: 0,
         scrolledUnderElevation: 0,
-        toolbarHeight: 72,
+        toolbarHeight: 70,
         leadingWidth: 72,
         centerTitle: false,
         titleSpacing: 0,
-        flexibleSpace: const LiquidGlass(
-          borderRadius:
-              BorderRadius.vertical(bottom: Radius.circular(AppRadius.glass)),
-          child: SizedBox.expand(),
-        ),
         leading: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
           child: IconButton(
             tooltip: 'Quay lại',
             onPressed: () => context.pop(),
             style: IconButton.styleFrom(
-              backgroundColor: Colors.white.withValues(alpha: .35),
-              side: BorderSide(color: Colors.white.withValues(alpha: .7)),
+              backgroundColor: HomeStyle.card,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.glass)),
+                  borderRadius: BorderRadius.circular(AppRadius.md)),
             ),
             icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                size: 18, color: AppColors.textPrimary),
+                size: 18, color: HomeStyle.ink),
           ),
         ),
         title: Padding(
           padding: const EdgeInsets.only(right: 16),
-          child: Text(serviceName,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                  fontSize: AppFontSize.titleLarge,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary)),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(serviceName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: AppFontSize.title,
+                      fontWeight: FontWeight.w800,
+                      color: HomeStyle.ink)),
+              const SizedBox(height: 3),
+              const Text('Mua giúp bạn, giao tận nơi',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppFontSize.caption, color: HomeStyle.muted)),
+            ],
+          ),
         ),
       ),
       body: Builder(
@@ -354,25 +450,61 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
                 16, 16, 16, MediaQuery.paddingOf(bodyContext).bottom + 28),
             keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             children: [
+              _ShoppingGuideCard(
+                placesSelected: _stops
+                    .every((stop) => stop.address?.trim().isNotEmpty == true),
+                itemsEntered: _stops
+                    .every((stop) => stop.descCtrl.text.trim().isNotEmpty),
+                destinationSelected: _deliveryAddr?.trim().isNotEmpty == true,
+              ),
+              const SizedBox(height: 20),
+              Row(children: [
+                const Expanded(
+                  child: Text('Danh sách mua hộ',
+                      style: TextStyle(
+                        fontSize: AppFontSize.bodyLarge,
+                        fontWeight: FontWeight.w800,
+                        color: HomeStyle.ink,
+                      )),
+                ),
+                Text('${_stops.length}/5 điểm mua',
+                    style: const TextStyle(
+                      fontSize: AppFontSize.caption,
+                      fontWeight: FontWeight.w600,
+                      color: HomeStyle.muted,
+                    )),
+              ]),
+              const SizedBox(height: 12),
               ...List.generate(_stops.length, (i) => _buildStopCard(i)),
               if (_stops.length < 5) ...[
-                const SizedBox(height: 6),
-                OutlinedButton.icon(
-                  onPressed: _addStop,
-                  icon: const Icon(Icons.add_rounded, size: 20),
-                  label: const Text('Thêm điểm mua'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryDark,
-                    backgroundColor: Colors.white.withValues(alpha: .28),
-                    side: BorderSide(color: Colors.white.withValues(alpha: .7)),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.glass)),
+                SizedBox(
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed: _addStop,
+                    icon: const Icon(Icons.add_rounded, size: 20),
+                    label: const Text('Thêm điểm mua'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: HomeStyle.orange,
+                      backgroundColor: HomeStyle.card,
+                      side: const BorderSide(color: HomeStyle.divider),
+                      textStyle: const TextStyle(
+                          fontSize: AppFontSize.body,
+                          fontWeight: FontWeight.w700),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(AppRadius.md)),
+                    ),
                   ),
                 ),
               ],
-              const SizedBox(height: 12),
+              const SizedBox(height: 16),
               _buildDeliveryCard(),
-              const SizedBox(height: 14),
+              const SizedBox(height: 16),
+              DeliveryReceiverCard(
+                nameController: _receiverNameCtrl,
+                phoneController: _deliveryPhoneCtrl,
+                showPhoneError: _phoneError,
+              ),
+              const SizedBox(height: 16),
               DeliveryVoucherCard(
                 code: _voucherCode,
                 discount: _voucherDiscount,
@@ -390,6 +522,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
         serviceName: '$serviceName · ${_stops.length} điểm mua',
         buttonLabel: 'Đặt mua hộ',
         feeLabel: 'Cước mua hộ',
+        emptyPriceHint: 'Chọn điểm mua và nơi nhận để xem cước',
         canEstimate: _stops.first.address != null && _deliveryAddr != null,
         onRetry: _estimate,
         distanceKm: _distanceKm,
@@ -401,7 +534,7 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
         submitting: _submitting,
         onSubmit: _submit,
       ),
-    ));
+    );
   }
 
   Widget _buildStopCard(int i) {
@@ -410,122 +543,182 @@ class _State extends ConsumerState<ShoppingBookingScreen> {
     final hasPlace = stop.placeName?.trim().isNotEmpty == true;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: LiquidGlass(
-        borderRadius: BorderRadius.circular(AppRadius.glass),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(children: [
-              Expanded(
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => _pickStopAddress(i),
-                    borderRadius: BorderRadius.circular(AppRadius.glass),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(children: [
-                        Container(
-                          width: 32,
-                          height: 32,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withValues(alpha: .12),
-                            borderRadius:
-                                BorderRadius.circular(AppRadius.glass),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: .7)),
-                          ),
-                          child: Text('${i + 1}',
-                              style: const TextStyle(
-                                  fontSize: AppFontSize.body,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primary)),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Điểm mua ${i + 1}',
-                                  style: const TextStyle(
-                                      fontSize: AppFontSize.caption,
-                                      color: AppColors.textSecondary)),
-                              const SizedBox(height: 4),
-                              Text(
-                                hasAddress
-                                    ? (hasPlace
-                                        ? stop.placeName!
-                                        : stop.address!)
-                                    : 'Chọn cửa hàng / địa chỉ',
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: HomeStyle.card,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: HomeStyle.divider),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Expanded(
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: () => _pickStopAddress(i),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 52),
+                        child: Row(children: [
+                          Container(
+                            width: 32,
+                            height: 32,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: hasAddress
+                                  ? HomeStyle.orange
+                                  : HomeStyle.peach,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
+                            ),
+                            child: Text('${i + 1}',
                                 style: TextStyle(
-                                    fontSize: AppFontSize.bodyLarge,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: AppFontSize.body,
+                                    fontWeight: FontWeight.w700,
                                     color: hasAddress
-                                        ? AppColors.textPrimary
-                                        : AppColors.primary),
-                              ),
-                              if (hasAddress && hasPlace) ...[
-                                const SizedBox(height: 4),
-                                Text(stop.address!,
-                                    maxLines: 2,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                        fontSize: AppFontSize.body,
-                                        color: AppColors.textSecondary)),
-                              ],
-                            ],
+                                        ? Colors.white
+                                        : HomeStyle.orange)),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(Icons.chevron_right_rounded,
-                            size: 20, color: AppColors.textSecondary),
-                      ]),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Điểm mua ${i + 1}',
+                                    style: const TextStyle(
+                                        fontSize: AppFontSize.caption,
+                                        fontWeight: FontWeight.w600,
+                                        color: HomeStyle.muted)),
+                                const SizedBox(height: 3),
+                                Text(
+                                  hasAddress
+                                      ? (hasPlace
+                                          ? stop.placeName!
+                                          : stop.address!)
+                                      : 'Chọn cửa hàng / địa chỉ',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                      fontSize: AppFontSize.bodyLarge,
+                                      fontWeight: FontWeight.w600,
+                                      color: hasAddress
+                                          ? HomeStyle.ink
+                                          : HomeStyle.orange),
+                                ),
+                                if (hasAddress && hasPlace) ...[
+                                  const SizedBox(height: 2),
+                                  Text(stop.address!,
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                          fontSize: AppFontSize.body,
+                                          color: HomeStyle.muted)),
+                                ],
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          const Icon(Icons.chevron_right_rounded,
+                              size: 22, color: HomeStyle.muted),
+                        ]),
+                      ),
                     ),
                   ),
                 ),
-              ),
-              if (_stops.length > 1)
-                IconButton(
-                  tooltip: 'Xóa điểm mua ${i + 1}',
-                  onPressed: () => _removeStop(i),
-                  icon: const Icon(Icons.close_rounded,
-                      size: 20, color: AppColors.textSecondary),
+                if (_stops.length > 1)
+                  IconButton(
+                    tooltip: 'Xóa điểm mua ${i + 1}',
+                    onPressed: () => _removeStop(i),
+                    icon: const Icon(Icons.close_rounded,
+                        size: 20, color: HomeStyle.muted),
+                  ),
+              ]),
+              const SizedBox(height: 14),
+              TextField(
+                controller: stop.descCtrl,
+                minLines: 2,
+                maxLines: 4,
+                textCapitalization: TextCapitalization.sentences,
+                style: const TextStyle(
+                    fontSize: AppFontSize.bodyLarge, color: HomeStyle.ink),
+                decoration: bookingFieldDecoration(
+                  label: 'Cần mua gì? *',
+                  hint: 'Ví dụ: 2 ly cà phê sữa, ít đá',
+                  helper: 'Ghi rõ món, số lượng và yêu cầu riêng.',
+                  alignLabelWithHint: true,
                 ),
-            ]),
-            const SizedBox(height: 16),
-            TextField(
-              controller: stop.descCtrl,
-              minLines: 2,
-              maxLines: 4,
-              textCapitalization: TextCapitalization.sentences,
-              style: const TextStyle(
-                  fontSize: AppFontSize.bodyLarge,
-                  color: AppColors.textPrimary),
-              decoration: const InputDecoration(
-                labelText: 'Cần mua gì? *',
-                hintText: 'Ví dụ: 2 ly cà phê sữa, ít đá',
-                alignLabelWithHint: true,
-                floatingLabelBehavior: FloatingLabelBehavior.always,
-                contentPadding: EdgeInsets.all(16),
+                onChanged: (_) => setState(() {}),
               ),
-              onChanged: (_) => setState(() {}),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildDeliveryCard() => DeliveryAddressCard(
-        isPickup: false,
-        address: _deliveryAddr,
-        placeName: null,
-        nameController: _receiverNameCtrl,
-        phoneController: _deliveryPhoneCtrl,
-        onAddressTap: _pickDeliveryAddress,
-      );
+  Widget _buildDeliveryCard() {
+    final hasAddress = _deliveryAddr?.trim().isNotEmpty == true;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: HomeStyle.card,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: HomeStyle.divider),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _pickDeliveryAddress,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(minHeight: 78),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+              child: Row(children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: .09),
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
+                  ),
+                  child: const Icon(Icons.location_on_outlined,
+                      size: 18, color: AppColors.info),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Nơi nhận hàng',
+                          style: TextStyle(
+                              fontSize: AppFontSize.caption,
+                              fontWeight: FontWeight.w600,
+                              color: HomeStyle.muted)),
+                      const SizedBox(height: 3),
+                      Text(
+                        hasAddress ? _deliveryAddr! : 'Chọn địa chỉ nhận hàng',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: AppFontSize.bodyLarge,
+                            fontWeight: FontWeight.w600,
+                            color: hasAddress ? HomeStyle.ink : AppColors.info),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right_rounded,
+                    size: 22, color: HomeStyle.muted),
+              ]),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

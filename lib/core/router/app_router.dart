@@ -44,6 +44,13 @@ final routerProvider = Provider<GoRouter>((ref) {
     navigatorKey: appNavigatorKey,
     initialLocation: '/splash',
     refreshListenable: listenable,
+    // Firebase Phone Auth (reCAPTCHA/APNs) mở lại app bằng deep link
+    // `<scheme>://firebaseauth/link...`; plugin tự xử lý, router bỏ qua để
+    // không hiện "Page Not Found" giữa lúc đang xác minh số.
+    onException: (context, state, router) {
+      if (state.uri.host == 'firebaseauth') return;
+      router.go('/splash');
+    },
     redirect: (context, state) {
       final auth = ref.read(authProvider);
       final version = ref.read(appVersionProvider);
@@ -78,7 +85,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           final data = state.extra as Map<String, dynamic>;
           return ResetPasswordScreen(
             phone: data['phone'] as String,
-            otp: data['otp'] as String,
+            idToken: data['id_token'] as String,
           );
         },
       ),

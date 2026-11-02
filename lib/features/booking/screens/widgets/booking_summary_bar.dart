@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/widgets/liquid_glass.dart';
+import '../../../home/widgets/home_style.dart';
 
 class BookingSummaryBar extends StatelessWidget {
   const BookingSummaryBar({
@@ -41,9 +41,11 @@ class BookingSummaryBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasDiscount = fee != null && fee! > netFee;
     final ready = fee != null && !loadingFee && !submitting;
-    return LiquidGlass(
-      borderRadius:
-          const BorderRadius.vertical(top: Radius.circular(AppRadius.glass)),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: HomeStyle.card,
+        border: Border(top: BorderSide(color: HomeStyle.divider)),
+      ),
       child: SafeArea(
         top: false,
         minimum: const EdgeInsets.fromLTRB(16, 16, 16, 12),
@@ -155,58 +157,32 @@ class BookingSummaryBar extends StatelessWidget {
               ]),
             ],
             const SizedBox(height: 14),
-            LiquidGlass(
-              borderRadius: BorderRadius.circular(AppRadius.glass),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(AppRadius.glass),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: ready || submitting
-                        ? [
-                            AppColors.primary.withValues(alpha: .16),
-                            AppColors.primary.withValues(alpha: .38),
-                          ]
-                        : [
-                            Colors.white.withValues(alpha: .16),
-                            Colors.white.withValues(alpha: .06),
-                          ],
-                  ),
-                  border: Border.all(
-                    color: ready || submitting
-                        ? AppColors.primary.withValues(alpha: .35)
-                        : Colors.white.withValues(alpha: .5),
-                  ),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton(
+                onPressed: ready ? onSubmit : null,
+                style: FilledButton.styleFrom(
+                  backgroundColor: HomeStyle.orange,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor:
+                      submitting ? HomeStyle.orange : HomeStyle.divider,
+                  disabledForegroundColor:
+                      submitting ? Colors.white : HomeStyle.muted,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md)),
                 ),
-                child: FilledButton(
-                  onPressed: ready ? onSubmit : null,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    disabledBackgroundColor: Colors.transparent,
-                    foregroundColor: AppColors.primaryDark,
-                    disabledForegroundColor: AppColors.textTertiary,
-                    shadowColor: Colors.transparent,
-                    elevation: 0,
-                    minimumSize: const Size.fromHeight(54),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.glass)),
-                  ),
-                  child: submitting
-                      ? const SizedBox.square(
-                          dimension: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2.5, color: AppColors.primaryDark))
-                      : Text(loadingFee ? 'Đang tính cước…' : buttonLabel,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                              fontSize: AppFontSize.bodyLarge,
-                              fontWeight: FontWeight.w600)),
-                ),
+                child: submitting
+                    ? const SizedBox.square(
+                        dimension: 22,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: Colors.white))
+                    : Text(loadingFee ? 'Đang tính cước…' : buttonLabel,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                            fontSize: AppFontSize.bodyLarge,
+                            fontWeight: FontWeight.w700)),
               ),
             ),
           ],
@@ -218,7 +194,7 @@ class BookingSummaryBar extends StatelessWidget {
 
 const _ink = AppColors.textPrimary;
 const _muted = AppColors.textSecondary;
-const _orange = AppColors.primary;
+const _orange = HomeStyle.orange;
 
 TextStyle _style(double size, [FontWeight? weight, Color? color]) =>
     TextStyle(fontSize: size, fontWeight: weight, color: color);

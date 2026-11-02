@@ -49,7 +49,8 @@ class BookingHeader extends StatelessWidget {
                 const SizedBox(height: 3),
                 Text(subtitle,
                     style: const TextStyle(
-                        fontSize: AppFontSize.body, color: AppColors.textSecondary)),
+                        fontSize: AppFontSize.body,
+                        color: AppColors.textSecondary)),
               ],
             ),
           ),

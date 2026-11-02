@@ -50,14 +50,8 @@ class HomeTab extends ConsumerWidget {
       showDragHandle: false,
       context: context,
       backgroundColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32))),
       useSafeArea: true,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-        ),
+      builder: (ctx) => GlassBottomSheet(
         child: SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
@@ -65,11 +59,11 @@ class HomeTab extends ConsumerWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  margin: const EdgeInsets.only(bottom: 24),
+                  margin: const EdgeInsets.only(bottom: 20),
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.divider,
+                    color: HomeStyle.divider,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
@@ -78,20 +72,17 @@ class HomeTab extends ConsumerWidget {
                   child: Text('Đặt đến "${address.displayTitle}"',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                          fontSize: AppFontSize.display,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary)),
+                      style: HomeStyle.title),
                 ),
                 const SizedBox(height: 20),
                 _QuickServiceRow(
                   icon: Icons.inventory_2_outlined,
                   label: 'Giao hàng',
-                  iconColor: AppColors.primary,
-                  iconBackground: AppColors.primarySoft,
+                  iconColor: HomeStyle.orange,
+                  iconBackground: HomeStyle.peach,
                   onTap: () => Navigator.pop(ctx, 'delivery'),
                 ),
-                const Divider(height: 1, indent: 64, color: AppColors.divider),
+                const Divider(height: 1, indent: 64, color: HomeStyle.divider),
                 _QuickServiceRow(
                   icon: Icons.shopping_bag_outlined,
                   label: 'Mua hộ',
@@ -126,21 +117,27 @@ class HomeTab extends ConsumerWidget {
         ref.invalidate(addressesProvider);
         ref.read(activeCityProvider.notifier).detectFromGps();
       },
-      child: LiquidBackdrop(
+      child: ColoredBox(
+        color: HomeStyle.background,
         child: SafeArea(
           top: false,
           bottom: false,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              // ── Header (app bar cố định, kính mờ) ─────────────────────────
+              // ── Header (app bar cố định) ──────────────────────────────
               SliverPersistentHeader(
                 pinned: true,
                 delegate: _StickyHeaderDelegate(
-                    116 + MediaQuery.paddingOf(context).top),
+                  MediaQuery.paddingOf(context).top,
+                  MediaQuery.textScalerOf(context).scale(16).clamp(16, 22) / 16,
+                ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+              // ── Đơn đang hoạt động: ưu tiên cao nhất khi có đơn ──────────
+              const SliverToBoxAdapter(child: _ActiveOrdersOverview()),
 
               // ── Services ─────────────────────────────────────────────────
               SliverToBoxAdapter(
@@ -150,7 +147,7 @@ class HomeTab extends ConsumerWidget {
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 24)),
 
               SliverToBoxAdapter(
                 child: _BannersSection(onBook: () {
@@ -162,10 +159,19 @@ class HomeTab extends ConsumerWidget {
                 }),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-              // ── Đơn đang hoạt động ───────────────────────────────────────
-              const SliverToBoxAdapter(child: _ActiveOrdersOverview()),
+              // ── Đặt lại từ các đơn đã hoàn thành gần đây ─────────────────
+              SliverToBoxAdapter(
+                child: _RecentOrdersSection(
+                  onReorder: (order) => _openBooking(
+                    context,
+                    ref,
+                    order.serviceType,
+                    reorder: order,
+                  ),
+                ),
+              ),
 
               // ── Đặt nhanh (địa chỉ đã lưu) ─────────────────────────────────
               SliverToBoxAdapter(
@@ -175,12 +181,17 @@ class HomeTab extends ConsumerWidget {
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
               // ── Ưu đãi dành cho bạn ──────────────────────────────────────
               const SliverToBoxAdapter(child: _VoucherSection()),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+              // ── Kênh hỗ trợ nhanh ────────────────────────────────────────
+              const SliverToBoxAdapter(child: _HomeSupportSection()),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
               // The scaffold already reserves space for bottom navigation.
               SliverToBoxAdapter(

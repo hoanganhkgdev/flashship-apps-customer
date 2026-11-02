@@ -12,6 +12,7 @@ import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/liquid_glass.dart';
 import '../../../core/utils/formatters.dart';
+import '../../home/widgets/home_style.dart';
 import '../models/order_model.dart';
 import '../providers/order_provider.dart';
 
@@ -253,7 +254,7 @@ class _State extends ConsumerState<OrderDetailScreen>
                 height: 50,
                 child: FilledButton(
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: HomeStyle.orange,
                     elevation: 0,
                     textStyle: TextStyle(
                         fontSize: AppFontSize.bodyLarge,
@@ -362,116 +363,107 @@ class _State extends ConsumerState<OrderDetailScreen>
   Widget build(BuildContext context) {
     final canCancel = _order?.canCancel ?? false;
     final bottomBar = _buildBottomBar(canCancel);
-    return LiquidBackdrop(
-      child: Scaffold(
-        extendBody: true,
+    return Scaffold(
+      backgroundColor: HomeStyle.background,
+      appBar: AppBar(
+        toolbarHeight: 64,
         backgroundColor: Colors.transparent,
-        appBar: AppBar(
-          toolbarHeight: 72,
-          backgroundColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
-            systemNavigationBarColor: Colors.transparent,
-            systemNavigationBarContrastEnforced: false,
+        surfaceTintColor: Colors.transparent,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        flexibleSpace: const DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0xFFFFE9DE),
           ),
-          flexibleSpace: const LiquidGlass(
-            borderRadius:
-                BorderRadius.vertical(bottom: Radius.circular(AppRadius.glass)),
-            child: SizedBox.expand(),
-          ),
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          centerTitle: false,
-          titleSpacing: 12,
-          leadingWidth: 64,
-          leading: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 0, 12),
-            child: IconButton(
-              tooltip: 'Quay lại',
-              onPressed: () => context.pop(),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: .35),
-                side: BorderSide(color: Colors.white.withValues(alpha: .7)),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.glass)),
-              ),
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 18, color: AppColors.textPrimary),
-            ),
-          ),
-          title: Text(
-            'Chi tiết đơn hàng',
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-                fontSize: AppFontSize.titleLarge,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary),
-          ),
-          actions: [
-            Padding(
-              padding: const EdgeInsets.only(right: 16),
-              child: PopupMenuButton<String>(
-                tooltip: 'Tùy chọn',
-                color: AppColors.surface,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.md)),
-                onSelected: (value) {
-                  if (value == 'cancel') _cancelOrder();
-                  if (value == 'rate') _showRating();
-                  if (value == 'copy' && _order != null) {
-                    Clipboard.setData(ClipboardData(text: _order!.code));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Đã sao chép mã đơn')),
-                    );
-                  }
-                },
-                itemBuilder: (_) => [
-                  const PopupMenuItem(
-                      value: 'copy', child: Text('Sao chép mã đơn')),
-                  if (_order?.canRate ?? false)
-                    const PopupMenuItem(
-                        value: 'rate', child: Text('Đánh giá tài xế')),
-                  if (canCancel)
-                    const PopupMenuItem(
-                        value: 'cancel', child: Text('Hủy đơn hàng')),
-                ],
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(AppRadius.glass),
-                    color: Colors.white.withValues(alpha: .35),
-                    border:
-                        Border.all(color: Colors.white.withValues(alpha: .7)),
-                  ),
-                  child: const Icon(Icons.more_vert_rounded,
-                      color: AppColors.textPrimary),
-                ),
-              ),
-            ),
-          ],
         ),
-        body: _loading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.primary))
-            : _error != null
-                ? _ErrorView(onRetry: _fetchOrder)
-                : _OrderDetailMockBody(
-                    order: (_realtimeLat != null && _realtimeLng != null)
-                        ? _order!
-                            .withDriverLocation(_realtimeLat!, _realtimeLng!)
-                        : _order!,
-                    onRefresh: _fetchOrder,
-                  ),
-        bottomNavigationBar: bottomBar == null
-            ? null
-            : LiquidGlass(
-                borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(AppRadius.glass)),
-                child: bottomBar,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
+        titleSpacing: 12,
+        leadingWidth: 64,
+        leading: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 0, 8),
+          child: IconButton(
+            tooltip: 'Quay lại',
+            onPressed: () => context.pop(),
+            style: IconButton.styleFrom(
+              backgroundColor: HomeStyle.card,
+              side: const BorderSide(color: HomeStyle.divider),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md)),
+            ),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                size: 18, color: HomeStyle.ink),
+          ),
+        ),
+        title: const Text(
+          'Chi tiết đơn hàng',
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: HomeStyle.title,
+        ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 16),
+            child: PopupMenuButton<String>(
+              tooltip: 'Tùy chọn',
+              color: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md)),
+              onSelected: (value) {
+                if (value == 'cancel') _cancelOrder();
+                if (value == 'rate') _showRating();
+                if (value == 'copy' && _order != null) {
+                  Clipboard.setData(ClipboardData(text: _order!.code));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Đã sao chép mã đơn')),
+                  );
+                }
+              },
+              itemBuilder: (_) => [
+                const PopupMenuItem(
+                    value: 'copy', child: Text('Sao chép mã đơn')),
+                if (_order?.canRate ?? false)
+                  const PopupMenuItem(
+                      value: 'rate', child: Text('Đánh giá tài xế')),
+                if (canCancel)
+                  const PopupMenuItem(
+                      value: 'cancel', child: Text('Hủy đơn hàng')),
+              ],
+              child: Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppRadius.md),
+                  color: HomeStyle.card,
+                  border: Border.all(color: HomeStyle.divider),
+                ),
+                child:
+                    const Icon(Icons.more_vert_rounded, color: HomeStyle.ink),
               ),
+            ),
+          ),
+        ],
       ),
+      body: _loading
+          ? const Center(
+              child: CircularProgressIndicator(color: HomeStyle.orange))
+          : _error != null
+              ? _ErrorView(onRetry: _fetchOrder)
+              : _OrderDetailBody(
+                  order: (_realtimeLat != null && _realtimeLng != null)
+                      ? _order!.withDriverLocation(_realtimeLat!, _realtimeLng!)
+                      : _order!,
+                  onRefresh: _fetchOrder,
+                ),
+      bottomNavigationBar: bottomBar == null
+          ? null
+          : DecoratedBox(
+              decoration: const BoxDecoration(
+                color: HomeStyle.card,
+                border: Border(top: BorderSide(color: HomeStyle.divider)),
+              ),
+              child: bottomBar,
+            ),
     );
   }
 
@@ -526,8 +518,8 @@ class _State extends ConsumerState<OrderDetailScreen>
                       content: Text('Flash Ship sẽ hỗ trợ bạn ngay.')),
                 ),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.textPrimary,
-                  side: const BorderSide(color: AppColors.divider),
+                  foregroundColor: HomeStyle.ink,
+                  side: const BorderSide(color: HomeStyle.divider),
                   padding: const EdgeInsets.symmetric(vertical: 17),
                   textStyle: TextStyle(
                       fontSize: AppFontSize.bodyLarge,
@@ -540,10 +532,8 @@ class _State extends ConsumerState<OrderDetailScreen>
             Expanded(
               child: FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: AppColors.primary.withValues(alpha: .20),
-                  foregroundColor: AppColors.primaryDark,
-                  side: BorderSide(
-                      color: AppColors.primary.withValues(alpha: .35)),
+                  backgroundColor: HomeStyle.orange,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 17),
                   elevation: 0,
                   textStyle: TextStyle(
@@ -575,19 +565,18 @@ class _State extends ConsumerState<OrderDetailScreen>
 
 // ─── Body ─────────────────────────────────────────────────────────────────────
 
-class _OrderDetailMockBody extends StatelessWidget {
-  const _OrderDetailMockBody({required this.order, required this.onRefresh});
+class _OrderDetailBody extends StatelessWidget {
+  const _OrderDetailBody({required this.order, required this.onRefresh});
 
   final OrderModel order;
   final Future<void> Function() onRefresh;
 
-  static const _orange = AppColors.primary;
-  static const _muted = AppColors.textTertiary;
-
+  static const _orange = HomeStyle.orange;
   int get _progress => switch (order.status) {
-        'assigned' => 0,
-        'processing' => 1,
-        'completed' => 2,
+        'pending' => 0,
+        'assigned' => 1,
+        'processing' => 2,
+        'completed' => 3,
         _ => -1,
       };
 
@@ -656,49 +645,28 @@ class _OrderDetailMockBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final created = DateTime.tryParse(order.createdAt);
     return RefreshIndicator(
       color: _orange,
       onRefresh: onRefresh,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.fromLTRB(
             16, 16, 16, MediaQuery.paddingOf(context).bottom + 28),
         children: [
-          Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-            Expanded(
-              child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('#${order.code}',
-                        style: TextStyle(
-                            fontSize: AppFontSize.titleLarge,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textPrimary)),
-                    const SizedBox(height: 3),
-                    Text(
-                      created == null
-                          ? order.createdAt
-                          : 'Đặt lúc ${Fmt.dateTime(created)}',
-                      style:
-                          TextStyle(fontSize: AppFontSize.body, color: _muted),
-                    ),
-                  ]),
-            ),
-            _StatusPill(status: order.status),
-          ]),
-          const SizedBox(height: 18),
+          _OrderOverviewCard(order: order),
+          const SizedBox(height: 14),
           _ProgressCard(progress: _progress, cancelled: order.isCancelled),
           if (order.status == 'pending' &&
               order.cancelReason == 'no_driver') ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             const _NoDriverSupportCard(),
           ],
           if (order.pickupAddress != null || order.deliveryAddress != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             _MockRouteCard(order: order),
           ],
           if (order.driverName != null) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             _MockDriverCard(
               order: order,
               onCall: _callDriver,
@@ -706,14 +674,156 @@ class _OrderDetailMockBody extends StatelessWidget {
                   order.isActive ? () => _openDriverLocation(context) : null,
             ),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
           _PaymentCard(order: order),
           if (order.orderNote?.isNotEmpty ?? false) ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
             _NoteCard(note: order.orderNote!),
           ],
         ],
       ),
+    );
+  }
+}
+
+class _OrderOverviewCard extends StatelessWidget {
+  const _OrderOverviewCard({required this.order});
+
+  final OrderModel order;
+
+  String get _message => switch (order.status) {
+        'pending' => 'Đơn đang chờ tài xế tiếp nhận',
+        'assigned' => 'Tài xế đã nhận đơn của bạn',
+        'processing' => 'Tài xế đang thực hiện dịch vụ',
+        'completed' => 'Dịch vụ đã hoàn thành. Cảm ơn bạn!',
+        'cancelled' => 'Đơn hàng đã được hủy',
+        _ => Fmt.orderStatus(order.status),
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    final created = DateTime.tryParse(order.createdAt)?.toLocal();
+    final serviceColor = AppColors.serviceColor(order.serviceType);
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: HomeStyle.card,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: HomeStyle.divider),
+      ),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: serviceColor.withValues(alpha: .1),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+            ),
+            child: Icon(Fmt.serviceIcon(order.serviceType),
+                size: 23, color: serviceColor),
+          ),
+          const SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  Fmt.serviceLabel(order.serviceType),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    fontWeight: FontWeight.w800,
+                    color: HomeStyle.ink,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  created == null
+                      ? order.createdAt
+                      : 'Đặt lúc ${Fmt.dateTime(created)}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: AppFontSize.caption,
+                    color: HomeStyle.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+          decoration: BoxDecoration(
+            color: HomeStyle.cardMuted,
+            borderRadius: BorderRadius.circular(AppRadius.md),
+          ),
+          child: Row(children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Mã đơn hàng',
+                      style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          fontWeight: FontWeight.w700,
+                          color: HomeStyle.muted)),
+                  const SizedBox(height: 3),
+                  Text('#${order.code}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontSize: AppFontSize.body,
+                          fontWeight: FontWeight.w800,
+                          color: HomeStyle.ink)),
+                ],
+              ),
+            ),
+            IconButton(
+              tooltip: 'Sao chép mã đơn',
+              visualDensity: VisualDensity.compact,
+              onPressed: () {
+                Clipboard.setData(ClipboardData(text: order.code));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Đã sao chép mã đơn')),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded,
+                  size: 19, color: HomeStyle.orange),
+            ),
+          ]),
+        ),
+        const SizedBox(height: 12),
+        _StatusPill(status: order.status),
+        const SizedBox(height: 10),
+        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Icon(
+            order.isCompleted
+                ? Icons.check_circle_rounded
+                : order.isCancelled
+                    ? Icons.cancel_rounded
+                    : Icons.local_shipping_rounded,
+            size: 18,
+            color: order.isCompleted
+                ? AppColors.success
+                : order.isCancelled
+                    ? AppColors.danger
+                    : HomeStyle.orange,
+          ),
+          const SizedBox(width: 7),
+          Expanded(
+            child: Text(_message,
+                style: const TextStyle(
+                    fontSize: AppFontSize.body,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                    color: HomeStyle.ink)),
+          ),
+        ]),
+      ]),
     );
   }
 }
@@ -756,16 +866,12 @@ class _StatusPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status) {
-      'completed' => AppColors.success,
+      'assigned' => AppColors.info,
+      'processing' || 'completed' => AppColors.success,
       'cancelled' => AppColors.danger,
-      _ => AppColors.primary,
+      _ => HomeStyle.orange,
     };
-    final label = switch (status) {
-      'assigned' => 'Đã nhận',
-      'processing' => 'Đã lấy hàng',
-      'completed' => 'Hoàn thành',
-      _ => Fmt.orderStatus(status),
-    };
+    final label = Fmt.orderStatus(status);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
@@ -773,6 +879,8 @@ class _StatusPill extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppRadius.card),
       ),
       child: Text(label,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
               fontSize: AppFontSize.body,
               fontWeight: FontWeight.w600,
@@ -788,66 +896,96 @@ class _ProgressCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const labels = ['Đã nhận', 'Đã lấy hàng', 'Hoàn thành'];
+    const labels = ['Đã đặt', 'Có tài xế', 'Thực hiện', 'Hoàn thành'];
     const icons = [
-      Icons.check_rounded,
+      Icons.receipt_long_rounded,
+      Icons.person_rounded,
       Icons.inventory_2_outlined,
       Icons.check_rounded,
     ];
     return _MockCard(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(5, (index) {
-          if (index.isOdd) {
-            final connector = index ~/ 2;
-            return Expanded(
-              child: Container(
-                height: 2,
-                margin: const EdgeInsets.only(top: 19),
-                color: !cancelled && connector < progress
-                    ? AppColors.primary
-                    : const Color(0xFFE4DCD7),
-              ),
-            );
-          }
-          final step = index ~/ 2;
-          final active = !cancelled && step <= progress;
-          final current = !cancelled && step == progress;
-          return SizedBox(
-            width: 76,
-            child: Column(children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: active
-                      ? AppColors.primary
-                      : Colors.white.withValues(alpha: .28),
-                  shape: BoxShape.circle,
-                  border: active
-                      ? null
-                      : Border.all(color: const Color(0xFFE0D7D2)),
+      padding: const EdgeInsets.fromLTRB(14, 15, 14, 14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: HomeStyle.peach,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.route_rounded,
+                size: 18, color: HomeStyle.orange),
+          ),
+          const SizedBox(width: 9),
+          const Expanded(
+            child: Text('Tiến trình đơn hàng',
+                style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    fontWeight: FontWeight.w800,
+                    color: HomeStyle.ink)),
+          ),
+        ]),
+        const SizedBox(height: 16),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List.generate(7, (index) {
+            if (index.isOdd) {
+              final connector = index ~/ 2;
+              return Expanded(
+                child: Container(
+                  height: 2,
+                  margin: const EdgeInsets.only(top: 17),
+                  color: !cancelled && connector < progress
+                      ? HomeStyle.orange
+                      : HomeStyle.divider,
                 ),
-                child: Icon(icons[step],
-                    size: 19,
-                    color: active ? Colors.white : AppColors.textSecondary),
-              ),
-              const SizedBox(height: 7),
-              Text(labels[step],
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      fontSize: AppFontSize.caption,
-                      fontWeight: FontWeight.w600,
-                      color: current
-                          ? AppColors.primary
-                          : active
-                              ? AppColors.textPrimary
-                              : AppColors.textTertiary)),
-            ]),
-          );
-        }),
-      ),
+              );
+            }
+            final step = index ~/ 2;
+            final done = !cancelled && step <= progress;
+            final current = !cancelled && step == progress;
+            return Expanded(
+              flex: 4,
+              child: Column(children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: done ? HomeStyle.orange : HomeStyle.cardMuted,
+                    shape: BoxShape.circle,
+                    border: done ? null : Border.all(color: HomeStyle.divider),
+                  ),
+                  child: Icon(icons[step],
+                      size: 17, color: done ? Colors.white : HomeStyle.muted),
+                ),
+                const SizedBox(height: 7),
+                Text(labels[step],
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        height: 1.2,
+                        fontWeight: current ? FontWeight.w800 : FontWeight.w600,
+                        color: current
+                            ? HomeStyle.orange
+                            : done
+                                ? HomeStyle.ink
+                                : HomeStyle.muted)),
+              ]),
+            );
+          }),
+        ),
+        if (cancelled) ...[
+          const SizedBox(height: 12),
+          const Text('Tiến trình đã dừng do đơn hàng bị huỷ.',
+              style: TextStyle(
+                  fontSize: AppFontSize.caption,
+                  color: AppColors.danger,
+                  fontWeight: FontWeight.w600)),
+        ],
+      ]),
     );
   }
 }
@@ -859,56 +997,95 @@ class _MockRouteCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _MockCard(
-      child: IntrinsicHeight(
-        child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-          Column(children: [
-            Container(
-                width: 10,
-                height: 10,
-                decoration: const BoxDecoration(
-                    color: AppColors.primary, shape: BoxShape.circle)),
-            Expanded(child: Container(width: 2, color: AppColors.divider)),
-            Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                    color: AppColors.textPrimary,
-                    borderRadius: BorderRadius.circular(2))),
-          ]),
-          const SizedBox(width: 16),
-          Expanded(
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: HomeStyle.peach,
+              borderRadius: BorderRadius.circular(AppRadius.sm),
+            ),
+            child: const Icon(Icons.alt_route_rounded,
+                size: 19, color: HomeStyle.orange),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(
+              child: Text('Hành trình',
+                  style: TextStyle(
+                      fontSize: AppFontSize.bodyLarge,
+                      fontWeight: FontWeight.w800,
+                      color: HomeStyle.ink))),
+        ]),
+        const SizedBox(height: 18),
+        IntrinsicHeight(
+          child: Row(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+            Column(children: [
+              Container(
+                  width: 10,
+                  height: 10,
+                  decoration: const BoxDecoration(
+                      color: HomeStyle.orange, shape: BoxShape.circle)),
+              Expanded(child: Container(width: 2, color: AppColors.divider)),
+              Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                      color: AppColors.info,
+                      borderRadius: BorderRadius.circular(2))),
+            ]),
+            const SizedBox(width: 14),
+            Expanded(
               child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                _address('ĐIỂM LẤY HÀNG', order.pickupAddress ?? '—'),
-                const SizedBox(height: 22),
-                _address('ĐIỂM GIAO HÀNG', order.deliveryAddress ?? '—'),
-              ])),
-        ]),
-      ),
+                    _address('Điểm đi / lấy hàng', order.pickupAddress ?? '—',
+                        name: order.senderName, phone: order.pickupPhone),
+                    const SizedBox(height: 20),
+                    _address(
+                        'Điểm đến / giao hàng', order.deliveryAddress ?? '—',
+                        name: order.receiverName, phone: order.deliveryPhone),
+                  ]),
+            ),
+          ]),
+        ),
+      ]),
     );
   }
 
-  Widget _address(String label, String value) => Column(
+  Widget _address(String label, String value, {String? name, String? phone}) =>
+      Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
               style: TextStyle(
                   fontSize: AppFontSize.caption,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w700,
                   color: AppColors.textTertiary)),
           const SizedBox(height: 4),
           Text(
             value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            softWrap: false,
             style: TextStyle(
-                fontSize: AppFontSize.bodyLarge,
+                fontSize: AppFontSize.body,
                 height: 1.25,
                 fontWeight: FontWeight.w600,
                 color: AppColors.textPrimary),
           ),
+          if (name?.trim().isNotEmpty == true ||
+              phone?.trim().isNotEmpty == true) ...[
+            const SizedBox(height: 5),
+            Text(
+              [
+                if (name?.trim().isNotEmpty == true) name!.trim(),
+                if (phone?.trim().isNotEmpty == true) phone!.trim()
+              ].join(' · '),
+              style: const TextStyle(
+                fontSize: AppFontSize.caption,
+                height: 1.4,
+                color: HomeStyle.muted,
+              ),
+            ),
+          ],
         ],
       );
 }
@@ -937,10 +1114,10 @@ class _MockDriverCard extends StatelessWidget {
       child: Column(children: [
         Row(children: [
           Container(
-            width: 54,
-            height: 54,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-                color: const Color(0xFFFFE4D9),
+                color: HomeStyle.peach,
                 borderRadius: BorderRadius.circular(AppRadius.md)),
             clipBehavior: Clip.antiAlias,
             child: order.driverAvatarUrl != null
@@ -953,7 +1130,7 @@ class _MockDriverCard extends StatelessWidget {
                         style: TextStyle(
                             fontSize: AppFontSize.title,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.primary))),
+                            color: HomeStyle.orange))),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -975,10 +1152,11 @@ class _MockDriverCard extends StatelessWidget {
               ])),
           if (order.driverPhone?.isNotEmpty ?? false)
             IconButton.filled(
+              tooltip: 'Gọi tài xế',
               onPressed: onCall,
               style: IconButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: .28),
-                  foregroundColor: AppColors.textPrimary,
+                  backgroundColor: HomeStyle.peach,
+                  foregroundColor: HomeStyle.orange,
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(AppRadius.md))),
               icon: const Icon(Icons.phone_outlined),
@@ -992,10 +1170,10 @@ class _MockDriverCard extends StatelessWidget {
             child: OutlinedButton.icon(
               onPressed: onTrack,
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primary),
+                foregroundColor: HomeStyle.orange,
+                side: const BorderSide(color: HomeStyle.orange),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppRadius.full),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
               ),
               icon: const Icon(Icons.near_me_rounded, size: 19),
@@ -1027,16 +1205,17 @@ class _PaymentCard extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
+                  color: HomeStyle.peach,
                   borderRadius: BorderRadius.circular(AppRadius.sm)),
               child: const Icon(Icons.receipt_long_outlined,
-                  size: 19, color: AppColors.primary)),
+                  size: 19, color: HomeStyle.orange)),
           const SizedBox(width: 10),
-          Text('Chi tiết thanh toán',
-              style: TextStyle(
-                  fontSize: AppFontSize.bodyLarge,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary)),
+          Expanded(
+              child: Text('Chi tiết thanh toán',
+                  style: TextStyle(
+                      fontSize: AppFontSize.bodyLarge,
+                      fontWeight: FontWeight.w800,
+                      color: HomeStyle.ink))),
         ]),
         const SizedBox(height: 20),
         _row('Cước phí', Fmt.currency(original)),
@@ -1068,12 +1247,15 @@ class _PaymentCard extends StatelessWidget {
                     color: total
                         ? AppColors.textPrimary
                         : AppColors.textSecondary))),
-        Text(value,
-            style: TextStyle(
-                fontSize: total ? AppFontSize.display : AppFontSize.body,
-                fontWeight: FontWeight.w600,
-                color: color ??
-                    (total ? AppColors.primary : AppColors.textPrimary))),
+        const SizedBox(width: 12),
+        Expanded(
+            child: Text(value,
+                textAlign: TextAlign.right,
+                style: TextStyle(
+                    fontSize: total ? AppFontSize.display : AppFontSize.body,
+                    fontWeight: total ? FontWeight.w800 : FontWeight.w600,
+                    color: color ??
+                        (total ? HomeStyle.orange : AppColors.textPrimary)))),
       ]);
 }
 
@@ -1084,10 +1266,13 @@ class _MockCard extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   @override
-  Widget build(BuildContext context) => LiquidGlass(
-        padding: padding,
-        borderRadius: BorderRadius.circular(AppRadius.glass),
-        child: child,
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: HomeStyle.card,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: HomeStyle.divider),
+        ),
+        child: Padding(padding: padding, child: child),
       );
 }
 
@@ -1127,9 +1312,7 @@ class _Card extends StatelessWidget {
   const _Card({required this.child});
 
   @override
-  Widget build(BuildContext context) => LiquidGlass(
-        padding: const EdgeInsets.all(16),
-        borderRadius: BorderRadius.circular(AppRadius.glass),
+  Widget build(BuildContext context) => _MockCard(
         child: SizedBox(width: double.infinity, child: child),
       );
 }
@@ -1153,11 +1336,12 @@ class _CardHeader extends StatelessWidget {
           child: Icon(icon, size: 18, color: iconColor),
         ),
         const SizedBox(width: 10),
-        Text(label,
-            style: TextStyle(
-                fontSize: AppFontSize.bodyLarge,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary)),
+        Expanded(
+            child: Text(label,
+                style: TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary))),
       ]);
 }
 
@@ -1278,16 +1462,16 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
       child: GlassBottomSheet(
         child: SingleChildScrollView(
             child: Column(mainAxisSize: MainAxisSize.min, children: [
-          const SizedBox(height: 14),
+          const SizedBox(height: 12),
           Container(
-            width: 42,
+            width: 40,
             height: 4,
             decoration: BoxDecoration(
-              color: AppColors.divider,
+              color: HomeStyle.divider,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          const SizedBox(height: 26),
+          const SizedBox(height: 22),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
             child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -1296,7 +1480,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                 width: 96,
                 height: 96,
                 decoration: BoxDecoration(
-                  color: AppColors.primarySoft,
+                  color: HomeStyle.peach,
                   shape: BoxShape.circle,
                 ),
                 child: Center(
@@ -1305,7 +1489,7 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                     style: TextStyle(
                       fontSize: AppFontSize.xlarge,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primary,
+                      color: HomeStyle.orange,
                     ),
                   ),
                 ),
@@ -1385,24 +1569,21 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 15, vertical: 10),
                       decoration: BoxDecoration(
-                        color: selected
-                            ? AppColors.primary.withValues(alpha: 0.10)
-                            : Colors.white.withValues(alpha: .28),
-                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        color: selected ? HomeStyle.peach : HomeStyle.card,
+                        borderRadius: BorderRadius.circular(AppRadius.full),
                         border: Border.all(
-                          color:
-                              selected ? AppColors.primary : Colors.transparent,
-                          width: 1.5,
+                          color: selected
+                              ? HomeStyle.orange.withValues(alpha: .3)
+                              : HomeStyle.divider,
                         ),
                       ),
                       child: Text(
                         tag,
                         style: TextStyle(
-                          fontSize: AppFontSize.bodyLarge,
-                          fontWeight: FontWeight.w600,
-                          color: selected
-                              ? AppColors.primary
-                              : AppColors.textSecondary,
+                          fontSize: AppFontSize.body,
+                          fontWeight:
+                              selected ? FontWeight.w700 : FontWeight.w500,
+                          color: selected ? HomeStyle.orange : HomeStyle.muted,
                         ),
                       ),
                     ),
@@ -1418,8 +1599,23 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
                 minLines: 3,
                 maxLines: 4,
                 style: TextStyle(fontSize: AppFontSize.bodyLarge),
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Nhận xét thêm (tuỳ chọn)...',
+                  filled: true,
+                  fillColor: HomeStyle.cardMuted,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    borderSide: const BorderSide(color: HomeStyle.divider),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    borderSide: const BorderSide(color: HomeStyle.divider),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    borderSide:
+                        const BorderSide(color: HomeStyle.orange, width: 1.5),
+                  ),
                 ),
               ),
 
@@ -1428,13 +1624,16 @@ class _RatingSheetState extends ConsumerState<_RatingSheet> {
               // Submit
               SizedBox(
                 width: double.infinity,
-                height: 56,
+                height: 50,
                 child: FilledButton(
                   onPressed: _submitting ? null : _submit,
                   style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: HomeStyle.orange,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md)),
                     disabledBackgroundColor:
-                        AppColors.primary.withValues(alpha: 0.5),
+                        HomeStyle.orange.withValues(alpha: 0.5),
                     elevation: 0,
                     textStyle: TextStyle(
                         fontSize: AppFontSize.bodyLarge,

@@ -20,7 +20,6 @@ class EditProfileScreen extends ConsumerStatefulWidget {
 class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameCtrl = TextEditingController();
-  final _emailCtrl = TextEditingController();
   final _birthDateCtrl = TextEditingController();
 
   int? _cityId;
@@ -36,7 +35,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final user = ref.read(authProvider).user;
     if (user != null) {
       _nameCtrl.text = user.name;
-      _emailCtrl.text = user.email ?? '';
       _cityId = user.cityId;
       _cityName = user.cityName ?? '';
       _birthDate = user.birthDate;
@@ -47,12 +45,12 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   @override
   void dispose() {
     _nameCtrl.dispose();
-    _emailCtrl.dispose();
     _birthDateCtrl.dispose();
     super.dispose();
   }
 
   Future<void> _saveProfile() async {
+    if (_saving || _uploadingAvatar) return;
     if (!_formKey.currentState!.validate()) return;
     setState(() {
       _saving = true;
@@ -61,7 +59,6 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
 
     final err = await ref.read(authProvider.notifier).updateProfile(
           name: _nameCtrl.text.trim(),
-          email: _emailCtrl.text.trim().isEmpty ? null : _emailCtrl.text.trim(),
           birthDate: _birthDate,
           cityId: _cityId,
           cityName: _cityName,
@@ -121,8 +118,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceAlt,
-                        borderRadius: BorderRadius.circular(AppRadius.glass),
+                        color: HomeStyle.cardMuted,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: const Icon(Icons.close_rounded,
                           size: 24, color: AppColors.textSecondary),
@@ -201,7 +198,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       useSafeArea: true,
       builder: (_) => _CityPicker(cities: cities, selectedId: _cityId),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() {
         _cityId = picked.id;
         _cityName = picked.name;
@@ -230,7 +227,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       builder: (context, child) => Theme(
         data: Theme.of(context).copyWith(
           colorScheme: Theme.of(context).colorScheme.copyWith(
-                primary: AppColors.primary,
+                primary: HomeStyle.orange,
                 surface: AppColors.surface,
               ),
         ),
@@ -258,302 +255,357 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     final citiesAsync = ref.watch(citiesProvider);
     final bottom = MediaQuery.of(context).padding.bottom;
 
-    return LiquidBackdrop(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          bottom: false,
-          child: Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return Scaffold(
+      backgroundColor: HomeStyle.background,
+      bottomNavigationBar: DecoratedBox(
+        decoration: const BoxDecoration(
+          color: HomeStyle.card,
+          border: Border(top: BorderSide(color: HomeStyle.divider)),
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+            child: SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: FilledButton(
+                onPressed: _saving || _uploadingAvatar ? null : _saveProfile,
+                style: FilledButton.styleFrom(
+                  backgroundColor: HomeStyle.orange,
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor:
+                      HomeStyle.orange.withValues(alpha: .5),
+                  disabledForegroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md)),
+                  elevation: 0,
+                  textStyle: const TextStyle(
+                      fontSize: AppFontSize.bodyLarge,
+                      fontWeight: FontWeight.w700),
+                ),
+                child: _saving
+                    ? const SizedBox(
+                        width: 22,
+                        height: 22,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2.5, color: Colors.white))
+                    : const Row(mainAxisSize: MainAxisSize.min, children: [
+                        Icon(Icons.check_rounded, size: 20),
+                        SizedBox(width: 8),
+                        Text('Lưu thay đổi'),
+                      ]),
+              ),
+            ),
+          ),
+        ),
+      ),
+      body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        DecoratedBox(
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFE9DE),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: Row(children: [
                 IconButton(
                   tooltip: 'Quay lại',
                   onPressed: () => context.pop(),
                   style: IconButton.styleFrom(
-                    backgroundColor: Colors.white.withValues(alpha: .45),
-                    side: BorderSide(color: Colors.white.withValues(alpha: .8)),
-                    shape:
-                        RoundedRectangleBorder(borderRadius: HomeStyle.radius),
+                    fixedSize: const Size.square(44),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    backgroundColor: HomeStyle.card,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppRadius.md)),
                   ),
                   icon: const Icon(Icons.arrow_back_ios_new_rounded,
                       size: 18, color: HomeStyle.ink),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text('Chỉnh sửa hồ sơ',
                           style: TextStyle(
-                              fontSize: AppFontSize.display,
+                              fontSize: AppFontSize.title,
                               fontWeight: FontWeight.w800,
                               color: HomeStyle.ink)),
-                      SizedBox(height: 4),
-                      Text('Cập nhật thông tin cá nhân của bạn',
+                      SizedBox(height: 3),
+                      Text('Thông tin để liên hệ thuận tiện hơn',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
                               fontSize: AppFontSize.caption,
                               color: HomeStyle.muted)),
-                    ])),
+                    ],
+                  ),
+                ),
               ]),
             ),
-            Expanded(
-                child: Form(
-              key: _formKey,
-              child: ListView(
-                padding: EdgeInsets.fromLTRB(16, 0, 16, bottom + 24),
-                keyboardDismissBehavior:
-                    ScrollViewKeyboardDismissBehavior.onDrag,
-                children: [
-                  // ── Avatar ────────────────────────────────────────────────────
-                  LiquidGlass(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(children: [
-                      Center(
-                        child: GestureDetector(
-                          onTap: _uploadingAvatar ? null : _pickAvatar,
-                          child: Stack(children: [
-                            Container(
-                              width: 112,
-                              height: 112,
-                              decoration: BoxDecoration(
-                                color: AppColors.primarySoft,
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.glass),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: ClipRRect(
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.glass),
-                                child: user?.avatarUrl != null
-                                    ? CachedNetworkImage(
-                                        imageUrl: user!.avatarUrl!,
-                                        fit: BoxFit.cover,
-                                        placeholder: (_, __) => _AvatarInitials(
-                                            initials: user.initials),
-                                        errorWidget: (_, __, ___) =>
-                                            _AvatarInitials(
-                                                initials: user.initials),
-                                      )
-                                    : _AvatarInitials(
-                                        initials: user?.initials ?? 'U'),
-                              ),
+          ),
+        ),
+        Expanded(
+            child: Form(
+          key: _formKey,
+          child: ListView(
+            padding: EdgeInsets.fromLTRB(16, 16, 16, bottom + 24),
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            children: [
+              // ── Avatar ────────────────────────────────────────────────────
+              _FlatCard(
+                padding: const EdgeInsets.all(16),
+                child: Row(children: [
+                  GestureDetector(
+                    onTap: _uploadingAvatar ? null : _pickAvatar,
+                    child: Stack(children: [
+                      Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: HomeStyle.peach,
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        clipBehavior: Clip.antiAlias,
+                        child: user?.avatarUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: user!.avatarUrl!,
+                                fit: BoxFit.cover,
+                                placeholder: (_, __) =>
+                                    _AvatarInitials(initials: user.initials),
+                                errorWidget: (_, __, ___) =>
+                                    _AvatarInitials(initials: user.initials),
+                              )
+                            : _AvatarInitials(initials: user?.initials ?? 'U'),
+                      ),
+                      if (_uploadingAvatar)
+                        Positioned.fill(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(22),
+                              color: Colors.black.withValues(alpha: .4),
                             ),
-                            if (_uploadingAvatar)
-                              Positioned.fill(
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius:
-                                        BorderRadius.circular(AppRadius.glass),
-                                    color: Colors.black.withValues(alpha: 0.4),
-                                  ),
-                                  child: const Center(
-                                      child: SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                        strokeWidth: 2.5, color: Colors.white),
-                                  )),
-                                ),
+                            child: const Center(
+                              child: SizedBox.square(
+                                dimension: 22,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2.5, color: Colors.white),
                               ),
-                            Positioned(
-                              bottom: 0,
-                              right: 0,
-                              child: Container(
-                                width: 34,
-                                height: 34,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  shape: BoxShape.circle,
-                                  border:
-                                      Border.all(color: Colors.white, width: 2),
-                                ),
-                                child: const Icon(Icons.edit_outlined,
-                                    size: 17, color: Colors.white),
-                              ),
-                            ),
-                          ]),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      TextButton.icon(
-                        onPressed: _uploadingAvatar ? null : _pickAvatar,
-                        icon: const Icon(Icons.photo_camera_outlined, size: 17),
-                        label: Text(_uploadingAvatar
-                            ? 'Đang tải ảnh...'
-                            : 'Đổi ảnh đại diện'),
-                        style: TextButton.styleFrom(
-                            foregroundColor: HomeStyle.orange),
-                      ),
-                    ]),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // ── Fields card ───────────────────────────────────────────────
-                  LiquidGlass(
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: Column(children: [
-                      const Padding(
-                        padding: EdgeInsets.fromLTRB(16, 6, 16, 8),
-                        child: Row(children: [
-                          GlassIcon(
-                              icon: Icons.person_outline_rounded,
-                              color: HomeStyle.orange,
-                              size: 34,
-                              iconSize: 18),
-                          SizedBox(width: 10),
-                          Expanded(
-                              child: Text('Thông tin cá nhân',
-                                  style: TextStyle(
-                                      fontSize: AppFontSize.bodyLarge,
-                                      fontWeight: FontWeight.w700,
-                                      color: HomeStyle.ink))),
-                        ]),
-                      ),
-                      _FormRow(
-                        label: 'Họ và tên',
-                        child: _FilledField(
-                          controller: _nameCtrl,
-                          hint: 'Nhập họ và tên',
-                          textCapitalization: TextCapitalization.words,
-                          validator: (v) => (v == null || v.trim().isEmpty)
-                              ? 'Nhập họ tên'
-                              : null,
-                        ),
-                      ),
-                      _FormRow(
-                        label: 'Số điện thoại',
-                        trailing: const Icon(Icons.lock_outline_rounded,
-                            size: 18, color: AppColors.textTertiary),
-                        child: _FilledField(
-                          initialValue: user?.phone ?? '',
-                          hint: 'Số điện thoại',
-                          readOnly: true,
-                        ),
-                      ),
-                      _FormRow(
-                        label: 'Email',
-                        child: _FilledField(
-                          controller: _emailCtrl,
-                          hint: 'example@email.com (tuỳ chọn)',
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (v) {
-                            if (v == null || v.trim().isEmpty) return null;
-                            if (!v.contains('@') || !v.contains('.')) {
-                              return 'Email không hợp lệ';
-                            }
-                            return null;
-                          },
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _pickBirthDate,
-                        child: _FormRow(
-                          label: 'Ngày sinh',
-                          trailing: const Icon(Icons.calendar_month_outlined,
-                              size: 20, color: AppColors.textSecondary),
-                          child: _FilledField(
-                            controller: _birthDateCtrl,
-                            onTap: _pickBirthDate,
-                            hint: 'Chọn ngày sinh',
-                            readOnly: true,
-                          ),
-                        ),
-                      ),
-                      citiesAsync.when(
-                        loading: () => _FormRow(
-                          label: 'Thành phố',
-                          child:
-                              _FilledField(hint: 'Đang tải...', readOnly: true),
-                        ),
-                        error: (_, __) => _FormRow(
-                          label: 'Thành phố',
-                          child: _FilledField(
-                              hint: 'Không tải được', readOnly: true),
-                        ),
-                        data: (cities) => GestureDetector(
-                          onTap: () => _pickCity(cities),
-                          child: _FormRow(
-                            label: 'Thành phố',
-                            trailing: const Icon(Icons.chevron_right_rounded,
-                                color: Color(0xFFD0D0D5), size: 20),
-                            child: _FilledField(
-                              initialValue: _cityName,
-                              hint: 'Chọn thành phố',
-                              readOnly: true,
                             ),
                           ),
+                        ),
+                      Positioned(
+                        right: 0,
+                        bottom: 0,
+                        child: Container(
+                          width: 30,
+                          height: 30,
+                          decoration: BoxDecoration(
+                            color: HomeStyle.orange,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(Icons.photo_camera_outlined,
+                              size: 15, color: Colors.white),
                         ),
                       ),
                     ]),
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text('Ảnh hồ sơ',
+                            style: TextStyle(
+                                fontSize: AppFontSize.bodyLarge,
+                                fontWeight: FontWeight.w800,
+                                color: HomeStyle.ink)),
+                        const SizedBox(height: 4),
+                        const Text('Ảnh được cập nhật ngay sau khi chọn',
+                            style: TextStyle(
+                                fontSize: AppFontSize.caption,
+                                height: 1.35,
+                                color: HomeStyle.muted)),
+                        const SizedBox(height: 8),
+                        TextButton.icon(
+                          onPressed: _uploadingAvatar ? null : _pickAvatar,
+                          style: TextButton.styleFrom(
+                            foregroundColor: HomeStyle.orange,
+                            padding: EdgeInsets.zero,
+                            minimumSize: const Size(0, 44),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          ),
+                          icon: const Icon(Icons.edit_outlined, size: 16),
+                          label: Text(_uploadingAvatar
+                              ? 'Đang tải ảnh...'
+                              : 'Thay đổi ảnh'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 16),
 
-                  if (_profileError != null) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      margin: const EdgeInsets.symmetric(horizontal: 16),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 11),
-                      decoration: BoxDecoration(
-                        color: AppColors.dangerSoft,
-                        borderRadius: BorderRadius.circular(AppRadius.glass),
-                      ),
-                      child: Row(children: [
-                        const Icon(Icons.error_outline_rounded,
-                            color: AppColors.danger, size: 17),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(_profileError!,
+              // ── Fields card ───────────────────────────────────────────────
+              _FlatCard(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(children: [
+                  const Padding(
+                    padding: EdgeInsets.fromLTRB(16, 6, 16, 8),
+                    child: Row(children: [
+                      _FlatIcon(
+                          icon: Icons.person_outline_rounded,
+                          color: HomeStyle.orange),
+                      SizedBox(width: 10),
+                      Expanded(
+                          child: Text('Thông tin cá nhân',
                               style: TextStyle(
-                                  fontSize: AppFontSize.body,
-                                  color: AppColors.danger,
-                                  fontWeight: FontWeight.w500)),
-                        ),
+                                  fontSize: AppFontSize.bodyLarge,
+                                  fontWeight: FontWeight.w700,
+                                  color: HomeStyle.ink))),
+                    ]),
+                  ),
+                  _FormRow(
+                    label: 'Họ và tên *',
+                    child: _FilledField(
+                      controller: _nameCtrl,
+                      hint: 'Nhập họ và tên',
+                      prefixIcon: Icons.badge_outlined,
+                      textCapitalization: TextCapitalization.words,
+                      validator: (v) => (v == null || v.trim().isEmpty)
+                          ? 'Nhập họ tên'
+                          : null,
+                    ),
+                  ),
+                  _FormRow(
+                    label: 'Ngày sinh',
+                    trailing: const Icon(Icons.calendar_month_outlined,
+                        size: 20, color: AppColors.textSecondary),
+                    child: _FilledField(
+                      controller: _birthDateCtrl,
+                      onTap: _pickBirthDate,
+                      hint: 'Chọn ngày sinh',
+                      prefixIcon: Icons.cake_outlined,
+                      readOnly: true,
+                    ),
+                  ),
+                  citiesAsync.when(
+                    loading: () => _FormRow(
+                      label: 'Thành phố',
+                      child: _FilledField(
+                          hint: 'Đang tải...',
+                          prefixIcon: Icons.location_city_outlined,
+                          readOnly: true),
+                    ),
+                    error: (_, __) => _FormRow(
+                      label: 'Thành phố',
+                      trailing: TextButton.icon(
+                        onPressed: () => ref.invalidate(citiesProvider),
+                        icon: const Icon(Icons.refresh_rounded, size: 16),
+                        label: const Text('Thử lại'),
+                      ),
+                      child: _FilledField(
+                          hint: 'Không tải được',
+                          prefixIcon: Icons.location_city_outlined,
+                          readOnly: true),
+                    ),
+                    data: (cities) => _FormRow(
+                      label: 'Thành phố',
+                      trailing: const Icon(Icons.chevron_right_rounded,
+                          color: HomeStyle.orange, size: 20),
+                      child: _FilledField(
+                        key: ValueKey('city-$_cityId'),
+                        onTap: () {
+                          FocusScope.of(context).unfocus();
+                          _pickCity(cities);
+                        },
+                        initialValue: _cityName,
+                        hint: 'Chọn thành phố',
+                        prefixIcon: Icons.location_city_outlined,
+                        readOnly: true,
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+
+              const SizedBox(height: 16),
+              _FlatCard(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 6, 16, 8),
+                      child: Row(children: [
+                        _FlatIcon(
+                            icon: Icons.lock_outline_rounded,
+                            color: AppColors.info),
+                        SizedBox(width: 10),
+                        Expanded(
+                            child: Text('Thông tin đăng nhập',
+                                style: TextStyle(
+                                  fontSize: AppFontSize.bodyLarge,
+                                  fontWeight: FontWeight.w700,
+                                  color: HomeStyle.ink,
+                                ))),
                       ]),
                     ),
-                  ],
-
-                  const SizedBox(height: 24),
-
-                  // ── Save button ───────────────────────────────────────────────
-                  LiquidGlass(
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: FilledButton(
-                        onPressed: _saving ? null : _saveProfile,
-                        style: FilledButton.styleFrom(
-                          backgroundColor:
-                              HomeStyle.orange.withValues(alpha: .16),
-                          foregroundColor: HomeStyle.orange,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: HomeStyle.radius,
-                              side: BorderSide(
-                                  color:
-                                      HomeStyle.orange.withValues(alpha: .2))),
-                          disabledBackgroundColor:
-                              AppColors.primary.withValues(alpha: 0.5),
-                          elevation: 0,
-                          textStyle: TextStyle(
-                              fontSize: AppFontSize.bodyLarge,
-                              fontWeight: FontWeight.w600),
-                        ),
-                        child: _saving
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2.5, color: HomeStyle.orange))
-                            : const Text('Lưu thay đổi'),
+                    _FormRow(
+                      label: 'Số điện thoại',
+                      trailing: const Icon(Icons.lock_outline_rounded,
+                          size: 17, color: HomeStyle.muted),
+                      child: _FilledField(
+                        initialValue: user?.phone ?? '',
+                        prefixIcon: Icons.phone_outlined,
+                        readOnly: true,
                       ),
                     ),
-                  ),
-                ],
+                    const Padding(
+                      padding: EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                          'Số điện thoại dùng để đăng nhập, không chỉnh sửa tại đây.',
+                          style: TextStyle(
+                            fontSize: AppFontSize.caption,
+                            height: 1.4,
+                            color: HomeStyle.muted,
+                          )),
+                    ),
+                  ],
+                ),
               ),
-            )),
-          ]),
-        ),
-      ),
+
+              if (_profileError != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                  decoration: BoxDecoration(
+                    color: AppColors.dangerSoft,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.error_outline_rounded,
+                        color: AppColors.danger, size: 17),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(_profileError!,
+                          style: TextStyle(
+                              fontSize: AppFontSize.body,
+                              color: AppColors.danger,
+                              fontWeight: FontWeight.w500)),
+                    ),
+                  ]),
+                ),
+              ],
+            ],
+          ),
+        )),
+      ]),
     );
   }
 }
@@ -578,13 +630,14 @@ class _FormRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(children: [
-            Text(label,
-                style: TextStyle(
-                    fontSize: AppFontSize.bodyLarge,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textPrimary)),
+            Expanded(
+                child: Text(label,
+                    style: TextStyle(
+                        fontSize: AppFontSize.body,
+                        fontWeight: FontWeight.w600,
+                        color: HomeStyle.ink))),
             if (trailing != null) ...[
-              const Spacer(),
+              const SizedBox(width: 8),
               trailing!,
             ],
           ]),
@@ -604,17 +657,18 @@ class _FilledField extends StatelessWidget {
   final String? initialValue;
   final String? hint;
   final bool readOnly;
-  final TextInputType? keyboardType;
+  final IconData? prefixIcon;
   final TextCapitalization textCapitalization;
   final String? Function(String?)? validator;
 
   const _FilledField({
+    super.key,
     this.onTap,
     this.controller,
     this.initialValue,
     this.hint,
     this.readOnly = false,
-    this.keyboardType,
+    this.prefixIcon,
     this.textCapitalization = TextCapitalization.none,
     this.validator,
   });
@@ -625,42 +679,44 @@ class _FilledField extends StatelessWidget {
         controller: controller,
         initialValue: controller == null ? initialValue : null,
         readOnly: readOnly,
-        keyboardType: keyboardType,
         textCapitalization: textCapitalization,
         style: TextStyle(
           fontSize: AppFontSize.bodyLarge,
           fontWeight: FontWeight.w600,
-          color: readOnly ? AppColors.textSecondary : AppColors.textPrimary,
+          color: readOnly && onTap == null ? HomeStyle.muted : HomeStyle.ink,
         ),
         decoration: InputDecoration(
           hintText: hint,
+          prefixIcon: prefixIcon == null
+              ? null
+              : Icon(prefixIcon, size: 19, color: HomeStyle.muted),
           hintStyle: TextStyle(
               color: AppColors.textTertiary,
               fontSize: AppFontSize.bodyLarge,
               fontWeight: FontWeight.w500),
           errorStyle: TextStyle(fontSize: AppFontSize.caption),
           filled: true,
-          fillColor: Colors.white.withValues(alpha: readOnly ? .2 : .45),
+          fillColor: HomeStyle.cardMuted,
           contentPadding:
               const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
           border: GlassInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: .8)),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderSide: const BorderSide(color: HomeStyle.divider),
           ),
           enabledBorder: GlassInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            borderSide: BorderSide(color: Colors.white.withValues(alpha: .8)),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderSide: const BorderSide(color: HomeStyle.divider),
           ),
           focusedBorder: GlassInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+            borderRadius: BorderRadius.circular(AppRadius.md),
+            borderSide: const BorderSide(color: HomeStyle.orange, width: 1.5),
           ),
           errorBorder: GlassInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             borderSide: const BorderSide(color: AppColors.danger),
           ),
           focusedErrorBorder: GlassInputBorder(
-            borderRadius: BorderRadius.circular(AppRadius.card),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             borderSide: const BorderSide(color: AppColors.danger, width: 1.5),
           ),
         ),
@@ -676,14 +732,14 @@ class _AvatarInitials extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        color: AppColors.primarySoft,
+        color: HomeStyle.peach,
         child: Center(
           child: Text(
             initials,
             style: TextStyle(
                 fontSize: AppFontSize.xxlarge,
                 fontWeight: FontWeight.w600,
-                color: AppColors.primary),
+                color: HomeStyle.orange),
           ),
         ),
       );
@@ -762,7 +818,7 @@ class _CityPickerState extends State<_CityPicker> {
                     height: 40,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceAlt,
-                      borderRadius: BorderRadius.circular(AppRadius.glass),
+                      borderRadius: BorderRadius.circular(AppRadius.card),
                     ),
                     child: const Icon(Icons.close_rounded,
                         size: 24, color: AppColors.textSecondary),
@@ -793,23 +849,21 @@ class _CityPickerState extends State<_CityPicker> {
                         )
                       : null,
                   filled: true,
-                  fillColor: AppColors.surfaceAlt,
+                  fillColor: HomeStyle.cardMuted,
                   contentPadding:
                       const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                   border: GlassInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.glass),
-                    borderSide:
-                        BorderSide(color: Colors.white.withValues(alpha: .8)),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    borderSide: const BorderSide(color: HomeStyle.divider),
                   ),
                   enabledBorder: GlassInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.glass),
-                    borderSide:
-                        BorderSide(color: Colors.white.withValues(alpha: .8)),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    borderSide: const BorderSide(color: HomeStyle.divider),
                   ),
                   focusedBorder: GlassInputBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.glass),
+                    borderRadius: BorderRadius.circular(AppRadius.card),
                     borderSide:
-                        const BorderSide(color: AppColors.primary, width: 1.5),
+                        const BorderSide(color: HomeStyle.orange, width: 1.5),
                   ),
                 ),
               ),
@@ -843,10 +897,10 @@ class _CityPickerState extends State<_CityPicker> {
                                 horizontal: 12, vertical: 15),
                             decoration: BoxDecoration(
                               color: selected
-                                  ? const Color(0xFFFFEEE7)
+                                  ? HomeStyle.peach
                                   : Colors.transparent,
                               borderRadius:
-                                  BorderRadius.circular(AppRadius.glass),
+                                  BorderRadius.circular(AppRadius.card),
                             ),
                             child: Row(children: [
                               Expanded(
@@ -857,12 +911,12 @@ class _CityPickerState extends State<_CityPicker> {
                                             ? FontWeight.w600
                                             : FontWeight.w500,
                                         color: selected
-                                            ? AppColors.primary
+                                            ? HomeStyle.orange
                                             : AppColors.textPrimary)),
                               ),
                               if (selected)
                                 const Icon(Icons.check_rounded,
-                                    size: 22, color: AppColors.primary),
+                                    size: 22, color: HomeStyle.orange),
                             ]),
                           ),
                         );
@@ -894,12 +948,20 @@ class _AvatarSourceButton extends StatelessWidget {
         child: Container(
           height: 112,
           decoration: BoxDecoration(
-            color: AppColors.surfaceAlt,
+            color: HomeStyle.cardMuted,
             borderRadius: BorderRadius.circular(AppRadius.card),
+            border: Border.all(color: HomeStyle.divider),
           ),
           child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-            GlassIcon(
-                icon: icon, color: HomeStyle.orange, size: 40, iconSize: 22),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: HomeStyle.peach,
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(icon, size: 22, color: HomeStyle.orange),
+            ),
             const SizedBox(height: 10),
             Text(label,
                 style: TextStyle(
@@ -908,5 +970,40 @@ class _AvatarSourceButton extends StatelessWidget {
                     color: AppColors.textPrimary)),
           ]),
         ),
+      );
+}
+
+// ── Flat building blocks ──────────────────────────────────────────────────────
+
+class _FlatCard extends StatelessWidget {
+  const _FlatCard({required this.child, this.padding});
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: HomeStyle.card,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(color: HomeStyle.divider),
+        ),
+        child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
+      );
+}
+
+class _FlatIcon extends StatelessWidget {
+  const _FlatIcon({required this.icon, required this.color});
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Icon(icon, size: 18, color: color),
       );
 }

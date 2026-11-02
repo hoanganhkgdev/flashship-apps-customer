@@ -15,96 +15,114 @@ class SavedAddressesScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final async = ref.watch(addressesProvider);
+    final addressCount = async.valueOrNull?.length;
 
-    return LiquidBackdrop(
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: SafeArea(
-          child: Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+    return Scaffold(
+      backgroundColor: HomeStyle.background,
+      bottomNavigationBar: addressCount != null && addressCount > 0
+          ? DecoratedBox(
+              decoration: const BoxDecoration(
+                color: HomeStyle.card,
+                border: Border(top: BorderSide(color: HomeStyle.divider)),
+              ),
+              child: SafeArea(
+                top: false,
+                child: _AddAddressButton(onTap: () => _openForm(context, ref)),
+              ),
+            )
+          : null,
+      body: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+        DecoratedBox(
+          decoration: const BoxDecoration(
+            color: Color(0xFFFFE9DE),
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
               child: Row(children: [
                 IconButton(
                   tooltip: 'Quay lại',
                   onPressed: () => context.pop(),
-                  style: IconButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: .45),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: HomeStyle.radius)),
+                  style: _barButtonStyle,
                   icon: const Icon(Icons.arrow_back_ios_new_rounded,
                       size: 18, color: HomeStyle.ink),
                 ),
-                const SizedBox(width: 10),
-                const Expanded(
-                    child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                      Text('Địa chỉ đã lưu',
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Địa chỉ đã lưu',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontSize: AppFontSize.display,
+                              fontSize: AppFontSize.title,
                               fontWeight: FontWeight.w800,
                               color: HomeStyle.ink)),
-                      SizedBox(height: 4),
-                      Text('Lưu địa chỉ để đặt đơn nhanh hơn',
-                          style: TextStyle(
-                              fontSize: AppFontSize.caption,
-                              color: HomeStyle.muted)),
-                    ])),
-                IconButton(
-                    tooltip: 'Thêm địa chỉ',
-                    onPressed: () => _openForm(context, ref),
-                    icon: const GlassIcon(
-                        icon: Icons.add_rounded,
-                        color: HomeStyle.orange,
-                        size: 38,
-                        iconSize: 22)),
+                      const SizedBox(height: 3),
+                      Text(
+                        addressCount == null
+                            ? 'Quản lý các địa điểm quen thuộc'
+                            : '$addressCount địa chỉ · Chạm để chỉnh sửa',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontSize: AppFontSize.caption,
+                            color: HomeStyle.muted),
+                      ),
+                    ],
+                  ),
+                ),
               ]),
             ),
-            Expanded(
-                child: async.when(
-              loading: () => const Center(
-                  child: CircularProgressIndicator(
-                      color: AppColors.primary, strokeWidth: 2)),
-              error: (e, _) => _ErrorView(
-                  message: e.toString(),
-                  onRetry: () =>
-                      ref.read(addressesProvider.notifier).refresh()),
-              data: (list) => list.isEmpty
-                  ? _EmptyView(onAdd: () => _openForm(context, ref))
-                  : RefreshIndicator(
-                      color: AppColors.primary,
-                      onRefresh: () =>
-                          ref.read(addressesProvider.notifier).refresh(),
-                      child: ListView.builder(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(0, 0, 0, 24),
-                        itemCount: list.length + 1,
-                        itemBuilder: (_, i) {
-                          if (i == list.length) {
-                            return _AddAddressButton(
-                                onTap: () => _openForm(context, ref));
-                          }
-                          final addr = list[i];
-                          return _AddressCard(
-                            address: addr,
-                            onEdit: () =>
-                                _openForm(context, ref, existing: addr),
-                            onSetDefault: addr.isDefault
-                                ? null
-                                : () => ref
-                                    .read(addressesProvider.notifier)
-                                    .setDefault(addr.id),
-                            onDelete: () => _confirmDelete(context, ref, addr),
-                          );
-                        },
-                      ),
-                    ),
-            )),
-          ]),
+          ),
         ),
-      ),
+        Expanded(
+            child: async.when(
+          loading: () => const Center(
+              child: CircularProgressIndicator(
+                  color: HomeStyle.orange, strokeWidth: 2)),
+          error: (e, _) => _ErrorView(
+              message: e.toString(),
+              onRetry: () => ref.read(addressesProvider.notifier).refresh()),
+          data: (list) => list.isEmpty
+              ? _EmptyView(onAdd: () => _openForm(context, ref))
+              : RefreshIndicator(
+                  color: HomeStyle.orange,
+                  onRefresh: () =>
+                      ref.read(addressesProvider.notifier).refresh(),
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
+                    itemCount: list.length,
+                    itemBuilder: (_, i) {
+                      final addr = list[i];
+                      return _AddressCard(
+                        address: addr,
+                        onEdit: () => _openForm(context, ref, existing: addr),
+                        onSetDefault: addr.isDefault
+                            ? null
+                            : () => ref
+                                .read(addressesProvider.notifier)
+                                .setDefault(addr.id),
+                        onDelete: () => _confirmDelete(context, ref, addr),
+                      );
+                    },
+                  ),
+                ),
+        )),
+      ]),
     );
   }
+
+  static final _barButtonStyle = IconButton.styleFrom(
+    fixedSize: const Size.square(44),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+    backgroundColor: HomeStyle.card,
+    shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.md)),
+  );
 
   void _openForm(BuildContext context, WidgetRef ref,
       {AddressModel? existing}) {
@@ -123,7 +141,9 @@ class SavedAddressesScreen extends ConsumerWidget {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => Dialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: HomeStyle.card,
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.card)),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
           child: Column(mainAxisSize: MainAxisSize.min, children: [
@@ -158,8 +178,8 @@ class SavedAddressesScreen extends ConsumerWidget {
                   child: OutlinedButton(
                     onPressed: () => Navigator.pop(ctx, false),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: AppColors.divider),
-                      foregroundColor: AppColors.textSecondary,
+                      side: const BorderSide(color: HomeStyle.divider),
+                      foregroundColor: HomeStyle.ink,
                     ),
                     child: const Text('Huỷ'),
                   ),
@@ -203,14 +223,14 @@ class _AddressCard extends StatelessWidget {
   });
 
   IconData get _icon => switch (address.label) {
-        'Nhà' => Icons.home_rounded,
+        'Nhà' || 'Nhà riêng' => Icons.home_rounded,
         'Công ty' => Icons.business_center_outlined,
         'Cơ quan' => Icons.business_rounded,
         _ => Icons.location_on_rounded,
       };
 
   Color get _iconColor => switch (address.label) {
-        'Nhà' => AppColors.primary,
+        'Nhà' || 'Nhà riêng' => HomeStyle.orange,
         'Công ty' => AppColors.info,
         'Cơ quan' => AppColors.info,
         _ => AppColors.accent2,
@@ -222,7 +242,8 @@ class _AddressCard extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-      child: LiquidGlass(
+      child: _FlatCard(
+        highlighted: address.isDefault,
         child: Material(
           color: Colors.transparent,
           borderRadius: BorderRadius.circular(AppRadius.card),
@@ -230,11 +251,11 @@ class _AddressCard extends StatelessWidget {
           child: InkWell(
             onTap: onEdit,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(12, 12, 4, 12),
+              padding: const EdgeInsets.fromLTRB(14, 14, 6, 14),
               child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GlassIcon(icon: _icon, color: color, size: 40, iconSize: 21),
+                  _FlatIcon(icon: _icon, color: color),
                   const SizedBox(width: 12),
 
                   // Content
@@ -246,51 +267,51 @@ class _AddressCard extends StatelessWidget {
                           Flexible(
                               child: Text(
                             address.label.isEmpty ? 'Địa chỉ' : address.label,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                                 fontSize: AppFontSize.bodyLarge,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w800,
                                 color: HomeStyle.ink),
                           )),
-                          if (address.isDefault) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 7, vertical: 2),
-                              decoration: BoxDecoration(
-                                color:
-                                    AppColors.primary.withValues(alpha: 0.10),
-                                borderRadius:
-                                    BorderRadius.circular(AppRadius.glass),
-                              ),
-                              child: Text('Mặc định',
-                                  style: TextStyle(
-                                      fontSize: AppFontSize.caption,
-                                      fontWeight: FontWeight.w600,
-                                      color: AppColors.primary)),
-                            ),
-                          ],
                         ]),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 6),
                         Text(
                           address.displayTitle,
-                          maxLines: 1,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: AppFontSize.bodyLarge,
-                              color: AppColors.textSecondary),
+                          style: const TextStyle(
+                              fontSize: AppFontSize.body,
+                              height: 1.35,
+                              fontWeight: FontWeight.w600,
+                              color: HomeStyle.ink),
                         ),
                         if (address.displaySubtitle != null) ...[
                           const SizedBox(height: 1),
                           Text(
                             address.displaySubtitle!,
-                            maxLines: 1,
+                            maxLines: 3,
                             overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: AppFontSize.body,
-                                color: AppColors.textTertiary),
+                                height: 1.35,
+                                color: HomeStyle.muted),
                           ),
+                        ],
+                        if (address.isDefault) ...[
+                          const SizedBox(height: 10),
+                          const Row(children: [
+                            Icon(Icons.check_circle_rounded,
+                                size: 14, color: HomeStyle.orange),
+                            SizedBox(width: 5),
+                            Expanded(
+                                child: Text('Địa chỉ mặc định',
+                                    style: TextStyle(
+                                      fontSize: AppFontSize.caption,
+                                      fontWeight: FontWeight.w600,
+                                      color: HomeStyle.orange,
+                                    ))),
+                          ]),
                         ],
                       ],
                     ),
@@ -300,9 +321,10 @@ class _AddressCard extends StatelessWidget {
                   PopupMenuButton<String>(
                     tooltip: 'Tùy chọn địa chỉ',
                     icon: const Icon(Icons.more_horiz_rounded,
-                        color: AppColors.textTertiary, size: 21),
+                        color: HomeStyle.muted, size: 21),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.glass)),
+                        borderRadius: BorderRadius.circular(AppRadius.md)),
+                    color: HomeStyle.card,
                     elevation: 2,
                     itemBuilder: (_) => [
                       PopupMenuItem(
@@ -354,31 +376,21 @@ class _AddAddressButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 2, 16, 0),
-        child: LiquidGlass(
-          child: Material(
-            color: Colors.transparent,
-            borderRadius: BorderRadius.circular(AppRadius.card),
-            child: InkWell(
-              onTap: onTap,
-              borderRadius: BorderRadius.circular(AppRadius.card),
-              child: SizedBox(
-                height: 52,
-                child: Center(
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    const Icon(Icons.add_rounded,
-                        size: 24, color: AppColors.textSecondary),
-                    const SizedBox(width: 10),
-                    Text('Thêm địa chỉ mới',
-                        style: TextStyle(
-                            fontSize: AppFontSize.bodyLarge,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textSecondary)),
-                  ]),
-                ),
-              ),
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
+        child: FilledButton.icon(
+          onPressed: onTap,
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(double.infinity, 50),
+            backgroundColor: HomeStyle.orange,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
           ),
+          icon: const Icon(Icons.add_rounded, size: 21),
+          label: const Text('Thêm địa chỉ mới',
+              style: TextStyle(fontWeight: FontWeight.w700)),
         ),
       );
 }
@@ -439,6 +451,7 @@ class _AddressFormState extends State<_AddressForm> {
   }
 
   Future<void> _save() async {
+    if (_saving) return;
     if (!_formKey.currentState!.validate()) return;
     final finalLabel = _label == 'Khác'
         ? (_customCtrl.text.trim().isEmpty ? 'Khác' : _customCtrl.text.trim())
@@ -469,6 +482,7 @@ class _AddressFormState extends State<_AddressForm> {
       }
       if (mounted) Navigator.pop(context);
     } catch (_) {
+      if (!mounted) return;
       setState(() {
         _error = 'Không lưu được. Thử lại sau.';
         _saving = false;
@@ -509,12 +523,26 @@ class _AddressFormState extends State<_AddressForm> {
                 // Header
                 Row(children: [
                   Expanded(
-                    child: Text(
-                      isEdit ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới',
-                      style: TextStyle(
-                          fontSize: AppFontSize.display,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textPrimary),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          isEdit ? 'Chỉnh sửa địa chỉ' : 'Thêm địa chỉ mới',
+                          style: const TextStyle(
+                              fontSize: AppFontSize.display,
+                              fontWeight: FontWeight.w800,
+                              color: HomeStyle.ink),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          isEdit
+                              ? 'Cập nhật thông tin địa điểm đã lưu'
+                              : 'Lưu địa điểm để đặt đơn nhanh hơn',
+                          style: const TextStyle(
+                              fontSize: AppFontSize.caption,
+                              color: HomeStyle.muted),
+                        ),
+                      ],
                     ),
                   ),
                   GestureDetector(
@@ -523,8 +551,8 @@ class _AddressFormState extends State<_AddressForm> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceAlt,
-                        borderRadius: BorderRadius.circular(AppRadius.glass),
+                        color: HomeStyle.cardMuted,
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: const Icon(Icons.close_rounded,
                           size: 23, color: AppColors.textSecondary),
@@ -555,25 +583,29 @@ class _AddressFormState extends State<_AddressForm> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 15, vertical: 10),
                           decoration: BoxDecoration(
-                            color: selected
-                                ? AppColors.primary
-                                : AppColors.surfaceAlt,
-                            borderRadius: BorderRadius.circular(AppRadius.card),
+                            color: selected ? HomeStyle.orange : HomeStyle.card,
+                            borderRadius: BorderRadius.circular(AppRadius.md),
+                            border: Border.all(
+                              color: selected
+                                  ? HomeStyle.orange.withValues(alpha: .3)
+                                  : HomeStyle.divider,
+                            ),
                           ),
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             Icon(_presetIcons[p]!,
                                 size: 18,
-                                color: selected
-                                    ? Colors.white
-                                    : AppColors.textSecondary),
-                            const SizedBox(width: 5),
+                                color:
+                                    selected ? Colors.white : HomeStyle.muted),
+                            const SizedBox(width: 6),
                             Text(p,
                                 style: TextStyle(
-                                    fontSize: AppFontSize.bodyLarge,
-                                    fontWeight: FontWeight.w600,
+                                    fontSize: AppFontSize.body,
+                                    fontWeight: selected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                     color: selected
                                         ? Colors.white
-                                        : AppColors.textSecondary)),
+                                        : HomeStyle.muted)),
                           ]),
                         ),
                       ),
@@ -588,22 +620,24 @@ class _AddressFormState extends State<_AddressForm> {
                     decoration: InputDecoration(
                       hintText: 'Tên nhãn (vd: Nhà bạn, Gym...)',
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: .4),
+                      fillColor: HomeStyle.cardMuted,
                       hintStyle: TextStyle(
                           fontSize: AppFontSize.bodyLarge,
                           color: AppColors.textTertiary),
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 17),
                       border: GlassInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.card),
-                          borderSide: BorderSide.none),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          borderSide:
+                              const BorderSide(color: HomeStyle.divider)),
                       enabledBorder: GlassInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.card),
-                          borderSide: BorderSide.none),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          borderSide:
+                              const BorderSide(color: HomeStyle.divider)),
                       focusedBorder: GlassInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.card),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: const BorderSide(
-                              color: AppColors.primary, width: 1.5)),
+                              color: HomeStyle.orange, width: 1.5)),
                     ),
                   ),
                 ],
@@ -621,19 +655,21 @@ class _AddressFormState extends State<_AddressForm> {
                   data: Theme.of(context).copyWith(
                     inputDecorationTheme: InputDecorationTheme(
                       filled: true,
-                      fillColor: Colors.white.withValues(alpha: .4),
+                      fillColor: HomeStyle.cardMuted,
                       contentPadding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 18),
                       border: GlassInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.card),
-                          borderSide: BorderSide.none),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          borderSide:
+                              const BorderSide(color: HomeStyle.divider)),
                       enabledBorder: GlassInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.card),
-                          borderSide: BorderSide.none),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
+                          borderSide:
+                              const BorderSide(color: HomeStyle.divider)),
                       focusedBorder: GlassInputBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.card),
+                          borderRadius: BorderRadius.circular(AppRadius.md),
                           borderSide: const BorderSide(
-                              color: AppColors.primary, width: 1.5)),
+                              color: HomeStyle.orange, width: 1.5)),
                     ),
                   ),
                   child: AddressField(
@@ -655,18 +691,19 @@ class _AddressFormState extends State<_AddressForm> {
                 // Default toggle
                 Container(
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceAlt,
-                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    color: HomeStyle.cardMuted,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: HomeStyle.divider),
                   ),
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    borderRadius: BorderRadius.circular(AppRadius.md),
                     onTap: () => setState(() => _isDefault = !_isDefault),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 13),
                       child: Row(children: [
                         const Icon(Icons.star_outline_rounded,
-                            size: 24, color: Color(0xFFB86F00)),
+                            size: 24, color: HomeStyle.orange),
                         const SizedBox(width: 12),
                         const Expanded(
                           child: Text('Đặt làm địa chỉ mặc định',
@@ -679,7 +716,7 @@ class _AddressFormState extends State<_AddressForm> {
                           value: _isDefault,
                           onChanged: (v) => setState(() => _isDefault = v),
                           activeThumbColor: Colors.white,
-                          activeTrackColor: AppColors.primary,
+                          activeTrackColor: HomeStyle.orange,
                         ),
                       ]),
                     ),
@@ -693,7 +730,7 @@ class _AddressFormState extends State<_AddressForm> {
                         horizontal: 12, vertical: 10),
                     decoration: BoxDecoration(
                       color: AppColors.dangerSoft,
-                      borderRadius: BorderRadius.circular(AppRadius.glass),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     child: Row(children: [
                       const Icon(Icons.error_outline_rounded,
@@ -713,16 +750,17 @@ class _AddressFormState extends State<_AddressForm> {
                 // Save button
                 SizedBox(
                   width: double.infinity,
-                  height: 56,
+                  height: 50,
                   child: FilledButton(
                     onPressed: _saving ? null : _save,
                     style: FilledButton.styleFrom(
-                      backgroundColor: HomeStyle.orange.withValues(alpha: .16),
-                      foregroundColor: HomeStyle.orange,
+                      backgroundColor: HomeStyle.orange,
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                          borderRadius: HomeStyle.radius),
+                          borderRadius: BorderRadius.circular(AppRadius.md)),
                       disabledBackgroundColor:
-                          AppColors.primary.withValues(alpha: 0.5),
+                          HomeStyle.orange.withValues(alpha: 0.5),
+                      disabledForegroundColor: Colors.white,
                       elevation: 0,
                       textStyle: TextStyle(
                           fontSize: AppFontSize.bodyLarge,
@@ -733,7 +771,7 @@ class _AddressFormState extends State<_AddressForm> {
                             width: 22,
                             height: 22,
                             child: CircularProgressIndicator(
-                                strokeWidth: 2, color: HomeStyle.orange))
+                                strokeWidth: 2, color: Colors.white))
                         : Text(isEdit ? 'Cập nhật' : 'Lưu địa chỉ'),
                   ),
                 ),
@@ -761,11 +799,11 @@ class _EmptyView extends StatelessWidget {
               width: 88,
               height: 88,
               decoration: BoxDecoration(
-                color: AppColors.surfaceAlt,
+                color: HomeStyle.peach,
                 borderRadius: BorderRadius.circular(AppRadius.xl),
               ),
               child: const Icon(Icons.location_off_rounded,
-                  size: 44, color: AppColors.textTertiary),
+                  size: 44, color: HomeStyle.orange),
             ),
             const SizedBox(height: 20),
             Text('Chưa có địa chỉ nào',
@@ -785,9 +823,10 @@ class _EmptyView extends StatelessWidget {
               child: FilledButton.icon(
                 onPressed: onAdd,
                 style: FilledButton.styleFrom(
-                  backgroundColor: HomeStyle.orange.withValues(alpha: .16),
-                  foregroundColor: HomeStyle.orange,
-                  shape: RoundedRectangleBorder(borderRadius: HomeStyle.radius),
+                  backgroundColor: HomeStyle.orange,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppRadius.md)),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   textStyle: TextStyle(
                       fontSize: AppFontSize.bodyLarge,
@@ -816,11 +855,12 @@ class _ErrorView extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: AppColors.surfaceAlt,
-              borderRadius: BorderRadius.circular(AppRadius.card),
+              color: HomeStyle.cardMuted,
+              borderRadius: BorderRadius.circular(AppRadius.xl),
+              border: Border.all(color: HomeStyle.divider),
             ),
             child: const Icon(Icons.wifi_off_rounded,
-                size: 40, color: AppColors.textTertiary),
+                size: 40, color: HomeStyle.muted),
           ),
           const SizedBox(height: 16),
           const Text('Không tải được địa chỉ',
@@ -836,12 +876,53 @@ class _ErrorView extends StatelessWidget {
           FilledButton(
             onPressed: onRetry,
             style: FilledButton.styleFrom(
-              backgroundColor: HomeStyle.orange.withValues(alpha: .16),
-              foregroundColor: HomeStyle.orange,
-              shape: RoundedRectangleBorder(borderRadius: HomeStyle.radius),
+              backgroundColor: HomeStyle.orange,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md)),
             ),
             child: const Text('Thử lại'),
           ),
         ]),
+      );
+}
+
+// ── Flat building blocks ──────────────────────────────────────────────────────
+
+class _FlatCard extends StatelessWidget {
+  const _FlatCard({required this.child, this.highlighted = false});
+  final Widget child;
+  final bool highlighted;
+
+  @override
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: BoxDecoration(
+          color: highlighted ? const Color(0xFFFFFAF7) : HomeStyle.card,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+          border: Border.all(
+            color: highlighted
+                ? HomeStyle.orange.withValues(alpha: .3)
+                : HomeStyle.divider,
+          ),
+        ),
+        child: child,
+      );
+}
+
+class _FlatIcon extends StatelessWidget {
+  const _FlatIcon({required this.icon, required this.color});
+  final IconData icon;
+  final Color color;
+  static const double size = 36;
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: .10),
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+        child: Icon(icon, size: size * .5, color: color),
       );
 }

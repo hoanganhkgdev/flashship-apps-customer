@@ -42,6 +42,7 @@ part '../widgets/home_orders_section.dart';
 part '../widgets/home_banners_section.dart';
 part '../widgets/home_voucher_section.dart';
 part '../widgets/home_address_section.dart';
+part '../widgets/home_support_section.dart';
 part '../widgets/history_tab.dart';
 part '../widgets/profile_tab.dart';
 

@@ -6,6 +6,8 @@ class _SavedAddressQuickRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final compactHeader = MediaQuery.sizeOf(context).width < 360 &&
+        MediaQuery.textScalerOf(context).scale(AppFontSize.caption) > 16;
     final state = ref.watch(addressesProvider);
     final addresses = state.valueOrNull ?? [];
     final ranked = [...addresses];
@@ -19,128 +21,205 @@ class _SavedAddressQuickRow extends ConsumerWidget {
     void manage() => context.push('/profile/addresses');
     final loadingEmpty = state.isLoading && shown.isEmpty;
     final errorEmpty = state.hasError && shown.isEmpty;
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: LiquidGlass(
-          borderRadius: HomeStyle.radius,
-          padding: const EdgeInsets.all(4),
-          child: Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              width: 4,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [HomeStyle.orangeLight, HomeStyle.orange],
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    TextSpan(children: [
+                      TextSpan(text: 'Địa chỉ '),
+                      TextSpan(
+                        text: 'thường dùng',
+                        style: TextStyle(color: HomeStyle.orange),
+                      ),
+                    ]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: AppFontSize.title,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -.25,
+                      color: HomeStyle.ink,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Row(children: [
+                    Icon(
+                      Icons.location_on_rounded,
+                      size: 15,
+                      color: HomeStyle.orange,
+                    ),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Chọn điểm đến đã lưu',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          height: 1.25,
+                          color: HomeStyle.muted,
+                        ),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+            const SizedBox(width: 6),
+            TextButton(
+              onPressed: manage,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              child: compactHeader
+                  ? const Icon(Icons.settings_outlined, size: 18)
+                  : const Text('Quản lý'),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          if (loadingEmpty)
+            const _AddressListSkeleton()
+          else if (errorEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(14, 10, 8, 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: HomeStyle.cardRadius,
+                border: Border.all(color: HomeStyle.divider),
+              ),
               child: Row(children: [
-                const GlassIcon(
-                  icon: Icons.location_on_rounded,
-                  color: HomeStyle.orange,
-                  size: 34,
-                  iconSize: 18,
+                const Expanded(
+                  child: Text(
+                    'Chưa tải được địa chỉ',
+                    style: TextStyle(
+                      color: HomeStyle.muted,
+                      fontSize: AppFontSize.caption,
+                    ),
+                  ),
+                ),
+                TextButton(
+                  onPressed: () => ref.invalidate(addressesProvider),
+                  child: const Text('Thử lại'),
+                ),
+              ]),
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: HomeStyle.cardRadius,
+                border: Border.all(color: HomeStyle.divider),
+                boxShadow: HomeStyle.shadow,
+              ),
+              child: Column(children: [
+                for (var index = 0;
+                    index < (shown.isEmpty ? 1 : 2);
+                    index++) ...[
+                  if (index > 0)
+                    const Divider(
+                      height: 1,
+                      indent: 64,
+                      endIndent: 14,
+                      color: HomeStyle.divider,
+                    ),
+                  _AddressQuickTile(
+                    address: index < shown.length ? shown[index] : null,
+                    emptyTitle: shown.isEmpty
+                        ? 'Thêm địa chỉ đầu tiên'
+                        : 'Thêm địa chỉ',
+                    onTap: index < shown.length
+                        ? () => onPickAddress(shown[index])
+                        : manage,
+                  ),
+                ],
+              ]),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AddressListSkeleton extends StatelessWidget {
+  const _AddressListSkeleton();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: HomeStyle.cardRadius,
+          border: Border.all(color: HomeStyle.divider),
+        ),
+        child: Column(children: [
+          for (var index = 0; index < 2; index++) ...[
+            if (index > 0) const Divider(indent: 64, color: HomeStyle.divider),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDEFF3),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
-                  child: Row(children: [
-                    const Flexible(
-                      child: Text('Địa chỉ thường dùng',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                              fontSize: AppFontSize.bodyLarge,
-                              fontWeight: FontWeight.w700,
-                              color: HomeStyle.ink)),
-                    ),
-                    if (addresses.isNotEmpty) ...[
-                      const SizedBox(width: 7),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 7, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: HomeStyle.orange.withValues(alpha: .10),
-                          borderRadius: BorderRadius.circular(AppRadius.glass),
-                        ),
-                        child: Text('${addresses.length}',
-                            style: const TextStyle(
-                                fontSize: AppFontSize.caption,
-                                fontWeight: FontWeight.w700,
-                                color: HomeStyle.orange)),
+                        width: 82,
+                        height: 12,
+                        color: const Color(0xFFEDEFF3),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 10,
+                        color: const Color(0xFFF1F2F5),
                       ),
                     ],
-                  ]),
-                ),
-                const SizedBox(width: 8),
-                TextButton(
-                  onPressed: manage,
-                  style: TextButton.styleFrom(
-                    foregroundColor: HomeStyle.orange,
-                    backgroundColor: HomeStyle.orange.withValues(alpha: .08),
-                    minimumSize: const Size(0, 36),
-                    padding: const EdgeInsets.symmetric(horizontal: 11),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.glass)),
                   ),
-                  child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                    Text('Quản lý',
-                        style: TextStyle(
-                            fontSize: AppFontSize.caption,
-                            fontWeight: FontWeight.w600)),
-                    SizedBox(width: 2),
-                    Icon(Icons.chevron_right_rounded, size: 17),
-                  ]),
                 ),
               ]),
             ),
-            const SizedBox(height: 4),
-            if (loadingEmpty)
-              const Padding(
-                padding: EdgeInsets.fromLTRB(12, 16, 12, 20),
-                child: LinearProgressIndicator(
-                    color: HomeStyle.orange, backgroundColor: HomeStyle.peach),
-              )
-            else if (errorEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 8, 8, 8),
-                child: Row(children: [
-                  const Expanded(
-                    child: Text('Chưa tải được địa chỉ',
-                        style: TextStyle(
-                            color: HomeStyle.muted,
-                            fontSize: AppFontSize.caption)),
-                  ),
-                  TextButton(
-                    onPressed: () => ref.invalidate(addressesProvider),
-                    child: const Text('Thử lại'),
-                  ),
-                ]),
-              )
-            else ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-                child: IntrinsicHeight(
-                  child: Row(children: [
-                    for (var i = 0; i < 2; i++) ...[
-                      if (i > 0) const SizedBox(width: 8),
-                      Expanded(
-                        child: i < shown.length
-                            ? _AddressQuickTile(
-                                address: shown[i],
-                                onTap: () => onPickAddress(shown[i]),
-                              )
-                            : _AddressQuickTile(onTap: manage),
-                      ),
-                    ],
-                  ]),
-                ),
-              ),
-            ],
-          ]),
-        ),
-      ),
-    ]);
-  }
+          ],
+        ]),
+      );
 }
 
 class _AddressQuickTile extends StatelessWidget {
   final AddressModel? address;
   final VoidCallback onTap;
-  const _AddressQuickTile({this.address, required this.onTap});
+  final String emptyTitle;
+  const _AddressQuickTile({
+    this.address,
+    required this.onTap,
+    this.emptyTitle = 'Thêm địa chỉ',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -148,7 +227,7 @@ class _AddressQuickTile extends StatelessWidget {
     final home = ['Nhà', 'Nhà riêng'].contains(label);
     final work = ['Cơ quan', 'Công ty'].contains(label);
     final title = address == null
-        ? 'Thêm địa chỉ'
+        ? emptyTitle
         : home
             ? 'Nhà riêng'
             : work
@@ -170,59 +249,73 @@ class _AddressQuickTile extends StatelessWidget {
             : work
                 ? AppColors.info
                 : AppColors.accent2;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: HomeStyle.radius,
-        child: Ink(
-          padding: const EdgeInsets.all(11),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: .25),
-            borderRadius: HomeStyle.radius,
-            border: Border.all(color: Colors.white.withValues(alpha: .65)),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(children: [
-                GlassIcon(icon: icon, color: color, size: 36, iconSize: 19),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(title,
+    return Semantics(
+      button: true,
+      label: address == null ? emptyTitle : 'Đặt đến $title',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Ink(
+            padding: const EdgeInsets.all(14),
+            child: Row(children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .09),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 20),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
-                          fontSize: AppFontSize.body,
-                          fontWeight: FontWeight.w700,
-                          color: HomeStyle.ink)),
-                ),
-              ]),
-              const SizedBox(height: 9),
-              Text(address?.address ?? 'Lưu địa chỉ để đặt nhanh',
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                      fontSize: AppFontSize.caption,
-                      height: 1.35,
-                      color: HomeStyle.muted)),
-              const Spacer(),
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: .08),
-                  borderRadius: BorderRadius.circular(AppRadius.glass),
-                ),
-                child: Text(address == null ? 'Thêm' : 'Đặt ngay',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
+                        fontSize: AppFontSize.body,
+                        fontWeight: FontWeight.w700,
+                        color: HomeStyle.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      address?.address ??
+                          'Lưu Nhà riêng hoặc Công ty để đặt nhanh',
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
                         fontSize: AppFontSize.caption,
-                        fontWeight: FontWeight.w600,
-                        color: color)),
+                        color: HomeStyle.muted,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ],
+              const SizedBox(width: 8),
+              Container(
+                width: 32,
+                height: 36,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .09),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  address == null
+                      ? Icons.add_rounded
+                      : Icons.chevron_right_rounded,
+                  size: 19,
+                  color: color,
+                ),
+              ),
+            ]),
           ),
         ),
       ),

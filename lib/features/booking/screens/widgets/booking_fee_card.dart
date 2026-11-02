@@ -91,7 +91,9 @@ class BookingFeeCard extends StatelessWidget {
               ),
               child: Text('${distanceKm!.toStringAsFixed(1)} km',
                   style: TextStyle(
-                      color: color, fontSize: AppFontSize.caption, fontWeight: FontWeight.w600)),
+                      color: color,
+                      fontSize: AppFontSize.caption,
+                      fontWeight: FontWeight.w600)),
             ),
           ],
         ],

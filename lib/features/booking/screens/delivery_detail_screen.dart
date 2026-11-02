@@ -240,8 +240,8 @@ class _Field extends StatelessWidget {
           fontWeight: FontWeight.w500),
       decoration: InputDecoration(
         labelText: label,
-        labelStyle:
-            const TextStyle(fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
+        labelStyle: const TextStyle(
+            fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
         floatingLabelStyle: const TextStyle(
             fontSize: AppFontSize.body,
             color: AppColors.primary,
@@ -255,7 +255,8 @@ class _Field extends StatelessWidget {
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         errorText: error,
-        errorStyle: const TextStyle(fontSize: AppFontSize.caption, color: AppColors.danger),
+        errorStyle: const TextStyle(
+            fontSize: AppFontSize.caption, color: AppColors.danger),
       ),
     );
   }

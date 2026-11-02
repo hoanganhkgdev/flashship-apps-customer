@@ -93,14 +93,14 @@ class AppTheme {
         filled: true,
         fillColor: WidgetStateColor.resolveWith((states) {
           if (states.contains(WidgetState.disabled)) {
-            return const Color(0x18FFFFFF);
+            return AppColors.surfaceAlt;
           }
           if (states.contains(WidgetState.error)) {
-            return const Color(0x33FFE5E1);
+            return AppColors.dangerSoft;
           }
           return states.contains(WidgetState.focused)
-              ? const Color(0x80FFFFFF)
-              : const Color(0x40FFFFFF);
+              ? const Color(0xFAFFFDFB)
+              : const Color(0xEFFFFDFB);
         }),
         border: const GlassInputBorder(),
         enabledBorder: const GlassInputBorder(),

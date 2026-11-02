@@ -96,7 +96,8 @@ class _State extends State<PaymentMethodScreen> {
           ),
         ),
         title: const Text('Phương thức thanh toán',
-            style: TextStyle(fontSize: AppFontSize.display, fontWeight: FontWeight.w600)),
+            style: TextStyle(
+                fontSize: AppFontSize.display, fontWeight: FontWeight.w600)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, _selected),
@@ -162,8 +163,9 @@ class _PaymentTile extends StatelessWidget {
             Expanded(
               child: Text(
                 method.label,
-                style:
-                    const TextStyle(fontSize: AppFontSize.bodyLarge, fontWeight: FontWeight.w500),
+                style: const TextStyle(
+                    fontSize: AppFontSize.bodyLarge,
+                    fontWeight: FontWeight.w500),
               ),
             ),
 

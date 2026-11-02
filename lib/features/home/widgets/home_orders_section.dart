@@ -53,228 +53,354 @@ class _ActiveOrdersOverviewState extends ConsumerState<_ActiveOrdersOverview> {
   @override
   Widget build(BuildContext context) {
     final orders = ref.watch(orderListProvider).orders;
-    final active = orders.where((order) => order.isActive).toList();
+    final active = orders.where((order) => order.isActive).toList()
+      ..sort((a, b) {
+        int priority(String status) => switch (status) {
+              'processing' => 0,
+              'assigned' => 1,
+              _ => 2,
+            };
+        return priority(a.status).compareTo(priority(b.status));
+      });
     if (active.isEmpty) {
       _rtdbSub?.cancel();
       _subscribedCode = null;
       return const SizedBox.shrink();
     }
-    final visibleOrders = active.take(2).toList();
-    final remainingCount = active.length - visibleOrders.length;
     _subscribeRTDB(active.first.code);
 
-    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-      Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: LiquidGlass(
-          borderRadius: HomeStyle.radius,
-          padding: const EdgeInsets.all(4),
-          child: Column(children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
-              child: Row(children: [
-                const GlassIcon(
-                  icon: Icons.local_shipping_rounded,
-                  color: HomeStyle.orange,
-                  size: 34,
-                  iconSize: 18,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              width: 4,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [HomeStyle.orangeLight, HomeStyle.orange],
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Row(children: [
-                    const Flexible(
-                      child: Text(
-                        'Đơn đang thực hiện',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: AppFontSize.bodyLarge,
-                          fontWeight: FontWeight.w700,
-                          color: HomeStyle.ink,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: 'Đơn '),
+                        TextSpan(
+                          text: 'đang thực hiện',
+                          style: TextStyle(color: HomeStyle.orange),
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: AppFontSize.title,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -.25,
+                      color: HomeStyle.ink,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.only(top: 1),
+                        child: Icon(
+                          Icons.route_rounded,
+                          size: 15,
+                          color: HomeStyle.orange,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 7),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: HomeStyle.orange.withValues(alpha: .10),
-                        borderRadius: BorderRadius.circular(AppRadius.glass),
-                      ),
-                      child: Text('${active.length}',
-                          style: const TextStyle(
-                              fontSize: AppFontSize.caption,
-                              fontWeight: FontWeight.w700,
-                              color: HomeStyle.orange)),
-                    ),
-                  ]),
-                ),
-                if (active.length > 1) ...[
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: () =>
-                        ref.read(_homeTabProvider.notifier).state = 1,
-                    style: TextButton.styleFrom(
-                      foregroundColor: HomeStyle.orange,
-                      backgroundColor: HomeStyle.orange.withValues(alpha: .08),
-                      minimumSize: const Size(0, 36),
-                      padding: const EdgeInsets.symmetric(horizontal: 11),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppRadius.glass)),
-                    ),
-                    child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                      Text('Xem tất cả',
+                      SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Theo dõi trạng thái đơn',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                           style: TextStyle(
-                              fontSize: AppFontSize.caption,
-                              fontWeight: FontWeight.w600)),
-                      SizedBox(width: 2),
-                      Icon(Icons.chevron_right_rounded, size: 17),
-                    ]),
+                            fontSize: AppFontSize.caption,
+                            height: 1.25,
+                            color: HomeStyle.muted,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
-              ]),
+              ),
             ),
-            const SizedBox(height: 4),
-            for (var index = 0; index < visibleOrders.length; index++) ...[
-              if (index > 0)
-                const Divider(
-                    height: 1,
-                    indent: 12,
-                    endIndent: 12,
-                    color: HomeStyle.divider),
-              HomeOrderCard(order: visibleOrders[index], compact: index > 0),
-            ],
-            if (remainingCount > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: HomeStyle.peach,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                '${active.length}',
+                style: const TextStyle(
+                  fontSize: AppFontSize.caption,
+                  fontWeight: FontWeight.w800,
+                  color: HomeStyle.orange,
+                ),
+              ),
+            ),
+            if (active.length > 1) ...[
+              const SizedBox(width: 6),
               TextButton(
                 onPressed: () => ref.read(_homeTabProvider.notifier).state = 1,
-                child: Text('Còn $remainingCount đơn khác'),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(0, 36),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                child: const Text('Xem tất cả'),
               ),
+            ],
           ]),
-        ),
+          const SizedBox(height: 12),
+          HomeOrderCard(order: active.first),
+        ],
       ),
-      const SizedBox(height: 16),
-    ]);
+    );
   }
 }
 
-class HomeOrderCard extends StatelessWidget {
-  const HomeOrderCard({
-    super.key,
-    required this.order,
-    this.compact = false,
-  });
+class _RecentOrdersSection extends ConsumerWidget {
+  const _RecentOrdersSection({required this.onReorder});
+
+  final ValueChanged<OrderModel> onReorder;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final completed = ref
+        .watch(orderListProvider)
+        .orders
+        .where((order) => order.isCompleted)
+        .take(2)
+        .toList();
+    if (completed.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 4,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [HomeStyle.orangeLight, HomeStyle.orange],
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(text: 'Đặt lại đơn '),
+                        TextSpan(
+                          text: 'gần đây',
+                          style: TextStyle(color: HomeStyle.orange),
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: AppFontSize.title,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -.25,
+                      color: HomeStyle.ink,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Row(children: [
+                    Icon(
+                      Icons.history_rounded,
+                      size: 15,
+                      color: HomeStyle.orange,
+                    ),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Đặt nhanh từ đơn đã hoàn thành',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: AppFontSize.caption,
+                          height: 1.25,
+                          color: HomeStyle.muted,
+                        ),
+                      ),
+                    ),
+                  ]),
+                ],
+              ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: HomeStyle.cardRadius,
+              border: Border.all(color: HomeStyle.divider),
+              boxShadow: HomeStyle.shadow,
+            ),
+            child: Column(children: [
+              for (var index = 0; index < completed.length; index++) ...[
+                if (index > 0)
+                  const Divider(
+                    height: 1,
+                    indent: 14,
+                    endIndent: 14,
+                    color: HomeStyle.divider,
+                  ),
+                _RecentOrderTile(
+                  order: completed[index],
+                  onTap: () => onReorder(completed[index]),
+                ),
+              ],
+            ]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentOrderTile extends StatelessWidget {
+  const _RecentOrderTile({required this.order, required this.onTap});
+
   final OrderModel order;
-  final bool compact;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    void open() => context.push('/order/${order.code}');
     final color = AppColors.serviceColor(order.serviceType);
-    final address = order.deliveryAddress ?? order.pickupAddress;
-    if (compact) {
-      return _CompactActiveOrder(
-          order: order, color: color, address: address, onTap: open);
-    }
+    final pickup = order.pickupAddress?.trim();
+    final delivery = order.deliveryAddress?.trim();
+    final createdAt = DateTime.tryParse(order.createdAt);
+    final timeLabel = createdAt == null ? null : Fmt.timeAgo(createdAt);
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: open,
-        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Container(
-                width: 50,
-                height: 50,
-                padding: const EdgeInsets.all(5),
+                width: 36,
+                height: 36,
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  borderRadius: HomeStyle.radius,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withValues(alpha: .60),
-                      color.withValues(alpha: .12),
-                    ],
-                  ),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: .80)),
+                  color: color.withValues(alpha: .09),
+                  borderRadius: BorderRadius.circular(15),
                 ),
                 child: _ServiceGlyph(
-                    type: order.serviceType, color: color, size: 28),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                  child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                    Text(
-                        '${Fmt.serviceLabel(order.serviceType)} · ${Fmt.orderStatus(order.status)}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                            fontSize: AppFontSize.bodyLarge,
-                            fontWeight: FontWeight.w700,
-                            color: HomeStyle.ink)),
-                    const SizedBox(height: 3),
-                    Text('#${order.code}',
-                        style: const TextStyle(
-                            fontSize: AppFontSize.caption,
-                            color: HomeStyle.muted)),
-                  ])),
-              const SizedBox(width: 8),
-              GlassIcon(
-                icon: Icons.arrow_forward_rounded,
-                color: color,
-                size: 36,
-                iconSize: 18,
-              ),
-            ]),
-            const SizedBox(height: 12),
-            _OrderProgress(status: order.status, color: color),
-            const SizedBox(height: 5),
-            const Row(children: [
-              Text('Đã nhận',
-                  style: TextStyle(fontSize: 10, color: HomeStyle.muted)),
-              Spacer(),
-              Text('Đang lấy',
-                  style: TextStyle(fontSize: 10, color: HomeStyle.muted)),
-              Spacer(),
-              Text('Đang giao',
-                  style: TextStyle(fontSize: 10, color: HomeStyle.muted)),
-            ]),
-            if (order.pickupAddress?.trim().isNotEmpty == true ||
-                order.deliveryAddress?.trim().isNotEmpty == true) ...[
-              const SizedBox(height: 10),
-              Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .28),
-                  borderRadius: BorderRadius.circular(14),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: .65)),
+                  type: order.serviceType,
+                  color: color,
+                  size: 22,
                 ),
-                child: Column(children: [
-                  if (order.pickupAddress?.trim().isNotEmpty == true)
-                    _RouteLine(
-                        icon: Icons.radio_button_checked_rounded,
-                        color: color,
-                        text: order.pickupAddress!),
-                  if (order.pickupAddress?.trim().isNotEmpty == true &&
-                      order.deliveryAddress?.trim().isNotEmpty == true)
-                    const SizedBox(height: 7),
-                  if (order.deliveryAddress?.trim().isNotEmpty == true)
-                    _RouteLine(
-                        icon: Icons.location_on_rounded,
-                        color: AppColors.danger,
-                        text: order.deliveryAddress!),
-                ]),
               ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      Fmt.serviceLabel(order.serviceType),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: AppFontSize.body,
+                        fontWeight: FontWeight.w700,
+                        color: HomeStyle.ink,
+                      ),
+                    ),
+                    if (timeLabel != null) ...[
+                      const SizedBox(height: 4),
+                      Row(children: [
+                        Expanded(
+                          child: Text(
+                            timeLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: AppFontSize.caption,
+                              color: HomeStyle.muted,
+                            ),
+                          ),
+                        ),
+                      ]),
+                    ],
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: .09),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Text(
+                  'Đặt lại',
+                  style: TextStyle(
+                    fontSize: AppFontSize.caption,
+                    fontWeight: FontWeight.w700,
+                    color: color,
+                  ),
+                ),
+              ),
+            ]),
+            if (pickup?.isNotEmpty == true || delivery?.isNotEmpty == true) ...[
+              const SizedBox(height: 12),
+              if (pickup?.isNotEmpty == true)
+                Semantics(
+                  label: 'Điểm đi',
+                  child: _RouteLine(
+                    icon: Icons.radio_button_checked_rounded,
+                    color: HomeStyle.orange,
+                    text: pickup!,
+                    maxLines: 2,
+                  ),
+                ),
+              if (pickup?.isNotEmpty == true && delivery?.isNotEmpty == true)
+                const SizedBox(height: 7),
+              if (delivery?.isNotEmpty == true)
+                Semantics(
+                  label: 'Điểm đến',
+                  child: _RouteLine(
+                    icon: Icons.location_on_outlined,
+                    color: AppColors.info,
+                    text: delivery!,
+                    maxLines: 2,
+                  ),
+                ),
             ],
           ]),
         ),
@@ -283,74 +409,226 @@ class HomeOrderCard extends StatelessWidget {
   }
 }
 
-class _CompactActiveOrder extends StatelessWidget {
-  const _CompactActiveOrder({
+class HomeOrderCard extends StatelessWidget {
+  const HomeOrderCard({super.key, required this.order});
+  final OrderModel order;
+
+  @override
+  Widget build(BuildContext context) {
+    void open() => context.push('/order/${order.code}');
+    final color = AppColors.serviceColor(order.serviceType);
+    final statusColor = switch (order.status) {
+      'assigned' => AppColors.info,
+      'processing' => AppColors.success,
+      _ => HomeStyle.orange,
+    };
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: open,
+        borderRadius: HomeStyle.cardRadius,
+        child: Ink(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            borderRadius: HomeStyle.cardRadius,
+            color: Colors.white,
+            border: Border.all(color: HomeStyle.divider),
+            boxShadow: HomeStyle.shadow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  padding: const EdgeInsets.all(5),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .09),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                  child: _ServiceGlyph(
+                    type: order.serviceType,
+                    color: color,
+                    size: 25,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        Fmt.serviceLabel(order.serviceType),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: AppFontSize.bodyLarge,
+                          fontWeight: FontWeight.w800,
+                          color: HomeStyle.ink,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        '#${order.code}',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: AppFontSize.caption,
+                          color: HomeStyle.muted,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxWidth:
+                        MediaQuery.sizeOf(context).width < 360 ? 108 : 136,
+                  ),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: statusColor.withValues(alpha: .10),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      Fmt.orderStatus(order.status),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        fontWeight: FontWeight.w700,
+                        color: statusColor,
+                      ),
+                    ),
+                  ),
+                ),
+              ]),
+              if (order.pickupAddress?.trim().isNotEmpty == true ||
+                  order.deliveryAddress?.trim().isNotEmpty == true) ...[
+                const SizedBox(height: 13),
+                Container(
+                  width: double.infinity,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 11, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: HomeStyle.cardMuted,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Column(children: [
+                    if (order.pickupAddress?.trim().isNotEmpty == true)
+                      _RouteLine(
+                        icon: Icons.radio_button_checked_rounded,
+                        color: color,
+                        text: order.pickupAddress!,
+                      ),
+                    if (order.pickupAddress?.trim().isNotEmpty == true &&
+                        order.deliveryAddress?.trim().isNotEmpty == true)
+                      const SizedBox(height: 8),
+                    if (order.deliveryAddress?.trim().isNotEmpty == true)
+                      _RouteLine(
+                        icon: Icons.location_on_rounded,
+                        color: AppColors.danger,
+                        text: order.deliveryAddress!,
+                      ),
+                  ]),
+                ),
+              ],
+              const SizedBox(height: 12),
+              const Divider(height: 1, color: HomeStyle.divider),
+              const SizedBox(height: 8),
+              _ActiveOrderFooter(order: order, color: color, onTrack: open),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActiveOrderFooter extends StatelessWidget {
+  const _ActiveOrderFooter({
     required this.order,
     required this.color,
-    required this.address,
-    required this.onTap,
+    required this.onTrack,
   });
 
   final OrderModel order;
   final Color color;
-  final String? address;
-  final VoidCallback onTap;
+  final VoidCallback onTrack;
 
   @override
-  Widget build(BuildContext context) => Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(14),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(children: [
-              GlassIcon(
-                icon: Fmt.serviceIcon(order.serviceType),
-                color: color,
-                size: 40,
-                iconSize: 20,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(children: [
-                      Expanded(
-                        child: Text(
-                            '${Fmt.serviceLabel(order.serviceType)} · ${Fmt.orderStatus(order.status)}',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                                fontSize: AppFontSize.body,
-                                fontWeight: FontWeight.w700,
-                                color: HomeStyle.ink)),
-                      ),
-                      Text('#${order.code}',
-                          style: const TextStyle(
-                              fontSize: AppFontSize.caption,
-                              color: HomeStyle.muted)),
-                    ]),
-                    if (address?.trim().isNotEmpty == true) ...[
-                      const SizedBox(height: 5),
-                      Text(address!,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                              fontSize: AppFontSize.caption,
-                              color: HomeStyle.muted)),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Icon(Icons.chevron_right_rounded,
-                  size: 20, color: HomeStyle.muted),
-            ]),
+  Widget build(BuildContext context) {
+    final driver = switch (order.status) {
+      'pending' => 'Đang kết nối tài xế',
+      _ when order.driverName?.trim().isNotEmpty == true => order.driverName!,
+      'assigned' => 'Tài xế đã nhận đơn',
+      _ => Fmt.orderStatus(order.status),
+    };
+    final compact = MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.textScalerOf(context).scale(AppFontSize.caption) > 15;
+    final driverInfo = Row(children: [
+      Icon(Icons.person_rounded, size: 17, color: color),
+      const SizedBox(width: 6),
+      Expanded(
+        child: Text(
+          driver,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontSize: AppFontSize.caption,
+            fontWeight: FontWeight.w600,
+            color: HomeStyle.ink,
           ),
         ),
-      );
+      ),
+    ]);
+    final fee = Text(
+      Fmt.currency(order.shippingFee),
+      maxLines: 1,
+      style: const TextStyle(
+        fontSize: AppFontSize.body,
+        fontWeight: FontWeight.w800,
+        color: HomeStyle.ink,
+      ),
+    );
+    final button = TextButton.icon(
+      onPressed: onTrack,
+      style: TextButton.styleFrom(
+        foregroundColor: color,
+        backgroundColor: color.withValues(alpha: .10),
+        minimumSize: Size(compact ? double.infinity : 0, 40),
+        padding: const EdgeInsets.symmetric(horizontal: 14),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadius.md),
+        ),
+      ),
+      iconAlignment: IconAlignment.end,
+      icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+      label: const Text('Xem chi tiết'),
+    );
+    if (compact) {
+      return Column(children: [
+        Row(children: [
+          Expanded(child: driverInfo),
+          const SizedBox(width: 8),
+          fee
+        ]),
+        const SizedBox(height: 9),
+        button,
+      ]);
+    }
+    return Row(children: [
+      Expanded(child: driverInfo),
+      const SizedBox(width: 10),
+      fee,
+      const SizedBox(width: 10),
+      button,
+    ]);
+  }
 }
 
 class _RouteLine extends StatelessWidget {
@@ -358,11 +636,13 @@ class _RouteLine extends StatelessWidget {
     required this.icon,
     required this.color,
     required this.text,
+    this.maxLines = 1,
   });
 
   final IconData icon;
   final Color color;
   final String text;
+  final int maxLines;
 
   @override
   Widget build(BuildContext context) => Row(children: [
@@ -370,62 +650,10 @@ class _RouteLine extends StatelessWidget {
         const SizedBox(width: 7),
         Expanded(
           child: Text(text,
-              maxLines: 1,
+              maxLines: maxLines,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                   fontSize: AppFontSize.caption, color: HomeStyle.muted)),
         ),
       ]);
-}
-
-/// Milestones represent actual order status, not elapsed time or distance.
-class _OrderProgress extends StatelessWidget {
-  const _OrderProgress({required this.status, required this.color});
-  final String status;
-  final Color color;
-
-  @override
-  Widget build(BuildContext context) {
-    final step = switch (status) { 'assigned' => 1, 'processing' => 2, _ => 0 };
-    return Semantics(
-      label: Fmt.orderStatus(status),
-      child: Row(
-        children: [
-          for (var index = 0; index < 3; index++) ...[
-            AnimatedContainer(
-              duration: const Duration(milliseconds: 220),
-              width: index == step ? 12 : 9,
-              height: index == step ? 12 : 9,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: index <= step ? color : color.withValues(alpha: .16),
-                border: Border.all(
-                  color: index <= step
-                      ? Colors.white.withValues(alpha: .9)
-                      : color.withValues(alpha: .20),
-                  width: 1.5,
-                ),
-                boxShadow: index == step
-                    ? [
-                        BoxShadow(
-                          color: color.withValues(alpha: .30),
-                          blurRadius: 8,
-                          spreadRadius: 2,
-                        ),
-                      ]
-                    : null,
-              ),
-            ),
-            if (index < 2)
-              Expanded(
-                child: Container(
-                  height: 2,
-                  color: index < step ? color : color.withValues(alpha: .14),
-                ),
-              ),
-          ],
-        ],
-      ),
-    );
-  }
 }

@@ -22,10 +22,36 @@
 	<string>$(FLUTTER_BUILD_NAME)</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>app-1-219581386028-ios-fee9d1b4d27dafdbf27089</string>
+			</array>
+		</dict>
+	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<false/>
+	</dict>
+	<key>NSCameraUsageDescription</key>
+	<string>FlashShip cần truy cập camera để chụp ảnh đại diện.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>FlashShip cần truy cập vị trí để tự động điền địa chỉ giao hàng.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>FlashShip cần truy cập vị trí để tự động điền địa chỉ giao hàng.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>FlashShip cần truy cập thư viện ảnh để cập nhật ảnh đại diện.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -49,10 +75,17 @@
 	</dict>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+		<string>fetch</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+	<key>UIStatusBarHidden</key>
+	<false/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -66,42 +99,11 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>VietMapURL</key>
-	<string>https://maps.vietmap.vn/api/maps/light/styles.json?apikey=2ea865fba5984b6e2c2dcd4a7b8b3b6dfdd30424a4e7fa40</string>
 	<key>VietMapAPIBaseURL</key>
 	<string>https://maps.vietmap.vn/api/navigations/route/</string>
 	<key>VietMapAccessToken</key>
 	<string>a895f1003f28965f705e13b7b45e3cf35e23a71fe6098542</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.1020094680343-iivbrqera91ieqtdl5jnft2q4ai20n6a</string>
-			</array>
-		</dict>
-	</array>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<false/>
-	</dict>
-	<key>ITSAppUsesNonExemptEncryption</key>
-	<false/>
-	<key>UIBackgroundModes</key>
-	<array>
-		<string>remote-notification</string>
-		<string>fetch</string>
-	</array>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>FlashShip cần truy cập thư viện ảnh để cập nhật ảnh đại diện.</string>
-	<key>NSCameraUsageDescription</key>
-	<string>FlashShip cần truy cập camera để chụp ảnh đại diện.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>FlashShip cần truy cập vị trí để tự động điền địa chỉ giao hàng.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>FlashShip cần truy cập vị trí để tự động điền địa chỉ giao hàng.</string>
+	<key>VietMapURL</key>
+	<string>https://maps.vietmap.vn/api/maps/light/styles.json?apikey=2ea865fba5984b6e2c2dcd4a7b8b3b6dfdd30424a4e7fa40</string>
 </dict>
 </plist>

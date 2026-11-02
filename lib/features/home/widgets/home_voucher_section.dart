@@ -5,193 +5,317 @@ class _VoucherSection extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final vouchers = ref.watch(voucherProvider).valueOrNull ?? [];
-    if (vouchers.isEmpty) return const SizedBox.shrink();
-    final sorted = [
-      ...vouchers.where((v) => v.appOnly),
-      ...vouchers.where((v) => !v.appOnly),
-    ];
-    final shown = sorted.take(2).toList();
+    final compactHeader = MediaQuery.sizeOf(context).width < 360 ||
+        MediaQuery.textScalerOf(context).scale(AppFontSize.caption) > 16;
+    final state = ref.watch(voucherProvider);
+    final available = (state.valueOrNull ?? [])
+        .where((voucher) => voucher.isAvailable)
+        .toList()
+      ..sort((a, b) {
+        if (a.appOnly != b.appOnly) return a.appOnly ? -1 : 1;
+        final aExpiry = a.expiresAt ?? DateTime(9999);
+        final bExpiry = b.expiresAt ?? DateTime(9999);
+        return aExpiry.compareTo(bExpiry);
+      });
+    final loading = state.isLoading && available.isEmpty;
+    if (!loading && available.isEmpty) return const SizedBox.shrink();
+    final shown = available.take(2).toList();
     void viewAll() => context.push('/vouchers');
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: LiquidGlass(
-        borderRadius: HomeStyle.radius,
-        padding: const EdgeInsets.all(4),
-        child: Column(children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 4, 4, 4),
-            child: Row(children: [
-              const GlassIcon(
-                  icon: Icons.local_offer_rounded,
-                  color: HomeStyle.orange,
-                  size: 34,
-                  iconSize: 18),
-              const SizedBox(width: 10),
-              Expanded(
-                  child: Row(children: [
-                const Flexible(
-                    child: Text('Ưu đãi dành cho bạn',
-                        maxLines: 1,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              width: 4,
+              height: 46,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [HomeStyle.orangeLight, HomeStyle.orange],
+                ),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text.rich(
+                    TextSpan(children: [
+                      TextSpan(text: 'Ưu đãi '),
+                      TextSpan(
+                        text: 'của bạn',
+                        style: TextStyle(color: HomeStyle.orange),
+                      ),
+                    ]),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: AppFontSize.title,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -.25,
+                      color: HomeStyle.ink,
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Row(children: [
+                    Icon(
+                      Icons.confirmation_number_rounded,
+                      size: 15,
+                      color: HomeStyle.orange,
+                    ),
+                    SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Mã giảm giá đang có',
+                        maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: TextStyle(
-                            fontSize: AppFontSize.bodyLarge,
-                            fontWeight: FontWeight.w700,
-                            color: HomeStyle.ink))),
-                const SizedBox(width: 7),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                  decoration: BoxDecoration(
-                      color: HomeStyle.orange.withValues(alpha: .10),
-                      borderRadius: BorderRadius.circular(AppRadius.glass)),
-                  child: Text('${vouchers.length}',
-                      style: const TextStyle(
                           fontSize: AppFontSize.caption,
-                          fontWeight: FontWeight.w700,
-                          color: HomeStyle.orange)),
-                ),
-              ])),
-              const SizedBox(width: 8),
-              TextButton(
-                onPressed: viewAll,
-                style: TextButton.styleFrom(
-                    foregroundColor: HomeStyle.orange,
-                    backgroundColor: HomeStyle.orange.withValues(alpha: .08),
-                    minimumSize: const Size(0, 36),
-                    padding: const EdgeInsets.symmetric(horizontal: 11),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.glass))),
-                child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                  Text('Xem tất cả',
-                      style: TextStyle(
-                          fontSize: AppFontSize.caption,
-                          fontWeight: FontWeight.w600)),
-                  SizedBox(width: 2),
-                  Icon(Icons.chevron_right_rounded, size: 17)
-                ]),
+                          height: 1.25,
+                          color: HomeStyle.muted,
+                        ),
+                      ),
+                    ),
+                  ]),
+                ],
               ),
-            ]),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 6, 8, 8),
-            child: IntrinsicHeight(
-                child: Row(children: [
-              for (var i = 0; i < shown.length; i++) ...[
-                if (i > 0) const SizedBox(width: 8),
-                Expanded(
-                    child: _HomeVoucherCard(
-                        voucher: shown[i], index: i, onTap: viewAll)),
+            ),
+            const SizedBox(width: 6),
+            TextButton(
+              onPressed: viewAll,
+              style: TextButton.styleFrom(
+                minimumSize: const Size(0, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
+              child: compactHeader
+                  ? const Icon(Icons.arrow_forward_rounded, size: 18)
+                  : const Text('Xem tất cả'),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          if (loading)
+            const _VoucherListSkeleton()
+          else
+            Column(children: [
+              for (var index = 0; index < shown.length; index++) ...[
+                if (index > 0) const SizedBox(height: 10),
+                _HomeVoucherCard(
+                  voucher: shown[index],
+                  onTap: viewAll,
+                ),
               ],
-            ])),
-          ),
-        ]),
+            ]),
+        ],
       ),
     );
   }
 }
 
+class _VoucherListSkeleton extends StatelessWidget {
+  const _VoucherListSkeleton();
+
+  @override
+  Widget build(BuildContext context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: HomeStyle.cardRadius,
+          border: Border.all(color: HomeStyle.divider),
+        ),
+        child: Column(children: [
+          for (var index = 0; index < 2; index++) ...[
+            if (index > 0) const Divider(indent: 64, color: HomeStyle.divider),
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDEFF3),
+                    borderRadius: BorderRadius.circular(15),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 112,
+                        height: 12,
+                        color: const Color(0xFFEDEFF3),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 10,
+                        color: const Color(0xFFF1F2F5),
+                      ),
+                    ],
+                  ),
+                ),
+              ]),
+            ),
+          ],
+        ]),
+      );
+}
+
 class _HomeVoucherCard extends StatelessWidget {
-  const _HomeVoucherCard(
-      {required this.voucher, required this.index, required this.onTap});
+  const _HomeVoucherCard({
+    required this.voucher,
+    required this.onTap,
+  });
+
   final VoucherModel voucher;
-  final int index;
   final VoidCallback onTap;
+
+  (String, bool) get _detail {
+    final expiry = voucher.expiresAt;
+    if (expiry != null) {
+      final remaining = expiry.difference(DateTime.now());
+      if (!remaining.isNegative && remaining.inDays <= 3) {
+        if (remaining.inDays == 0) return ('Hết hạn hôm nay', true);
+        return ('Hết hạn sau ${remaining.inDays} ngày', true);
+      }
+    }
+    if (voucher.minOrderValue != null && voucher.minOrderValue! > 0) {
+      return ('Đơn tối thiểu ${Fmt.currency(voucher.minOrderValue!)}', false);
+    }
+    if (expiry != null) return ('HSD ${Fmt.date(expiry)}', false);
+    if (voucher.description?.trim().isNotEmpty == true) {
+      return (voucher.description!.trim(), false);
+    }
+    return ('Áp dụng theo điều kiện chương trình', false);
+  }
 
   @override
   Widget build(BuildContext context) {
-    const colors = [HomeStyle.orange, Color(0xFF318B83)];
-    final accent = colors[index % colors.length];
+    const accent = HomeStyle.orange;
+    final (detail, urgent) = _detail;
     return Material(
       color: Colors.transparent,
+      borderRadius: HomeStyle.cardRadius,
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
-        borderRadius: HomeStyle.radius,
+        borderRadius: HomeStyle.cardRadius,
         child: Ink(
-          padding: const EdgeInsets.all(11),
+          padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            borderRadius: HomeStyle.radius,
-            gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  Colors.white.withValues(alpha: .76),
-                  accent.withValues(alpha: .11)
-                ]),
-            border: Border.all(color: Colors.white.withValues(alpha: .88)),
+            color: HomeStyle.card,
+            borderRadius: HomeStyle.cardRadius,
+            border: Border.all(color: HomeStyle.divider),
           ),
           child:
               Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Row(children: [
-              GlassIcon(
-                  icon: Icons.confirmation_number_rounded,
-                  color: accent,
-                  size: 32,
-                  iconSize: 17),
-              const Spacer(),
-              if (voucher.appOnly)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                  decoration: BoxDecoration(
-                      color: accent.withValues(alpha: .11),
-                      borderRadius: BorderRadius.circular(AppRadius.glass)),
-                  child: Text('APP',
-                      style: TextStyle(
-                          fontSize: 9,
-                          fontWeight: FontWeight.w800,
-                          color: accent)),
+            Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: HomeStyle.peach,
+                  borderRadius: BorderRadius.circular(12),
                 ),
+                child: const Icon(Icons.confirmation_number_outlined,
+                    color: accent, size: 22),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      voucher.discountLabel,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: AppFontSize.title,
+                        fontWeight: FontWeight.w800,
+                        color: accent,
+                      ),
+                    ),
+                    if (voucher.appOnly) ...[
+                      const SizedBox(height: 5),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: accent.withValues(alpha: .10),
+                          borderRadius: BorderRadius.circular(9),
+                        ),
+                        child: Text(
+                          'Ưu đãi trên app',
+                          style: TextStyle(
+                            fontSize: AppFontSize.caption,
+                            fontWeight: FontWeight.w600,
+                            color: accent,
+                          ),
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 6),
+                    Text(
+                      detail,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: AppFontSize.caption,
+                        fontWeight: urgent ? FontWeight.w700 : FontWeight.w400,
+                        color: urgent ? AppColors.warning : HomeStyle.muted,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ]),
-            const SizedBox(height: 10),
-            Text(voucher.discountLabel,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    fontSize: AppFontSize.bodyLarge,
-                    height: 1.15,
-                    fontWeight: FontWeight.w800,
-                    color: accent)),
-            const SizedBox(height: 5),
-            Text(voucher.code,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontSize: AppFontSize.caption,
-                    letterSpacing: .4,
-                    fontWeight: FontWeight.w700,
-                    color: HomeStyle.ink)),
-            if (voucher.description?.isNotEmpty == true) ...[
-              const SizedBox(height: 4),
-              Text(voucher.description!,
-                  maxLines: 2,
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: HomeStyle.divider),
+            const SizedBox(height: 8),
+            Row(children: [
+              Expanded(
+                child: Text(
+                  voucher.code,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                      fontSize: 10, height: 1.25, color: HomeStyle.muted)),
-            ],
-            const Spacer(),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 34,
-              child: FilledButton(
-                onPressed: onTap,
-                style: FilledButton.styleFrom(
-                    elevation: 0,
-                    backgroundColor: accent.withValues(alpha: .13),
-                    foregroundColor: accent,
-                    padding: EdgeInsets.zero,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(AppRadius.glass),
-                        side:
-                            BorderSide(color: accent.withValues(alpha: .16)))),
-                child: const Text('Dùng ngay',
-                    style: TextStyle(
-                        fontSize: AppFontSize.caption,
-                        fontWeight: FontWeight.w700)),
+                    fontSize: AppFontSize.caption,
+                    letterSpacing: .5,
+                    fontWeight: FontWeight.w800,
+                    color: HomeStyle.ink,
+                  ),
+                ),
               ),
-            ),
+              const SizedBox(width: 10),
+              Flexible(
+                child: Container(
+                  alignment: Alignment.center,
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+                  decoration: BoxDecoration(
+                    color: accent.withValues(alpha: .09),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Text(
+                    'Xem ưu đãi  ›',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: AppFontSize.caption,
+                      fontWeight: FontWeight.w700,
+                      color: accent,
+                    ),
+                  ),
+                ),
+              ),
+            ]),
           ]),
         ),
       ),

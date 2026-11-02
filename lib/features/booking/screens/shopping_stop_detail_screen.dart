@@ -136,7 +136,8 @@ class _State extends State<ShoppingStopDetailScreen> {
                   decoration: InputDecoration(
                     labelText: 'Mô tả hàng cần mua *',
                     labelStyle: const TextStyle(
-                        fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
+                        fontSize: AppFontSize.bodyLarge,
+                        color: AppColors.textSecondary),
                     floatingLabelStyle: const TextStyle(
                         fontSize: AppFontSize.body,
                         color: AppColors.primary,
@@ -150,8 +151,8 @@ class _State extends State<ShoppingStopDetailScreen> {
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 14, vertical: 14),
                     errorText: _error,
-                    errorStyle:
-                        const TextStyle(fontSize: AppFontSize.caption, color: AppColors.danger),
+                    errorStyle: const TextStyle(
+                        fontSize: AppFontSize.caption, color: AppColors.danger),
                   ),
                 ),
               ],

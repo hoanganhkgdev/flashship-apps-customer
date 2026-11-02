@@ -8,7 +8,7 @@ import '../../../core/constants/app_constants.dart';
 import '../../home/providers/service_type_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/formatters.dart';
-import '../../../core/widgets/liquid_glass.dart';
+import '../../home/widgets/home_style.dart';
 import '../../../features/auth/providers/auth_provider.dart';
 import '../../../features/order/models/order_model.dart';
 import '../../../features/voucher/screens/voucher_picker_screen.dart';
@@ -16,7 +16,8 @@ import '../utils/booking_submit.dart';
 import '../utils/pricing_estimate.dart';
 import 'address_picker_screen.dart';
 import 'map_picker_screen.dart';
-import 'widgets/delivery_address_card.dart';
+import 'widgets/delivery_receiver_card.dart';
+import 'widgets/delivery_route_card.dart';
 import 'widgets/delivery_details_card.dart';
 import 'widgets/booking_summary_bar.dart';
 import 'widgets/delivery_voucher_card.dart';
@@ -52,18 +53,10 @@ class _State extends ConsumerState<DeliveryBookingScreen> {
   bool _loadingFee = false;
   bool _submitting = false;
   String? _error;
+  bool _phoneError = false;
   String? _voucherCode;
   int _voucherDiscount = 0;
   int? _advanceAmount;
-  String _cargoType = 'standard';
-
-  static const _cargoTypes = [
-    ('standard', 'Hàng thường', Icons.inventory_2_outlined),
-    ('food', 'Đồ ăn/uống', Icons.restaurant_outlined),
-    ('fragile', 'Dễ vỡ', Icons.warning_amber_rounded),
-    ('bulky', 'Cồng kềnh', Icons.inventory_outlined),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -194,12 +187,16 @@ class _State extends ConsumerState<DeliveryBookingScreen> {
       return;
     }
     if (_deliveryPhoneCtrl.text.trim().isEmpty) {
-      setState(() => _error = 'Vui lòng nhập SĐT người nhận');
+      setState(() {
+        _phoneError = true;
+        _error = 'Vui lòng nhập SĐT người nhận';
+      });
       return;
     }
     setState(() {
       _submitting = true;
       _error = null;
+      _phoneError = false;
     });
     await submitBookingOrder(
       ref: ref,
@@ -230,7 +227,7 @@ class _State extends ConsumerState<DeliveryBookingScreen> {
         'payment_method': 'cod',
         'total_amount': ((_fee ?? 0) - _voucherDiscount).clamp(0, _fee ?? 0),
         'cod_amount': 0,
-        'cargo_type': _cargoType,
+        'cargo_type': 'standard',
       },
       onError: (message) {
         if (mounted) {
@@ -255,118 +252,205 @@ class _State extends ConsumerState<DeliveryBookingScreen> {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     final netFee = ((_fee ?? 0) - _voucherDiscount).clamp(0, _fee ?? 0);
 
-    return LiquidBackdrop(
-      child: Scaffold(
+    return Scaffold(
+      backgroundColor: HomeStyle.background,
+      appBar: AppBar(
         backgroundColor: Colors.transparent,
-        extendBody: true,
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          surfaceTintColor: Colors.transparent,
-          systemOverlayStyle: SystemUiOverlayStyle.dark.copyWith(
-            systemNavigationBarColor: Colors.transparent,
-            systemNavigationBarContrastEnforced: false,
-          ),
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          toolbarHeight: 72,
-          leadingWidth: 72,
-          centerTitle: false,
-          titleSpacing: 0,
-          flexibleSpace: const LiquidGlass(
-            borderRadius:
-                BorderRadius.vertical(bottom: Radius.circular(AppRadius.glass)),
-            child: SizedBox.expand(),
-          ),
-          leading: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-            child: IconButton(
-              tooltip: 'Quay lại',
-              onPressed: () => context.pop(),
-              style: IconButton.styleFrom(
-                backgroundColor: Colors.white.withValues(alpha: .35),
-                side: BorderSide(color: Colors.white.withValues(alpha: .7)),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(AppRadius.glass)),
-              ),
-              icon: const Icon(Icons.arrow_back_ios_new_rounded,
-                  size: 18, color: _ink),
-            ),
-          ),
-          title: Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Text(serviceName,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: _style(AppFontSize.titleLarge, FontWeight.w600, _ink)),
+        surfaceTintColor: Colors.transparent,
+        systemOverlayStyle: SystemUiOverlayStyle.dark,
+        flexibleSpace: const DecoratedBox(
+          decoration: BoxDecoration(
+            color: Color(0xFFFFE9DE),
           ),
         ),
-        body: Builder(
-          builder: (bodyContext) => ListView(
-            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-            padding: EdgeInsets.fromLTRB(16, 16, 16,
-                MediaQuery.paddingOf(bodyContext).bottom + bottomInset + 28),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        toolbarHeight: 70,
+        leadingWidth: 72,
+        centerTitle: false,
+        titleSpacing: 0,
+        leading: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+          child: IconButton(
+            tooltip: 'Quay lại',
+            onPressed: () => context.pop(),
+            style: IconButton.styleFrom(
+              backgroundColor: HomeStyle.card,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.md)),
+            ),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded,
+                size: 18, color: HomeStyle.ink),
+          ),
+        ),
+        title: Padding(
+          padding: const EdgeInsets.only(right: 16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              DeliveryAddressCard(
-                placeName: _pickupPlaceName,
-                address: _pickupAddr,
-                nameController: _storeNameCtrl,
-                phoneController: _storePhoneCtrl,
-                onAddressTap: () => _pickAddress(pickup: true),
-              ),
-              const SizedBox(height: 14),
-              DeliveryAddressCard(
-                isPickup: false,
-                placeName: null,
-                address: _destAddr,
-                nameController: _receiverNameCtrl,
-                phoneController: _deliveryPhoneCtrl,
-                onAddressTap: () => _pickAddress(pickup: false),
-              ),
-              const SizedBox(height: 14),
-              DeliveryDetailsCard(
-                noteController: _noteCtrl,
-                advanceController: _advanceCtrl,
-                selectedCargo: _cargoType,
-                cargoTypes: _cargoTypes,
-                onAdvanceChanged: (value) => setState(() {
-                  _advanceAmount = int.tryParse(
-                    value.replaceAll(RegExp(r'[^0-9]'), ''),
-                  );
-                }),
-                onCargoSelected: (value) => setState(() => _cargoType = value),
-              ),
-              const SizedBox(height: 14),
-              DeliveryVoucherCard(
-                code: _voucherCode,
-                discount: _voucherDiscount,
-                onTap: _fee != null && !_loadingFee ? _pickVoucher : null,
-                onRemove: () => setState(() {
-                  _voucherCode = null;
-                  _voucherDiscount = 0;
-                }),
-              ),
+              Text(serviceName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                      fontSize: AppFontSize.title,
+                      fontWeight: FontWeight.w800,
+                      color: HomeStyle.ink)),
+              const SizedBox(height: 3),
+              const Text('Lấy hàng giúp bạn, giao tận nơi',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                      fontSize: AppFontSize.caption, color: HomeStyle.muted)),
             ],
           ),
         ),
-        bottomNavigationBar: BookingSummaryBar(
-          serviceName: serviceName,
-          canEstimate: _pickupAddr != null && _destAddr != null,
-          onRetry: _estimate,
-          distanceKm: _distanceKm,
-          fee: _fee,
-          netFee: netFee,
-          nightSurcharge: _nightSurcharge,
-          loadingFee: _loadingFee,
-          error: _error,
-          submitting: _submitting,
-          onSubmit: _submit,
+      ),
+      body: Builder(
+        builder: (bodyContext) => ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: EdgeInsets.fromLTRB(16, 16, 16,
+              MediaQuery.paddingOf(bodyContext).bottom + bottomInset + 28),
+          children: [
+            _DeliveryGuideCard(
+              pickupSelected: _pickupAddr?.trim().isNotEmpty == true,
+              destSelected: _destAddr?.trim().isNotEmpty == true,
+            ),
+            const SizedBox(height: 16),
+            DeliveryRouteCard(
+              pickupPlaceName: _pickupPlaceName,
+              pickupAddress: _pickupAddr,
+              destAddress: _destAddr,
+              onPickupTap: () => _pickAddress(pickup: true),
+              onDestTap: () => _pickAddress(pickup: false),
+            ),
+            const SizedBox(height: 16),
+            DeliveryReceiverCard(
+              nameController: _receiverNameCtrl,
+              phoneController: _deliveryPhoneCtrl,
+              showPhoneError: _phoneError,
+            ),
+            const SizedBox(height: 16),
+            DeliveryDetailsCard(
+              noteController: _noteCtrl,
+              advanceController: _advanceCtrl,
+              storeNameController: _storeNameCtrl,
+              storePhoneController: _storePhoneCtrl,
+              onAdvanceChanged: (value) => setState(() {
+                _advanceAmount = int.tryParse(
+                  value.replaceAll(RegExp(r'[^0-9]'), ''),
+                );
+              }),
+            ),
+            const SizedBox(height: 16),
+            DeliveryVoucherCard(
+              code: _voucherCode,
+              discount: _voucherDiscount,
+              onTap: _fee != null && !_loadingFee ? _pickVoucher : null,
+              onRemove: () => setState(() {
+                _voucherCode = null;
+                _voucherDiscount = 0;
+              }),
+            ),
+          ],
         ),
+      ),
+      bottomNavigationBar: BookingSummaryBar(
+        buttonLabel: 'Đặt lấy đồ hộ',
+        feeLabel: 'Cước dịch vụ',
+        serviceName: serviceName,
+        canEstimate: _pickupAddr != null && _destAddr != null,
+        onRetry: _estimate,
+        distanceKm: _distanceKm,
+        fee: _fee,
+        netFee: netFee,
+        nightSurcharge: _nightSurcharge,
+        loadingFee: _loadingFee,
+        error: _error,
+        submitting: _submitting,
+        onSubmit: _submit,
       ),
     );
   }
 }
 
-const _ink = AppColors.textPrimary;
+class _DeliveryGuideCard extends StatelessWidget {
+  const _DeliveryGuideCard({
+    required this.pickupSelected,
+    required this.destSelected,
+  });
 
-TextStyle _style(double size, [FontWeight? weight, Color? color]) =>
-    TextStyle(fontSize: size, fontWeight: weight, color: color);
+  final bool pickupSelected;
+  final bool destSelected;
+
+  static const _steps = [
+    (Icons.inventory_2_outlined, 'Chọn điểm lấy'),
+    (Icons.location_on_outlined, 'Chọn điểm giao'),
+    (Icons.receipt_long_outlined, 'Xác nhận đơn'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.fromLTRB(12, 13, 12, 12),
+        decoration: BoxDecoration(
+          color: HomeStyle.peach,
+          borderRadius: BorderRadius.circular(AppRadius.card),
+        ),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Row(children: [
+            Icon(Icons.route_outlined, size: 18, color: HomeStyle.orange),
+            SizedBox(width: 7),
+            Expanded(
+              child: Text('Lấy hộ, giao tận nơi',
+                  style: TextStyle(
+                      fontSize: AppFontSize.body,
+                      fontWeight: FontWeight.w800,
+                      color: HomeStyle.ink)),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: List.generate(_steps.length * 2 - 1, (index) {
+              if (index.isOdd) {
+                return const Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 17),
+                    child: Divider(height: 1, color: Color(0xFFFFCBB5)),
+                  ),
+                );
+              }
+              final step = index ~/ 2;
+              final (icon, label) = _steps[step];
+              final done =
+                  step == 0 ? pickupSelected : step == 1 && destSelected;
+              return Expanded(
+                flex: 4,
+                child: Column(children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: done ? HomeStyle.orange : Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(done ? Icons.check_rounded : icon,
+                        size: 18,
+                        color: done ? Colors.white : HomeStyle.orange),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(label,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                          fontSize: AppFontSize.caption,
+                          height: 1.2,
+                          fontWeight: FontWeight.w600,
+                          color: HomeStyle.muted)),
+                ]),
+              );
+            }),
+          ),
+        ]),
+      );
+}

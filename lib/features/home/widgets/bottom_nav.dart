@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/widgets/liquid_glass.dart';
 import 'home_style.dart';
 
 class NavItem {
@@ -20,101 +19,104 @@ class BottomNav extends StatelessWidget {
       required this.unreadCount,
       required this.onTap});
 
-  // Scaffold dùng extendBody nên không tự chừa chỗ cho thanh nav nổi (để
-  // nền kính lỏng xuyên suốt phía sau) — các tab phải tự chừa khoảng này.
+  // Scaffold dùng extendBody nên không tự chừa chỗ cho thanh nav — các tab
+  // phải tự chừa khoảng này.
+  static bool _wrapLabels(BuildContext context) =>
+      MediaQuery.textScalerOf(context).scale(1) > 1.4 ||
+      (MediaQuery.sizeOf(context).width < 360 &&
+          MediaQuery.textScalerOf(context).scale(1) > 1.2);
+
+  static double _barHeight(BuildContext context) {
+    final labelHeight =
+        MediaQuery.textScalerOf(context).scale(AppFontSize.caption) *
+            1.15 *
+            (_wrapLabels(context) ? 2 : 1);
+    final height = 32 + 4 + labelHeight + 16;
+    return height < 72 ? 72 : height;
+  }
+
   static double reservedHeight(BuildContext context) =>
-      84 + MediaQuery.paddingOf(context).bottom;
+      _barHeight(context) + 16 + MediaQuery.paddingOf(context).bottom;
 
   static const _tabs = [
     NavItem(Icons.home_rounded, Icons.home_outlined, 'Trang chủ'),
-    NavItem(Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Lịch sử'),
+    NavItem(
+        Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Đơn hàng'),
     NavItem(
         Icons.notifications_rounded, Icons.notifications_outlined, 'Thông báo'),
     NavItem(Icons.person_rounded, Icons.person_outline_rounded, 'Tài khoản'),
   ];
 
-  List<Widget> _buildTabs() => List.generate(_tabs.length, (i) {
+  List<Widget> _buildTabs(BuildContext context) =>
+      List.generate(_tabs.length, (i) {
         final tab = _tabs[i];
         final selected = currentIndex == i;
         final color = selected ? HomeStyle.orange : HomeStyle.muted;
         return Expanded(
-          child: Semantics(
-            selected: selected,
-            button: true,
-            label:
-                '${tab.label}${i == 2 && unreadCount > 0 ? ', $unreadCount chưa đọc' : ''}',
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: () => onTap(i),
-                borderRadius: BorderRadius.circular(AppRadius.glass),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 58),
-                  child: ExcludeSemantics(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Badge(
-                          isLabelVisible: i == 2 && unreadCount > 0,
-                          backgroundColor: AppColors.danger,
-                          label: Text(
-                            unreadCount > 99 ? '99+' : '$unreadCount',
-                            style: const TextStyle(
-                                fontSize: 9, fontWeight: FontWeight.w700),
-                          ),
-                          child: AnimatedContainer(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2),
+            child: Semantics(
+              selected: selected,
+              button: true,
+              label:
+                  '${tab.label}${i == 2 && unreadCount > 0 ? ', $unreadCount chưa đọc' : ''}',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => onTap(i),
+                  borderRadius: BorderRadius.circular(16),
+                  child: SizedBox(
+                    height: double.infinity,
+                    child: ExcludeSemantics(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
                             duration: const Duration(milliseconds: 180),
-                            width: 36,
+                            curve: Curves.easeOut,
+                            width: 48,
                             height: 32,
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
-                              borderRadius:
-                                  BorderRadius.circular(AppRadius.glass),
-                              gradient: selected
-                                  ? LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: [
-                                        Colors.white.withValues(alpha: .68),
-                                        HomeStyle.orange.withValues(alpha: .18),
-                                      ],
-                                    )
-                                  : null,
-                              border: selected
-                                  ? Border.all(
-                                      color:
-                                          Colors.white.withValues(alpha: .82))
-                                  : null,
-                              boxShadow: selected
-                                  ? [
-                                      BoxShadow(
-                                        color: HomeStyle.orange
-                                            .withValues(alpha: .12),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 4),
-                                      ),
-                                    ]
-                                  : null,
+                              color: selected
+                                  ? HomeStyle.peach
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Icon(selected ? tab.on : tab.off,
-                                color: color, size: 22),
+                            child: Badge(
+                              isLabelVisible: i == 2 && unreadCount > 0,
+                              backgroundColor: AppColors.danger,
+                              label: Text(
+                                unreadCount > 99 ? '99+' : '$unreadCount',
+                                style: const TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              child: Icon(
+                                selected ? tab.on : tab.off,
+                                color: color,
+                                size: 24,
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 3),
-                        Text(
-                          tab.label,
-                          textAlign: TextAlign.center,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: TextStyle(
-                            fontSize: AppFontSize.caption,
-                            height: 1.1,
-                            color: color,
-                            fontWeight:
-                                selected ? FontWeight.w700 : FontWeight.w500,
+                          const SizedBox(height: 4),
+                          Text(
+                            tab.label,
+                            textAlign: TextAlign.center,
+                            maxLines: _wrapLabels(context) ? 2 : 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: AppFontSize.caption,
+                              height: 1.15,
+                              color: color,
+                              fontWeight:
+                                  selected ? FontWeight.w700 : FontWeight.w500,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -129,11 +131,23 @@ class BottomNav extends StatelessWidget {
         top: false,
         minimum: EdgeInsets.zero,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(12, 4, 12, 4),
-          child: LiquidGlass(
-            borderRadius: BorderRadius.circular(AppRadius.glass),
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 5),
-            child: Row(children: _buildTabs()),
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Container(
+            height: _barHeight(context),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+            decoration: BoxDecoration(
+              color: HomeStyle.card,
+              borderRadius: BorderRadius.circular(22),
+              border: Border.all(color: HomeStyle.divider),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0D101828),
+                  blurRadius: 18,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(children: _buildTabs(context)),
           ),
         ),
       );

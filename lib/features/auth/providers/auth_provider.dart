@@ -1,5 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/api/api_client.dart';
@@ -61,21 +64,93 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  // Xác minh số điện thoại bằng Firebase Phone Auth (SMS do Firebase gửi).
+  String? _verificationId;
+  int? _resendToken;
+
+  String _e164(String phone) {
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    if (digits.startsWith('84')) return '+$digits';
+    return '+84${digits.startsWith('0') ? digits.substring(1) : digits}';
+  }
+
+  /// Gửi (hoặc gửi lại) mã SMS qua Firebase. Dùng cho đăng ký và quên mật khẩu.
   Future<bool> sendOtp(String phone) async {
     state = state.copyWith(isLoading: true, clearError: true);
+    final completer = Completer<bool>();
     try {
-      await _api.post('/customer/auth/send-otp', data: {'phone': phone});
+      await FirebaseAuth.instance.verifyPhoneNumber(
+        phoneNumber: _e164(phone),
+        forceResendingToken: _resendToken,
+        timeout: const Duration(seconds: 60),
+        // Không tự đăng nhập khi Android đọc được SMS — luôn để khách nhập mã
+        // rồi lấy ID token ở confirmCode().
+        verificationCompleted: (_) {},
+        verificationFailed: (e) {
+          debugPrint('[PhoneAuth] ${e.code}: ${e.message}');
+          if (!completer.isCompleted) {
+            state =
+                state.copyWith(isLoading: false, error: _firebaseError(e.code));
+            completer.complete(false);
+          }
+        },
+        codeSent: (id, token) {
+          _verificationId = id;
+          _resendToken = token;
+          if (!completer.isCompleted) {
+            state = state.copyWith(isLoading: false);
+            completer.complete(true);
+          }
+        },
+        codeAutoRetrievalTimeout: (id) => _verificationId = id,
+      );
+    } catch (e) {
+      if (!completer.isCompleted) {
+        state = state.copyWith(isLoading: false, error: _parseError(e));
+        completer.complete(false);
+      }
+    }
+    return completer.future;
+  }
+
+  /// Kiểm tra mã SMS với Firebase, trả ID token để gửi lên backend (null nếu sai mã).
+  Future<String?> confirmCode(String code) async {
+    final id = _verificationId;
+    if (id == null) {
+      state = state.copyWith(error: 'Vui lòng gửi lại mã xác minh');
+      return null;
+    }
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      final cred = await FirebaseAuth.instance.signInWithCredential(
+        PhoneAuthProvider.credential(verificationId: id, smsCode: code),
+      );
+      final token = await cred.user?.getIdToken();
+      // Firebase chỉ dùng để xác minh số; phiên đăng nhập thật do backend cấp.
+      await FirebaseAuth.instance.signOut();
       state = state.copyWith(isLoading: false);
-      return true;
+      return token;
+    } on FirebaseAuthException catch (e) {
+      state = state.copyWith(isLoading: false, error: _firebaseError(e.code));
+      return null;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: _parseError(e));
-      return false;
+      return null;
     }
   }
 
+  String _firebaseError(String code) => switch (code) {
+        'invalid-verification-code' => 'Mã OTP không đúng',
+        'session-expired' => 'Mã OTP đã hết hạn, vui lòng gửi lại',
+        'too-many-requests' => 'Bạn thử quá nhiều lần, vui lòng thử lại sau',
+        'invalid-phone-number' => 'Số điện thoại không hợp lệ',
+        'network-request-failed' => 'Lỗi mạng, vui lòng thử lại',
+        _ => 'Không gửi được mã xác minh ($code), vui lòng thử lại',
+      };
+
   Future<bool> verifyOtpAndRegister({
     required String phone,
-    required String otp,
+    required String idToken,
     required String name,
     required String password,
     int? cityId,
@@ -84,7 +159,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final res = await _api.post('/customer/auth/verify-otp-register', data: {
         'phone': phone,
-        'otp': otp,
+        'id_token': idToken,
         'name': name,
         'password': password,
         if (cityId != null) 'city_id': cityId,
@@ -124,28 +199,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> forgotPassword(String phone) async {
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      await _api.post('/customer/auth/forgot-password', data: {'phone': phone});
-      state = state.copyWith(isLoading: false);
-      return true;
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: _parseError(e));
-      return false;
-    }
-  }
-
   Future<bool> resetPassword({
     required String phone,
-    required String otp,
+    required String idToken,
     required String password,
   }) async {
     state = state.copyWith(isLoading: true, clearError: true);
     try {
       await _api.post('/customer/auth/reset-password', data: {
         'phone': phone,
-        'otp': otp,
+        'id_token': idToken,
         'password': password,
         'password_confirmation': password,
       });

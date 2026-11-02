@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import '../../../core/constants/app_constants.dart';
@@ -34,8 +33,6 @@ class AppVersionNotifier extends StateNotifier<AppVersionState> {
       );
       final data = res.data as Map<String, dynamic>;
 
-      debugPrint('[VersionCheck] current=$current, API response=$data');
-
       final rawForce = data['force_update'];
       final forceUpdate = rawForce == true ||
           rawForce == 1 ||
@@ -59,8 +56,6 @@ class AppVersionNotifier extends StateNotifier<AppVersionState> {
               : data['min_version']?.toString() ?? '1.0.0';
 
       final needsForce = forceUpdate && _isOlderThan(current, minVersion);
-      debugPrint(
-          '[VersionCheck] forceUpdate=$forceUpdate, minVersion=$minVersion, needsForce=$needsForce');
 
       state = AppVersionState(
         isChecked: true,

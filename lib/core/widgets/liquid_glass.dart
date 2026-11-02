@@ -1,11 +1,14 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 
+import '../theme/app_theme.dart';
+
 // ─────────────────────────────────────────────────────────────────────────────
-// LIQUID GLASS — kính mờ trong suốt kiểu iOS 26, dùng chung toàn app: nền
-// phía sau được làm mờ qua lớp kính, viền sáng mảnh phản chiếu ánh sáng, đổ
-// bóng mềm bên dưới. Bắt nguồn từ màn Home, tách ra đây để mọi màn hình
-// dùng chung một hệ thống.
+// LIGHTWEIGHT GLASS SURFACES
+//
+// Các tên class cũ được giữ lại để không làm xáo trộn hàng loạt màn hình,
+// còn hiệu ứng kính được tạo bằng màu bán trong suốt và gradient tĩnh.
+// Tuyệt đối không dùng BackdropFilter: blur ở các card trong vùng cuộn là
+// nguyên nhân gây overdraw và raster chậm trên nhiều thiết bị Android.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class LiquidGlass extends StatelessWidget {
@@ -22,60 +25,24 @@ class LiquidGlass extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: BoxDecoration(borderRadius: borderRadius, boxShadow: [
-        BoxShadow(
-            color: Colors.black.withValues(alpha: .10),
-            blurRadius: 28,
-            offset: const Offset(0, 14)),
-      ]),
-      child: ClipRRect(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .96),
         borderRadius: borderRadius,
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-          child: Stack(children: [
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: borderRadius,
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withValues(alpha: .50),
-                      Colors.white.withValues(alpha: .25),
-                    ],
-                  ),
-                  border: Border.all(
-                      color: Colors.white.withValues(alpha: .75), width: 1.2),
-                ),
-              ),
-            ),
-            // Vệt sáng phản chiếu mảnh dọc theo cạnh trên — đặc trưng của
-            // hiệu ứng kính "liquid glass".
-            Positioned(
-              top: 1,
-              left: borderRadius.topLeft.x,
-              right: borderRadius.topRight.x,
-              child: Container(
-                height: 1,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(colors: [
-                    Colors.white.withValues(alpha: 0),
-                    Colors.white.withValues(alpha: .95),
-                    Colors.white.withValues(alpha: 0),
-                  ]),
-                ),
-              ),
-            ),
-            Padding(padding: padding ?? EdgeInsets.zero, child: child),
-          ]),
-        ),
+        border: Border.all(color: const Color(0xFFE9ECF2)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0D101828),
+            blurRadius: 20,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
+      child: Padding(padding: padding ?? EdgeInsets.zero, child: child),
     );
   }
 }
 
-/// Icon surface using the same translucency and highlight as glass cards.
+/// Icon pseudo-glass dùng gradient tĩnh, không blur.
 class GlassIcon extends StatelessWidget {
   final IconData icon;
   final Color color;
@@ -96,70 +63,29 @@ class GlassIcon extends StatelessWidget {
         height: size,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(18),
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Colors.white.withValues(alpha: .62),
-              color.withValues(alpha: .14),
-            ],
-          ),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: .82),
-            width: 1.1,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: .10),
-              blurRadius: 12,
-              offset: const Offset(0, 5),
-            ),
-          ],
+          color: color.withValues(alpha: .10),
+          border: Border.all(color: color.withValues(alpha: .14)),
         ),
         child: Icon(icon, size: iconSize, color: color),
       );
 }
 
-/// Nền nhiều "quầng" màu mềm loang phía sau các lớp kính, để hiệu ứng làm mờ
-/// của Liquid Glass có gì đó để khúc xạ — kính trong suốt trên nền trắng
-/// trơn sẽ không thấy hiệu ứng.
+/// Nền gradient tĩnh giúp surface bán trong suốt có chiều sâu mà không cần blur.
 class LiquidBackdrop extends StatelessWidget {
   final Widget child;
   const LiquidBackdrop({super.key, required this.child});
 
-  static Widget _blob(double size, Color color, double opacity) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          gradient: RadialGradient(colors: [
-            color.withValues(alpha: opacity),
-            color.withValues(alpha: 0),
-          ]),
-        ),
-      );
-
   @override
-  Widget build(BuildContext context) {
-    return Stack(children: [
-      const Positioned.fill(child: ColoredBox(color: Color(0xFFF4F1EA))),
-      Positioned(
-          top: -70, left: -60, child: _blob(260, const Color(0xFFFF7A3D), .5)),
-      Positioned(
-          top: 140,
-          right: -100,
-          child: _blob(320, const Color(0xFF20C4C6), .4)),
-      Positioned(
-          bottom: -50,
-          left: -50,
-          child: _blob(260, const Color(0xFFFFC24A), .38)),
-      Positioned(
-          bottom: 220,
-          right: -70,
-          child: _blob(220, const Color(0xFFFF6F91), .32)),
-      child,
-    ]);
-  }
+  Widget build(BuildContext context) => DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF9FAFB), Color(0xFFF3F5F8)],
+          ),
+        ),
+        child: child,
+      );
 }
 
 /// Shared modal surface. Callers provide their own handle and scroll layout.
@@ -168,11 +94,13 @@ class GlassBottomSheet extends StatelessWidget {
   final Widget child;
 
   @override
-  Widget build(BuildContext context) => LiquidGlass(
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-        child: Material(
-          color: Colors.transparent,
-          child: SafeArea(top: false, child: child),
+  Widget build(BuildContext context) => Material(
+        color: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+          side: BorderSide(color: AppColors.divider),
         ),
+        clipBehavior: Clip.antiAlias,
+        child: SafeArea(top: false, child: child),
       );
 }

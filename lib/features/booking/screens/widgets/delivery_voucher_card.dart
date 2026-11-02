@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/formatters.dart';
-import '../../../../core/widgets/liquid_glass.dart';
+import '../../../home/widgets/home_style.dart';
 
 class DeliveryVoucherCard extends StatelessWidget {
   const DeliveryVoucherCard({
@@ -26,24 +26,38 @@ class DeliveryVoucherCard extends StatelessWidget {
         ? AppColors.textTertiary
         : applied
             ? AppColors.success
-            : AppColors.primary;
-    return LiquidGlass(
-      borderRadius: BorderRadius.circular(AppRadius.glass),
+            : HomeStyle.orange;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: applied
+            ? AppColors.success.withValues(alpha: .035)
+            : HomeStyle.card,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(
+          color: applied
+              ? AppColors.success.withValues(alpha: .28)
+              : HomeStyle.divider,
+        ),
+      ),
       child: Material(
         color: Colors.transparent,
         child: Row(children: [
           Expanded(
             child: InkWell(
               onTap: onTap,
-              borderRadius: BorderRadius.circular(AppRadius.glass),
+              borderRadius: BorderRadius.circular(AppRadius.card),
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(children: [
-                  GlassIcon(
-                    icon: Icons.local_offer_outlined,
-                    color: accent,
-                    size: 40,
-                    iconSize: 20,
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: .10),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
+                    ),
+                    child: Icon(Icons.local_offer_outlined,
+                        size: 20, color: accent),
                   ),
                   const SizedBox(width: 12),
                   Expanded(

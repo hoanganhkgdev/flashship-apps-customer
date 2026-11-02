@@ -67,7 +67,7 @@ class _Handle extends StatelessWidget {
   Widget build(BuildContext context) => Center(
         child: Container(
           margin: const EdgeInsets.only(top: 14, bottom: 8),
-          width: 42,
+          width: 40,
           height: 4,
           decoration: BoxDecoration(
             color: AppColors.divider,
@@ -92,11 +92,15 @@ class _Header extends StatelessWidget {
         ),
         child: Row(
           children: [
-            GlassIcon(
-                icon: Fmt.serviceIcon(serviceType),
-                color: color,
-                size: 40,
-                iconSize: 21),
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: .10),
+                borderRadius: BorderRadius.circular(AppRadius.md),
+              ),
+              child: Icon(Fmt.serviceIcon(serviceType), size: 21, color: color),
+            ),
             const SizedBox(width: 12),
             Expanded(
                 child: Column(

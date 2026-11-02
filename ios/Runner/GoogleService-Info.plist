@@ -24,10 +24,6 @@
 	<true></true>
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
-	<key>CLIENT_ID</key>
-	<string>1020094680343-iivbrqera91ieqtdl5jnft2q4ai20n6a.apps.googleusercontent.com</string>
-	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.1020094680343-iivbrqera91ieqtdl5jnft2q4ai20n6a</string>
 	<key>GOOGLE_APP_ID</key>
 	<string>1:219581386028:ios:fee9d1b4d27dafdbf27089</string>
 	<key>DATABASE_URL</key>

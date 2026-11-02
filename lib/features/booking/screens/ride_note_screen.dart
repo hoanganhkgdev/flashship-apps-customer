@@ -121,7 +121,8 @@ class _State extends State<RideNoteScreen> {
               decoration: InputDecoration(
                 labelText: title,
                 labelStyle: const TextStyle(
-                    fontSize: AppFontSize.bodyLarge, color: AppColors.textSecondary),
+                    fontSize: AppFontSize.bodyLarge,
+                    color: AppColors.textSecondary),
                 floatingLabelStyle: const TextStyle(
                     fontSize: AppFontSize.body,
                     color: AppColors.primary,

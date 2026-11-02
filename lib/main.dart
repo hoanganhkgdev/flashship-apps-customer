@@ -7,6 +7,7 @@ import 'core/api/api_client.dart';
 import 'core/router/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/providers/auth_provider.dart';
+import 'features/home/widgets/home_style.dart';
 import 'features/order/providers/order_provider.dart';
 import 'features/version/providers/app_version_provider.dart';
 import 'firebase_options.dart';
@@ -88,12 +89,12 @@ class _FlashShipAppState extends ConsumerState<FlashShipApp>
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: AppColors.primary,
+                color: HomeStyle.peach,
                 borderRadius: BorderRadius.circular(10),
               ),
               padding: const EdgeInsets.all(7),
               child: Image.asset('assets/images/logo.png',
-                  color: Colors.white, fit: BoxFit.contain),
+                  fit: BoxFit.contain),
             ),
             const SizedBox(width: 10),
             const Text('Cập nhật bắt buộc',

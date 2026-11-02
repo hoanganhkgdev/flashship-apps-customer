@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,8 @@ import '../constants/app_constants.dart';
 enum LocationFailure {
   serviceDisabled,
   permissionDenied,
-  permissionDeniedForever
+  permissionDeniedForever,
+  timedOut,
 }
 
 class LocationException implements Exception {
@@ -53,7 +55,14 @@ class LocationService {
             timeLimit: const Duration(seconds: 10),
           );
 
-    return Geolocator.getCurrentPosition(locationSettings: settings);
+    try {
+      return await Geolocator.getCurrentPosition(locationSettings: settings);
+    } on TimeoutException {
+      // geolocator_apple forwards the native timeLimit as a Dart
+      // TimeoutException. Convert it to the service's typed failure so every
+      // caller can recover consistently instead of crashing the isolate.
+      throw const LocationException(LocationFailure.timedOut);
+    }
   }
 
   static Future<String?> getCurrentAddress() async {
@@ -90,7 +99,32 @@ class LocationService {
     try {
       pos = await getCurrentPosition();
     } on LocationException catch (e) {
-      if (context.mounted) await showFailureDialog(context, e);
+      if (!context.mounted) return null;
+      if (e.reason == LocationFailure.timedOut) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Chưa xác định được vị trí. Bạn có thể chọn địa chỉ thủ công.',
+            ),
+          ),
+        );
+      } else {
+        await showFailureDialog(context, e);
+      }
+      return null;
+    } catch (_) {
+      // Native location implementations can also surface platform-specific
+      // errors. Location prefill is optional, so leave the field empty and
+      // let the user choose an address instead of failing the booking screen.
+      if (context.mounted) {
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Không thể lấy vị trí hiện tại. Vui lòng chọn địa chỉ thủ công.',
+            ),
+          ),
+        );
+      }
       return null;
     }
     if (!context.mounted) return null;
@@ -119,6 +153,13 @@ class LocationService {
           'Quyền vị trí đã bị từ chối',
           'Vui lòng vào Cài đặt > Flash Ship > Vị trí để bật quyền truy cập.',
           Geolocator.openAppSettings,
+        ),
+      // Timeout is handled non-modally in [resolveCurrentLocation]. Keep this
+      // branch exhaustive for direct callers of this dialog helper.
+      LocationFailure.timedOut => (
+          'Chưa xác định được vị trí',
+          'Tín hiệu GPS phản hồi quá chậm. Vui lòng thử lại hoặc chọn địa chỉ thủ công.',
+          Geolocator.openLocationSettings,
         ),
     };
 
